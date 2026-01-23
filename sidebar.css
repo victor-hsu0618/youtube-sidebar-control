@@ -1,0 +1,389 @@
+:root {
+  --bg-color: #0f0f0f;
+  --card-bg: #1e1e1e;
+  --text-primary: #ffffff;
+  --text-secondary: #aaaaaa;
+  --accent-color: #3ea6ff;
+  --accent-hover: #65b8ff;
+  --danger-color: #ff4e45;
+  --border-radius: 12px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  font-family: var(--font-family);
+  font-size: 14px;
+  padding: var(--spacing-md);
+  height: 100vh;
+  overflow-y: auto;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-color);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 4px;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  background: #252525;
+  padding: 12px;
+  border-radius: 12px;
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.large-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--accent-color);
+  color: #000;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.large-icon:hover {
+  background: var(--accent-hover);
+  transform: scale(1.05);
+}
+
+.large-icon svg {
+  display: block;
+}
+
+h1 {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+}
+
+h2 {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Status Indicator */
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #444;
+  /* Default/Disconnected */
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+  transition: background-color 0.3s;
+}
+
+.status-indicator.connected {
+  background-color: #4cc713;
+  /* Green/Connected */
+  box-shadow: 0 0 8px #4cc71380;
+}
+
+/* Control Groups */
+.control-group {
+  background-color: var(--card-bg);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-md);
+  border: 1px solid #333;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.value-display {
+  font-family: monospace;
+  background: #333;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+/* Inputs & Buttons */
+input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent-color);
+  margin-bottom: 12px;
+  cursor: pointer;
+}
+
+.presets {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+.preset-btn {
+  background: #333;
+  color: var(--text-primary);
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  flex: 1;
+}
+
+.preset-btn:hover {
+  background: #444;
+}
+
+.action-btn {
+  background: var(--accent-color);
+  color: #000;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.action-btn:hover {
+  background: var(--accent-hover);
+}
+
+.secondary-btn {
+  width: 100%;
+  background: transparent;
+  border: 1px solid #444;
+  color: var(--text-secondary);
+  padding: 8px;
+  border-radius: 6px;
+  margin-top: 12px;
+}
+
+.secondary-btn:hover {
+  border-color: #666;
+  color: var(--text-primary);
+}
+
+/* Loop Controls */
+.loop-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.loop-point {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.label {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.input-group {
+  display: flex;
+  gap: 8px;
+}
+
+.input-group input {
+  flex: 1;
+  background: #111;
+  border: 1px solid #333;
+  color: var(--text-primary);
+  padding: 8px;
+  border-radius: 6px;
+  font-family: monospace;
+  text-align: center;
+}
+
+.icon-btn {
+  width: 36px;
+  background: #333;
+  color: var(--text-primary);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.icon-btn:hover {
+  background: #444;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #333;
+  transition: .4s;
+  border-radius: 20px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked+.slider {
+  background-color: var(--accent-color);
+}
+
+input:checked+.slider:before {
+  transform: translateX(16px);
+}
+
+/* Bookmarks List */
+.bookmarks-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bookmark-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #2a2a2a;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  gap: 8px;
+}
+
+.bookmark-item:hover {
+  border-color: #444;
+  background: #303030;
+}
+
+.bookmark-controls {
+  display: flex;
+  gap: 4px;
+}
+
+.loop-set-btn {
+  background: #333;
+  color: var(--text-secondary);
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.loop-set-btn:hover {
+  background: var(--accent-color);
+  color: #000;
+}
+
+.bookmark-time-input {
+  font-family: monospace;
+  color: var(--accent-color);
+  font-weight: 500;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  width: 60px;
+  font-size: 13px;
+  text-align: center;
+}
+
+.bookmark-time-input:hover,
+.bookmark-time-input:focus {
+  background: #111;
+  border-color: #444;
+  outline: none;
+}
+
+.bookmark-desc {
+  flex: 1;
+  color: var(--text-secondary);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 2px 4px;
+}
+
+.bookmark-desc:hover,
+.bookmark-desc:focus {
+  border-color: #444;
+  outline: none;
+}
+
+.delete-btn {
+  background: transparent;
+  color: #666;
+  padding: 4px;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.delete-btn:hover {
+  color: var(--danger-color);
+}
