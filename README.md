@@ -1,77 +1,79 @@
+[English](README.md) | [繁體中文](README.zh-TW.md)
+
 # YouTube Studio Sidebar
 
-專業的 YouTube 播放控制與學習工具。將您的 YouTube 體驗轉變為強大的學習和筆記工作站。
+Professional YouTube playback control and learning tool. Transform your YouTube experience into a powerful learning and notetaking workstation.
 
-## 📥 安裝說明
+## 📥 Installation
 
-本專案是一個瀏覽器擴充功能 (Browser Extension)，目前支援 Chrome 與 Edge 瀏覽器。請依下列步驟以開發者模式安裝：
+This project is a browser extension, currently supporting Chrome and Edge browsers. Please follow these steps to install in Developer Mode:
 
-1. **取得程式碼**
+1. **Get the Code**
    
-   下載此專案的 ZIP 檔並解壓縮，或是使用 Git Clone：
+   Download the ZIP file of this project and extract it, or use Git Clone:
    ```bash
    git clone https://github.com/victor-hsu0618/youtube-sidebar-control.git
    ```
 
-2. **開啟擴充功能管理頁面**
+2. **Open Extensions Management Page**
    
-   - **Chrome**: 在網址列輸入 `chrome://extensions`
-   - **Edge**: 在網址列輸入 `edge://extensions`
+   - **Chrome**: Enter `chrome://extensions` in the address bar
+   - **Edge**: Enter `edge://extensions` in the address bar
 
-3. **啟用開發人員模式**
+3. **Enable Developer Mode**
    
-   在頁面角落（通常在右上角）找到並開啟「開發人員模式 (Developer mode)」開關。
+   Find and toggle the "Developer mode" switch in the corner of the page (usually top right).
 
-4. **載入未封裝擴充功能**
+4. **Load Unpacked Extension**
    
-   - 點擊「載入未封裝項目 (Load unpacked)」。
-   - 選擇本專案的資料夾（確保該資料夾內含有 `manifest.json` 檔案）。
+   - Click "Load unpacked".
+   - Select the folder of this project (ensure the folder contains the `manifest.json` file).
 
-5. **開始使用**
+5. **Start Using**
    
-   安裝完成後，開啟任一 YouTube 影片頁面，點擊瀏覽器工具列中的 Extension 圖示，或開啟側邊欄即可使用。
+   After installation is complete, open any YouTube video page, click the Extension icon in the browser toolbar, or open the sidebar to use.
 
-## 🌟 主要功能
+## 🌟 Main Features
 
-### 1. 🎛️ 進階播放控制
-- **精確速度控制**：滑桿調整 0.25x 至 3.0x，並提供快速預設值（0.5x、1.0x、1.5x、2.0x）
-- **A-B 循環播放**：設定特定的起點（A）和終點（B）來重複播放困難片段
-- **微調導航**：快退/快進 10 秒，或跳轉到特定時間點
-- **可拖曳進度條**：視覺化進度條，快速定位
+### 1. 🎛️ Advanced Playback Control
+- **Precise Speed Control**: Slider adjustment from 0.25x to 3.0x, with quick presets (0.5x, 1.0x, 1.5x, 2.0x)
+- **A-B Loop**: Set specific start (A) and end (B) points to repeat difficult segments
+- **Fine Navigation**: Rewind/Fast Forward 10 seconds, or jump to specific timestamp
+- **Draggable Progress Bar**: Visual progress bar for quick positioning
 
-### 2. 🔖 智慧標記 (Smart Markers)
-- **時間戳記筆記**：在影片任何時刻添加標記 (Marker)
-- **即時跳轉**：點擊任何標記即可精確跳轉到該時間點
-- **循環就緒**：一鍵根據標記時間設定 A-B 循環點
-- **分組管理**：將標記組織到「預設 (Default)」、「學習」或自訂分組中
+### 2. 🔖 Smart Markers
+- **Timestamp Notes**: Add markers at any moment in the video
+- **Instant Jump**: Click any marker to jump precisely to that timestamp
+- **Loop Ready**: Set A-B loop points based on marker time with one click
+- **Group Management**: Organize markers into "Default", "Study", or custom groups
 
-### 3. 💾 影片庫與多設定檔系統
-- **影片設定檔**：為單一 YouTube 影片儲存多個「工作階段」
-    - *範例：一個設定檔用於「單字」，另一個用於「文法分析」*
-- **我的預設 (★)**：將您最愛的設定檔標記為預設
-- **自動偵測 🪄**：一鍵智慧載入當前影片的「預設」或「最近編輯」設定檔
-- **我的最愛分頁**：專門檢視所有已加星號/預設的設定檔
+### 3. 💾 Video Library & Multi-Profile System
+- **Video Profiles**: Save multiple "sessions" for a single YouTube video
+    - *Example: One profile for "Vocabulary", another for "Grammar Analysis"*
+- **My Defaults (★)**: Mark your favorite profiles as default
+- **Auto Detect 🪄**: Smart one-click load of "Default" or "Recently Edited" profile for current video
+- **Favorites Tab**: Specifically view all starred/default profiles
 
-### 4. 🪟 浮動視窗（彈出視窗）
-- **多螢幕支援**：將側邊欄彈出為浮動視窗，可放置在第二個螢幕上
-- **即時同步**：彈出視窗中的操作會立即與側邊欄同步（反之亦然）
-- **自動關閉**：關閉側邊欄時會自動清理彈出視窗
-- **切換模式**：彈出按鈕可輕鬆開啟/關閉外部視窗
+### 4. 🪟 Floating Window (Pop-out)
+- **Multi-Screen Support**: Pop out the sidebar as a floating window to place on a second screen
+- **Real-time Sync**: Actions in the pop-out window sync immediately with the sidebar (and vice versa)
+- **Auto Close**: The pop-out window is automatically cleaned up when the sidebar is closed
+- **Toggle Mode**: Pop-out button easily toggles external window on/off
 
-### 5. 🧠 智慧連線
-- **待機模式**：自動偵測您離開 YouTube 時
-    - *非 YouTube 分頁*：顯示「待機」畫面以節省資源
-    - *返回 YouTube*：立即喚醒並重新連接控制
-- **意圖導向載入**：當您在影片庫中點擊特定設定檔時，extension 會確保載入該特定版本，即使您導航離開也一樣
+### 5. 🧠 Smart Connection
+- **Standby Mode**: Automatically detects when you leave YouTube
+    - *Non-YouTube Tabs*: Displays "Standby" screen to save resources
+    - *Return to YouTube**: Wakes up immediately and reconnects control
+- **Intent-Driven Loading**: When you click a specific profile in the library, the extension ensures that specific version loads, even if you navigate away
 
-## 🛠️ 使用方式
+## 🛠️ Usage
 
-1. **開啟**：在 YouTube 頁面點擊 extension 圖示
-2. **控制**：使用頂部播放器區域控制速度和循環
-3. **儲存**：點擊**愛心/儲存圖示**將當前影片加入您的影片庫
-4. **彈出**：點擊標題列的 ↗️ 箭頭以分離視窗
-5. **管理**：使用「影片庫」分頁檢視歷史記錄，或使用「我的最愛」分頁檢視已加星號的工作階段
+1. **Open**: Click the extension icon on a YouTube page
+2. **Control**: Use the top player area to control speed and loops
+3. **Save**: Click the **Heart/Save icon** to add current video to your library
+4. **Pop-out**: Click the ↗️ arrow in the title bar to detach the window
+5. **Manage**: Use "Library" tab to view history, or "Favorites" tab to view starred sessions
 
-## 📝 注意事項
+## 📝 Notes
 
-本 extension 透過 UI 按鈕操作，不提供鍵盤快捷鍵功能。所有控制都可以透過側邊欄或彈出視窗的介面完成。
+This extension operates via UI buttons and does not provide keyboard shortcuts. All controls can be done through the sidebar or pop-out window interface.
