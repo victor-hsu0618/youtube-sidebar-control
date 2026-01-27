@@ -1,6 +1,5 @@
 // sidebar.js
 
-// --- Debug Utility ---
 const debugConsole = document.getElementById('debug-console');
 const debugLogs = document.getElementById('debug-logs');
 
@@ -16,256 +15,1026 @@ function log(msg, type = 'info') {
     console.log(msg);
 }
 
-window.onerror = function (message, source, lineno, colno, error) {
-    log(`Global Error: ${message} at ${lineno}:${colno}`, 'error');
-};
-
 try {
-    // State
-    let currentTabId = null;
+    // --- State ---
+    let currentVideoId = null;
+    let currentStorageKey = null; // null = Temporary Session (Unsaved)
+    let isPlaying = false;
+    let currentVideoData = createEmptyData();
+    let isDraggingProgress = false;
+    let connectedTabId = null; // Track connected tab for Popout
 
-    // DOM Elements
-    const speedSlider = document.getElementById('speed-slider');
-    const speedDisplay = document.getElementById('speed-display');
-    const presetButtons = document.querySelectorAll('.preset-btn');
+    function createEmptyData(id = null, title = "Unknown") {
+        return {
+            id: id,
+            title: title,
+            thumbnail: "",
+            isSaved: false,
+            isDefault: false,
+            createdAt: 0,
+            updatedAt: 0,
+            profileName: "New Session",
+            activeGroup: "Formal",
+            tagGroups: { "Formal": [], "Study": [], "Cust. A": [], "Cust. B": [] }
+        };
+    }
 
-    const loopToggle = document.getElementById('loop-toggle');
-    const loopStartInput = document.getElementById('loop-start');
-    const loopEndInput = document.getElementById('loop-end');
-    const setStartBtn = document.getElementById('set-start');
-    const setEndBtn = document.getElementById('set-end');
-    // const clearLoopBtn = document.getElementById('clear-loop'); // Moved below
+    // --- Elements ---
+    const views = {
+        player: document.getElementById('view-player'),
+        library: document.getElementById('view-library'),
+        favorites: document.getElementById('view-favorites')
+    };
+    const navs = {
+        player: document.getElementById('nav-player'),
+        library: document.getElementById('nav-library'),
+        favorites: document.getElementById('nav-favorites')
+    };
 
-    const bookmarksList = document.getElementById('bookmarks-list');
-    const addBookmarkBtn = document.getElementById('add-bookmark');
-    const statusIndicator = document.getElementById('connection-status');
+    // Controls
     const playPauseBtn = document.getElementById('play-pause');
+    const progressBar = document.getElementById('progress-bar');
 
     // Icons
     const ICON_PLAY = '<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
     const ICON_PAUSE = '<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+    const ICON_SMALL_PLAY = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
 
-    // Helper: Get Active Tab
-    async function getActiveTab() {
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        return tab;
+    // --- Navigation ---
+    function switchView(viewName) {
+        Object.keys(views).forEach(k => {
+            if (views[k]) views[k].style.display = (k === viewName) ? 'block' : 'none';
+        });
+        Object.keys(navs).forEach(k => {
+            if (navs[k]) navs[k].classList.toggle('active', k === viewName);
+        });
+
+        if (viewName === 'library') loadLibrary();
+        if (viewName === 'favorites') loadFavorites();
     }
 
-    // Helper: Send Message to Content Script
-    async function sendMessage(action, payload = {}) {
-        try {
-            const tab = await getActiveTab();
-            if (!tab?.id) return;
+    if (navs.player) navs.player.addEventListener('click', () => switchView('player'));
+    if (navs.library) navs.library.addEventListener('click', () => switchView('library'));
+    if (navs.favorites) navs.favorites.addEventListener('click', () => switchView('favorites'));
 
-            if (!tab.url.includes('youtube.com/watch')) {
-                statusIndicator.classList.remove('connected');
-                statusIndicator.title = "Not a YouTube Video";
+    // --- Pop Out Logic ---
+    const popOutBtn = document.getElementById('nav-popout');
+    if (popOutBtn) {
+        chrome.windows.getCurrent((win) => {
+            if (win.type === 'popup') {
+                popOutBtn.style.display = 'none';
+            }
+        });
+
+        let activePopupId = null;
+
+        const updateBtnState = () => {
+            if (activePopupId) {
+                popOutBtn.style.color = '#ff4e45'; // Red for Close
+                popOutBtn.title = "Close Pop Out";
+                popOutBtn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>';
+            } else {
+                popOutBtn.style.color = '';
+                popOutBtn.title = "Pop Out Window";
+                popOutBtn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>';
+            }
+        };
+
+        popOutBtn.addEventListener('click', async () => {
+            // Close if active
+            if (activePopupId) {
+                try { await chrome.windows.remove(activePopupId); } catch (e) { }
+                activePopupId = null;
+                updateBtnState();
                 return;
             }
 
-            await chrome.tabs.sendMessage(tab.id, { action, ...payload });
+            // Find current target tab to pass
+            let targetId = connectedTabId;
+            if (!targetId) {
+                // Determine current active tab in this window
+                const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+                if (tab) targetId = tab.id;
+            }
+
+            const url = targetId ? `sidebar.html?tabId=${targetId}` : 'sidebar.html';
+
+            chrome.windows.create({
+                url: url,
+                type: 'popup',
+                width: 400,
+                height: 700,
+                focused: true
+            }, (win) => {
+                activePopupId = win.id;
+                updateBtnState();
+
+                // Reset state when closed externally
+                const onRemoved = (winId) => {
+                    if (winId === activePopupId) {
+                        activePopupId = null;
+                        updateBtnState();
+                        chrome.windows.onRemoved.removeListener(onRemoved);
+                    }
+                };
+                chrome.windows.onRemoved.addListener(onRemoved);
+
+                // Auto Close on Sidebar Unload (Keep this preference)
+                const closePopup = () => {
+                    try { chrome.windows.remove(win.id); } catch (e) { }
+                };
+                window.addEventListener('unload', closePopup);
+            });
+        });
+    }
+
+    // --- Communication ---
+    const statusIndicator = document.getElementById('connection-status');
+
+    // Check URL for passed tabId
+    const urlParams = new URLSearchParams(window.location.search);
+    const passedTabId = urlParams.get('tabId');
+    if (passedTabId) {
+        connectedTabId = parseInt(passedTabId, 10);
+        console.log("Locked to Tab ID:", connectedTabId);
+    }
+
+    async function sendMessage(action, payload = {}) {
+        try {
+            let targetTabId = null;
+
+            // Strategy 1: Use Established/Passed ID
+            if (connectedTabId) {
+                targetTabId = connectedTabId;
+            }
+
+            // Strategy 2: If no connection, find standard active tab (Side Panel Mode)
+            if (!targetTabId) {
+                const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+                if (tab && tab.url.includes('youtube.com/watch')) {
+                    targetTabId = tab.id;
+                }
+            }
+
+            // Strategy 3: (Popout Mode Fallback) Scan for ANY YouTube tab
+            if (!targetTabId) {
+                const tabs = await chrome.tabs.query({ url: "*://*.youtube.com/watch*" });
+                // Prioritize audible or focused
+                const active = tabs.find(t => t.active) || tabs[0];
+                if (active) targetTabId = active.id;
+            }
+
+            if (!targetTabId) {
+                statusIndicator.classList.remove('connected');
+                return;
+            }
+
+            // Validate existence logic can be tricky if permissions are tight, 
+            // but assuming host permissions, we can just send.
+
+            // Soft validation / ID tracking
+            connectedTabId = targetTabId;
+
+            await chrome.tabs.sendMessage(targetTabId, { action, ...payload });
             statusIndicator.classList.add('connected');
-            statusIndicator.title = "Connected";
         } catch (error) {
             statusIndicator.classList.remove('connected');
-            statusIndicator.title = "Connection Failed: " + error.message;
-
-            // Attempt re-injection
-            try {
-                const tab = await getActiveTab();
-                if (tab && tab.id && tab.url.includes('youtube.com/watch')) {
-                    await chrome.scripting.executeScript({
-                        target: { tabId: tab.id },
-                        files: ['content.js']
-                    });
-                    // fast retry
-                    setTimeout(() => {
-                        chrome.tabs.sendMessage(tab.id, { action, ...payload }).catch(() => { });
-                    }, 500);
-                }
-            } catch (e) {
-                console.error("Re-injection failed", e);
-            }
+            // Reset if error (tab closed etc)
+            // But if it was passed via param, maybe we shouldn't reset immediately unless sure?
+            // For now, reset is safer to allow auto-finding other tabs.
+            connectedTabId = null;
         }
     }
 
-    // --- Play/Pause & Seek Logic ---
+    // --- Logic ---
+    function updatePlayPauseIcon(playing) {
+        isPlaying = playing;
+        if (playPauseBtn) {
+            playPauseBtn.innerHTML = isPlaying ? ICON_PAUSE : ICON_PLAY;
+        }
+    }
+
     if (playPauseBtn) {
-        playPauseBtn.addEventListener('click', () => {
-            sendMessage('TOGGLE_PLAYBACK');
-        });
+        playPauseBtn.addEventListener('click', () => sendMessage('TOGGLE_PLAYBACK'));
     }
-    const rwdBtn = document.getElementById('rwd-btn');
-    const fwdBtn = document.getElementById('fwd-btn');
-    if (rwdBtn) rwdBtn.addEventListener('click', () => sendMessage('SEEK_BY', { offset: -10 }));
-    if (fwdBtn) fwdBtn.addEventListener('click', () => sendMessage('SEEK_BY', { offset: 10 }));
 
-    // --- Playback Speed Logic ---
+    // Transport
+    document.getElementById('restart-btn')?.addEventListener('click', () => sendMessage('SEEK_TO', { time: 0 }));
+    document.getElementById('rwd-btn')?.addEventListener('click', () => sendMessage('SEEK_BY', { offset: -10 }));
+    document.getElementById('fwd-btn')?.addEventListener('click', () => sendMessage('SEEK_BY', { offset: 10 }));
+
+    // Speed
+    const speedSlider = document.getElementById('speed-slider');
+    const speedDisplay = document.getElementById('speed-display');
     speedSlider.addEventListener('input', (e) => {
-        const speed = parseFloat(e.target.value);
-        speedDisplay.textContent = speed + 'x';
-        sendMessage('SET_SPEED', { speed });
+        const val = e.target.value;
+        speedDisplay.textContent = val + 'x';
+        sendMessage('SET_SPEED', { speed: parseFloat(val) });
     });
-
-    presetButtons.forEach(btn => {
+    document.querySelectorAll('.preset-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            const speed = parseFloat(btn.dataset.speed);
-            speedSlider.value = speed;
-            speedDisplay.textContent = speed + 'x';
-            sendMessage('SET_SPEED', { speed });
+            const val = btn.dataset.speed;
+            speedSlider.value = val;
+            speedDisplay.textContent = val + 'x';
+            sendMessage('SET_SPEED', { speed: parseFloat(val) });
         });
     });
 
-    // --- Loop Logic ---
-    const clearLoopBtn = document.getElementById('clear-loop');
-    const jumpLoopBtn = document.getElementById('jump-loop');
+    // Progress
+    const timeCurrent = document.getElementById('time-current');
+    const timeTotal = document.getElementById('time-total');
 
-    setStartBtn.addEventListener('click', () => sendMessage('SET_LOOP_START'));
-    setEndBtn.addEventListener('click', () => sendMessage('SET_LOOP_END'));
+    progressBar.addEventListener('mousedown', () => isDraggingProgress = true);
+    progressBar.addEventListener('mouseup', () => isDraggingProgress = false);
+    progressBar.addEventListener('input', (e) => timeCurrent.textContent = formatTime(parseFloat(e.target.value)));
+    progressBar.addEventListener('change', (e) => {
+        sendMessage('SEEK_TO', { time: parseFloat(e.target.value) });
+        isDraggingProgress = false;
+    });
 
-    if (clearLoopBtn) {
-        clearLoopBtn.addEventListener('click', () => {
-            loopStartInput.value = '';
-            loopEndInput.value = '';
-            sendMessage('CLEAR_LOOP');
+    // Loop & Manual Input
+    const loopToggle = document.getElementById('loop-toggle');
+    const loopStart = document.getElementById('loop-start');
+    const loopEnd = document.getElementById('loop-end');
+
+    document.getElementById('set-start').addEventListener('click', () => sendMessage('SET_LOOP_START'));
+    document.getElementById('set-end').addEventListener('click', () => sendMessage('SET_LOOP_END'));
+
+    loopStart.addEventListener('change', () => {
+        const t = parseTime(loopStart.value);
+        if (t !== null) sendMessage('SET_LOOP_START', { time: t });
+    });
+    loopEnd.addEventListener('change', () => {
+        const t = parseTime(loopEnd.value);
+        if (t !== null) sendMessage('SET_LOOP_END', { time: t });
+    });
+
+    document.getElementById('clear-loop')?.addEventListener('click', () => {
+        loopStart.value = ''; loopEnd.value = ''; sendMessage('CLEAR_LOOP');
+    });
+    document.getElementById('jump-loop')?.addEventListener('click', () => sendMessage('JUMP_LOOP_START'));
+    loopToggle.addEventListener('change', (e) => sendMessage('TOGGLE_LOOP', { enabled: e.target.checked }));
+
+    // Bookmarks UI
+    const groupSelector = document.getElementById('group-selector');
+    const fileImport = document.getElementById('file-import');
+
+    groupSelector.addEventListener('change', (e) => {
+        currentVideoData.activeGroup = e.target.value;
+        saveData();
+        renderBookmarks();
+    });
+
+    document.getElementById('add-bookmark').addEventListener('click', () => sendMessage('ADD_BOOKMARK_REQUEST'));
+    document.getElementById('btn-export').addEventListener('click', exportData);
+    document.getElementById('btn-import').addEventListener('click', () => fileImport.click());
+    fileImport.addEventListener('change', importData);
+
+    const libFileImport = document.getElementById('lib-file-import');
+    document.getElementById('lib-btn-import').addEventListener('click', () => libFileImport.click());
+    libFileImport.addEventListener('change', importVideoData);
+
+    // --- Auto Detect Button ---
+    document.getElementById('btn-detect-video')?.addEventListener('click', async () => {
+        if (!currentVideoId) {
+            const btn = document.getElementById('btn-detect-video');
+            btn.style.color = '#ff4e45';
+            setTimeout(() => btn.style.color = '', 1000);
+            return;
+        }
+
+        const all = await chrome.storage.sync.get(null);
+        const related = [];
+        Object.keys(all).forEach(k => {
+            if (k.startsWith('v_' + currentVideoId) && all[k].isSaved) {
+                related.push({ ...all[k], _key: k });
+            }
         });
+
+        if (related.length === 0) {
+            const btn = document.getElementById('btn-detect-video');
+            btn.style.color = '#ff4e45'; // Error Red
+            setTimeout(() => btn.style.color = '', 1000);
+            return;
+        }
+
+        related.sort((a, b) => {
+            if (a.isDefault && !b.isDefault) return -1;
+            if (!a.isDefault && b.isDefault) return 1;
+            return (b.updatedAt || 0) - (a.updatedAt || 0);
+        });
+
+        const best = related[0];
+        loadStorageProfile(best._key);
+
+        const btn = document.getElementById('btn-detect-video');
+        const origColor = btn.style.color;
+        btn.style.color = '#4cc713'; // Success Green
+        setTimeout(() => btn.style.color = origColor, 1000);
+    });
+
+    // --- Clone Button ---
+    document.getElementById('btn-clone-session')?.addEventListener('click', async () => {
+        if (!currentVideoId) return;
+        const clone = JSON.parse(JSON.stringify(currentVideoData));
+        const now = Date.now();
+        clone.isSaved = true;
+        clone.isDefault = false;
+        clone.createdAt = now;
+        clone.updatedAt = now;
+        const newKey = `v_${currentVideoId}_${now}`;
+        await chrome.storage.sync.set({ [newKey]: clone });
+        const all = await chrome.storage.sync.get(null);
+        updateDataCache(all, currentVideoId);
+        currentVideoData = clone;
+        currentStorageKey = newKey;
+        updateHeader();
+        loadLibrary();
+        const btn = document.getElementById('btn-clone-session');
+        const origColor = btn.style.color;
+        btn.style.color = '#4cc713';
+        setTimeout(() => btn.style.color = origColor, 1000);
+    });
+
+    // --- Set Default Button ---
+    document.getElementById('btn-set-default')?.addEventListener('click', async () => {
+        if (!currentStorageKey || !currentVideoId) return;
+
+        // Toggle
+        const newValue = !currentVideoData.isDefault;
+        currentVideoData.isDefault = newValue;
+
+        if (newValue) {
+            // Unset others
+            const all = await chrome.storage.sync.get(null);
+            const related = Object.keys(all).filter(k => k.startsWith('v_' + currentVideoId));
+            const updates = {};
+            related.forEach(k => {
+                if (k !== currentStorageKey && all[k].isDefault) {
+                    all[k].isDefault = false;
+                    updates[k] = all[k];
+                }
+            });
+            if (Object.keys(updates).length > 0) {
+                await chrome.storage.sync.set(updates);
+            }
+        }
+
+        saveData();
+    });
+
+    // --- Core Data Logic ---
+    let cachedRelatedKeys = [];
+    let cachedAllData = {};
+
+    function updateDataCache(allData, videoId) {
+        cachedAllData = allData;
+        cachedRelatedKeys = Object.keys(allData).filter(k => k.startsWith('v_' + videoId));
     }
 
-    if (jumpLoopBtn) {
-        jumpLoopBtn.addEventListener('click', () => {
-            sendMessage('JUMP_LOOP_START');
-        });
+    // 1. Init New Session (Detached)
+    async function initNewVideoSession(videoId, initialData = {}) {
+        currentVideoId = videoId;
+        currentStorageKey = null; // Detached
+
+        currentVideoData = createEmptyData(videoId, initialData.title || "Loading...");
+        currentVideoData.thumbnail = initialData.thumbnail || "";
+
+        const allData = await chrome.storage.sync.get(null);
+        updateDataCache(allData, videoId);
+
+        updateHeader();
+        renderBookmarks();
     }
 
-    loopToggle.addEventListener('change', (e) => {
-        sendMessage('TOGGLE_LOOP', { enabled: e.target.checked });
-    });
+    // 2. Load Specific Profile (Connected)
+    async function loadStorageProfile(key) {
+        const res = await chrome.storage.sync.get(key);
+        if (res[key]) {
+            currentVideoData = res[key];
+            currentStorageKey = key;
+            currentVideoId = currentVideoData.id;
 
-    // --- Bookmarks Logic ---
-    addBookmarkBtn.addEventListener('click', async () => {
-        sendMessage('ADD_BOOKMARK_REQUEST');
-    });
+            migrateDataIfNeeded(key, currentVideoId);
 
-    function renderBookmark(time, niceTime) {
-        const li = document.createElement('li');
-        li.className = 'bookmark-item';
-        li.dataset.seconds = time;
+            const allData = await chrome.storage.sync.get(null);
+            updateDataCache(allData, currentVideoId);
 
-        li.innerHTML = `
-        <div class="bookmark-controls">
-            <button class="loop-set-btn" title="Set Loop Start">A</button>
-            <button class="loop-set-btn" title="Set Loop End">B</button>
-        </div>
-        <input type="text" class="bookmark-time-input" value="${niceTime}">
-        <span class="bookmark-desc" contenteditable="true">Note...</span>
-        <button class="delete-btn">×</button>
-      `;
+            updateHeader();
+            renderBookmarks();
+            loadLibrary();
+            loadFavorites();
+        }
+    }
 
-        const timeInput = li.querySelector('.bookmark-time-input');
-        const startBtn = li.querySelectorAll('.loop-set-btn')[0];
-        const endBtn = li.querySelectorAll('.loop-set-btn')[1];
-        const deleteBtn = li.querySelector('.delete-btn');
+    function migrateDataIfNeeded(key, videoId) {
+        let changed = false;
+        if (!currentVideoData.tagGroups) {
+            currentVideoData.tagGroups = { "Formal": [], "Study": [], "Cust. A": [], "Cust. B": [] };
+            if (currentVideoData.bookmarks) currentVideoData.tagGroups["Formal"] = [...currentVideoData.bookmarks];
+            delete currentVideoData.bookmarks;
+            changed = true;
+        }
+        if (!currentVideoData.activeGroup) { currentVideoData.activeGroup = "Formal"; changed = true; }
 
-        // 1. Time Input Logic
-        timeInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') timeInput.blur();
-        });
-        timeInput.addEventListener('change', () => {
-            const seconds = parseTime(timeInput.value);
-            if (seconds !== null) {
-                li.dataset.seconds = seconds;
-                timeInput.value = formatTime(seconds);
-                log(`Bookmark time updated to ${seconds}s`);
+        if (!currentVideoData.createdAt) {
+            currentVideoData.createdAt = currentVideoData.updatedAt || Date.now();
+            changed = true;
+        }
+
+        groupSelector.value = currentVideoData.activeGroup;
+        if (changed) saveData();
+    }
+
+    async function saveData() {
+        if (!currentStorageKey) {
+            if (!currentVideoId) return;
+            currentStorageKey = `v_${currentVideoId}_${Date.now()}`;
+            currentVideoData.isSaved = true;
+            currentVideoData.createdAt = Date.now();
+        }
+
+        currentVideoData.updatedAt = Date.now();
+        await chrome.storage.sync.set({ [currentStorageKey]: currentVideoData });
+
+        const heartBtn = document.getElementById('toggle-library-save');
+        if (heartBtn) heartBtn.classList.toggle('active', !!currentVideoData.isSaved);
+
+        if (currentVideoId) {
+            const all = await chrome.storage.sync.get(null);
+            updateDataCache(all, currentVideoId);
+            updateHeader();
+        }
+        loadLibrary();
+        loadFavorites();
+    }
+
+    // --- UI Header ---
+    function updateHeader() {
+        const titleContainer = document.getElementById('current-video-title');
+        const heartBtn = document.getElementById('toggle-library-save');
+        const defaultBtn = document.getElementById('btn-set-default');
+
+        titleContainer.innerHTML = '';
+
+        if (!currentStorageKey) {
+            const tag = document.createElement('span');
+            tag.textContent = "Unsaved";
+            tag.style.cssText = "background:#444; color:#aaa; font-size:10px; padding:2px 4px; border-radius:3px; margin-right:6px;";
+            titleContainer.appendChild(tag);
+        } else if (currentVideoData.isDefault) {
+            const tag = document.createElement('span');
+            tag.textContent = "My default";
+            tag.style.cssText = "background:#ffca28; color:#000; font-size:10px; padding:2px 4px; border-radius:3px; margin-right:6px; font-weight:600;";
+            titleContainer.appendChild(tag);
+        }
+
+        const titleSpan = document.createElement('span');
+        titleSpan.textContent = currentVideoData.title || "Unknown Video";
+        titleContainer.appendChild(titleSpan);
+
+        if (heartBtn) {
+            heartBtn.className = 'icon-btn small-btn';
+            if (currentVideoData.isSaved) heartBtn.classList.add('active');
+        }
+
+        if (defaultBtn) {
+            defaultBtn.className = 'icon-btn small-btn';
+            if (currentVideoData.isDefault) {
+                defaultBtn.classList.add('active');
+                defaultBtn.style.color = '#ffca28'; // Gold
             } else {
-                timeInput.value = formatTime(parseFloat(li.dataset.seconds));
+                defaultBtn.style.color = '';
             }
-        });
-
-        // 2. Loop Set Buttons
-        startBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const s = parseFloat(li.dataset.seconds);
-            log(`Sending SET_LOOP_START: ${s}`);
-            sendMessage('SET_LOOP_START', { time: s });
-        });
-
-        endBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const s = parseFloat(li.dataset.seconds);
-            log(`Sending SET_LOOP_END: ${s}`);
-            sendMessage('SET_LOOP_END', { time: s });
-        });
-
-        // 3. Delete
-        deleteBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            li.remove();
-        });
-
-        // 4. Seek on row click
-        li.addEventListener('click', (e) => {
-            if (e.target !== timeInput &&
-                e.target.tagName !== 'BUTTON' &&
-                !e.target.isContentEditable) {
-                const s = parseFloat(li.dataset.seconds);
-                sendMessage('SEEK_TO', { time: s });
-            }
-        });
-
-        bookmarksList.appendChild(li);
+        }
     }
 
-    // --- Listen for Messages from Content Script ---
-    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-        if (message.action === 'UPDATE_LOOP_TIMES') {
-            if (message.start !== null) loopStartInput.value = formatTime(message.start);
-            if (message.end !== null) loopEndInput.value = formatTime(message.end);
-
-            if (typeof message.enabled === 'boolean') {
-                loopToggle.checked = message.enabled;
+    document.getElementById('toggle-library-save').addEventListener('click', () => {
+        if (currentVideoData.isSaved) {
+            if (confirm("Remove this session from Library?")) {
+                // Delete
+                chrome.storage.sync.remove(currentStorageKey).then(async () => {
+                    initNewVideoSession(currentVideoId, { title: currentVideoData.title, thumbnail: currentVideoData.thumbnail });
+                    loadLibrary();
+                    loadFavorites();
+                });
             }
-
-        } else if (message.action === 'BOOKMARK_ADDED') {
-            renderBookmark(message.time, formatTime(message.time));
-        } else if (message.action === 'PLAYBACK_STATUS') {
-            if (playPauseBtn) {
-                playPauseBtn.innerHTML = message.playing ? ICON_PAUSE : ICON_PLAY;
-            }
+        } else {
+            // Save
+            currentVideoData.isSaved = true;
+            saveData();
         }
     });
 
-    // Utility
-    function formatTime(seconds) {
-        if (typeof seconds !== 'number' || isNaN(seconds)) return "00:00";
-        const date = new Date(0);
-        date.setSeconds(seconds);
-        const timeString = date.toISOString().substr(11, 8);
-        return timeString.startsWith('00:') ? timeString.substr(3) : timeString;
+    // --- Import / Export Handlers ---
+    function exportData() {
+        if (!currentVideoData.tagGroups) return;
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(currentVideoData.tagGroups, null, 2));
+        const cleanTitle = (currentVideoData.title || 'video').replace(/[^a-z0-9]/gi, '_').substring(0, 50);
+        triggerDownload(dataStr, `yt_tags_${cleanTitle}.json`);
     }
 
-    function parseTime(timeStr) {
-        if (!timeStr) return null;
-        const parts = timeStr.split(':').map(Number);
-        if (parts.some(isNaN)) return null;
+    function importData(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            try {
+                const jsonObj = JSON.parse(event.target.result);
+                const targetGroup = currentVideoData.activeGroup || "Formal";
+                if (confirm(`Import tags into active group "${targetGroup}"?`)) {
+                    let newTags = [];
+                    if (Array.isArray(jsonObj)) newTags = jsonObj;
+                    else if (typeof jsonObj === 'object') Object.values(jsonObj).forEach(arr => { if (Array.isArray(arr)) newTags.push(...arr); });
+                    if (newTags.length > 0) {
+                        if (!currentVideoData.tagGroups[targetGroup]) currentVideoData.tagGroups[targetGroup] = [];
+                        const targetArr = currentVideoData.tagGroups[targetGroup];
+                        const existingTimes = new Set(targetArr.map(t => t.time));
+                        let addedCount = 0;
+                        newTags.forEach(tag => {
+                            if (tag && typeof tag.time === 'number' && !existingTimes.has(tag.time)) {
+                                targetArr.push({ time: tag.time, label: tag.label || 'Imported Tag' });
+                                existingTimes.add(tag.time);
+                                addedCount++;
+                            }
+                        });
+                        if (addedCount > 0) { await saveData(); renderBookmarks(); alert(`Imported ${addedCount} tags.`); }
+                        else alert("No new tags found.");
+                    }
+                }
+            } catch (e) { alert("Invalid JSON"); }
+            e.target.value = '';
+        };
+        reader.readAsText(file);
+    }
 
-        if (parts.length === 1) return parts[0];
-        if (parts.length === 2) return parts[0] * 60 + parts[1];
-        if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    function exportVideoFull(vData) {
+        const exportObj = { ...vData };
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj, null, 2));
+        const cleanTitle = (vData.title || 'video').replace(/[^a-z0-9]/gi, '_').substring(0, 50);
+        triggerDownload(dataStr, `yt_video_${cleanTitle}.json`);
+    }
+
+    function importVideoData(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            try {
+                const jsonObj = JSON.parse(event.target.result);
+                if (!jsonObj.id) throw new Error("Missing ID");
+
+                const vid = jsonObj.id;
+                const saveKey = `v_${vid}_${Date.now()}`;
+
+                jsonObj.isSaved = true;
+                jsonObj.createdAt = jsonObj.createdAt || Date.now();
+                jsonObj.updatedAt = Date.now();
+
+                await chrome.storage.sync.set({ [saveKey]: jsonObj });
+
+                const all = await chrome.storage.sync.get(null);
+                updateDataCache(all, currentVideoId);
+                loadLibrary();
+                alert("Import Successful!");
+            } catch (err) { alert("Invalid JSON"); }
+            e.target.value = '';
+        };
+        reader.readAsText(file);
+    }
+
+    function triggerDownload(url, filename) {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+    }
+
+    // --- Render Bookmarks ---
+    function renderBookmarks() {
+        const groupName = currentVideoData.activeGroup || "Formal";
+        const groupTags = currentVideoData.tagGroups ? currentVideoData.tagGroups[groupName] : [];
+        if (groupTags) groupTags.sort((a, b) => a.time - b.time);
+
+        const list = document.getElementById('bookmarks-list');
+        list.innerHTML = '';
+
+        groupTags.forEach((bm, i) => {
+            const li = document.createElement('li');
+            li.className = 'bookmark-item';
+            li.innerHTML = `
+                <div class="bookmark-controls">
+                    <button class="bookmark-play-btn" title="Play">${ICON_SMALL_PLAY}</button>
+                </div>
+                <input type="text" class="bookmark-time-input" value="${formatTime(bm.time)}">
+                <input type="text" class="bookmark-desc" value="${bm.label || ''}">
+                <div class="bookmark-controls">
+                    <button class="loop-set-btn set-a">A</button>
+                    <button class="loop-set-btn set-b">B</button>
+                    <button class="delete-btn">×</button>
+                </div>
+            `;
+            li.querySelector('.bookmark-play-btn').addEventListener('click', () => sendMessage('SEEK_TO', { time: bm.time }));
+            li.querySelector('.bookmark-time-input').addEventListener('change', (e) => {
+                const t = parseTime(e.target.value);
+                if (t !== null) { bm.time = t; saveData(); renderBookmarks(); }
+                else { e.target.value = formatTime(bm.time); }
+            });
+            li.querySelector('.bookmark-desc').addEventListener('change', (e) => {
+                bm.label = e.target.value; saveData();
+            });
+            li.querySelector('.set-a').addEventListener('click', () => sendMessage('SET_LOOP_START', { time: bm.time }));
+            li.querySelector('.set-b').addEventListener('click', () => sendMessage('SET_LOOP_END', { time: bm.time }));
+            li.querySelector('.delete-btn').addEventListener('click', () => {
+                groupTags.splice(i, 1);
+                saveData();
+                renderBookmarks();
+            });
+            list.appendChild(li);
+        });
+    }
+
+    // --- Library Logic ---
+    async function loadLibrary() {
+        const container = document.getElementById('library-list');
+        if (!container) return;
+        container.innerHTML = 'Loading...';
+        const all = await chrome.storage.sync.get(null);
+        let items = [];
+        Object.keys(all).forEach(key => { if (key.startsWith('v_') && all[key].isSaved) items.push({ ...all[key], _key: key }); });
+
+        if (items.length === 0) {
+            container.innerHTML = '<p style="padding:20px;text-align:center;color:#666">No saved videos.</p>';
+            return;
+        }
+
+        // Standard Chronological Sort
+        items.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+
+        renderList(container, items);
+    }
+
+    // --- Favorites Logic ---
+    async function loadFavorites() {
+        const container = document.getElementById('favorites-list');
+        if (!container) return;
+        container.innerHTML = 'Loading...';
+        const all = await chrome.storage.sync.get(null);
+        let items = [];
+        Object.keys(all).forEach(key => { if (key.startsWith('v_') && all[key].isSaved && all[key].isDefault) items.push({ ...all[key], _key: key }); });
+
+        if (items.length === 0) {
+            container.innerHTML = '<p style="padding:20px;text-align:center;color:#666">No favorite videos set.</p>';
+            return;
+        }
+
+        items.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+        renderList(container, items);
+    }
+
+    function renderList(container, items) {
+        container.innerHTML = '';
+        items.forEach(v => {
+            const el = document.createElement('div');
+            el.className = 'library-item';
+            if (v._key === currentStorageKey) el.classList.add('active');
+
+            const thumbSrc = v.thumbnail || '';
+            let count = 0;
+            if (v.tagGroups) Object.values(v.tagGroups).forEach(g => count += g.length);
+            else if (v.bookmarks) count = v.bookmarks.length;
+
+            const createDate = v.createdAt || v.updatedAt || Date.now();
+            const dateStr = new Date(createDate).toLocaleString('zh-TW', { hour12: false, month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric' });
+
+            // Meta Label
+            let metaLabel = dateStr;
+            if (v.isDefault) {
+                metaLabel = `<span style="color:#ffca28; font-weight:bold;">★</span> ${dateStr}`;
+            }
+
+            el.innerHTML = `
+                <img src="${thumbSrc}" class="library-thumb" onerror="this.style.display='none'">
+                <div class="library-info">
+                    <div class="library-title" title="${v.title}">
+                        ${v.title || 'Untitled'}
+                    </div>
+                    <div class="library-meta" style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-size:10px; color:#888;">${metaLabel} • ${count} tags</span>
+                        <button class="icon-btn small-action export-item-btn" title="Export" style="width:20px;height:20px;font-size:10px;">⬇</button>
+                    </div>
+                </div>
+                <button class="delete-btn">×</button>
+            `;
+
+            el.addEventListener('click', async (e) => {
+                if (e.target.tagName !== 'BUTTON') {
+                    // Set Intention
+                    await chrome.storage.local.set({ [`pending_nav_${v.id}`]: v._key });
+
+                    // Optimistic Load (Wait for it)
+                    await loadStorageProfile(v._key);
+
+                    // Switch Video Logic (Unified for Sidebar & Popup)
+                    let targetId = connectedTabId;
+                    if (!targetId) {
+                        const [t] = await chrome.tabs.query({ active: true, currentWindow: true });
+                        if (t) targetId = t.id;
+                    }
+
+                    if (targetId) {
+                        const t = await chrome.tabs.get(targetId).catch(() => null);
+                        if (t && !t.url.includes(v.id)) {
+                            chrome.tabs.update(targetId, { url: `https://youtube.com/watch?v=${v.id}` });
+                        } else {
+                            // Already on page, manually load trigger 
+                            // because METADATA might not fire if navigation doesn't happen
+                            await loadStorageProfile(v._key);
+                            chrome.storage.local.remove(`pending_nav_${v.id}`);
+                        }
+                    }
+                    switchView('player');
+                }
+            });
+
+            el.querySelector('.delete-btn').addEventListener('click', async (e) => {
+                e.stopPropagation();
+                if (confirm('Delete this save?')) {
+                    await chrome.storage.sync.remove(v._key);
+                    const all = await chrome.storage.sync.get(null);
+                    if (currentStorageKey === v._key) {
+                        initNewVideoSession(currentVideoId, { title: v.title, thumbnail: v.thumbnail });
+                    }
+                    loadLibrary();
+                    loadFavorites();
+                }
+            });
+            el.querySelector('.export-item-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                exportVideoFull(v);
+            });
+            container.appendChild(el);
+        });
+    }
+
+    // --- State Sync (Multi-Window) ---
+    chrome.storage.onChanged.addListener((changes, namespace) => {
+        if (namespace !== 'sync') return;
+
+        let shouldRefreshLib = false;
+
+        for (let [key, { oldValue, newValue }] of Object.entries(changes)) {
+            // If current profile updated externally
+            if (key === currentStorageKey && newValue) {
+                // If timestamp changed (meaning it was saved/edited elsewhere)
+                if (newValue.updatedAt !== currentVideoData.updatedAt) {
+                    currentVideoData = newValue;
+                    updateHeader();
+                    renderBookmarks();
+                }
+            }
+
+            // If ANY key started with v_ changed => Refresh Library
+            if (key.startsWith('v_')) {
+                shouldRefreshLib = true;
+            }
+        }
+
+        if (shouldRefreshLib) {
+            loadLibrary();
+            loadFavorites();
+
+            // Update Cache for Detect Button
+            chrome.storage.sync.get(null).then(all => {
+                if (currentVideoId) updateDataCache(all, currentVideoId);
+            });
+        }
+    });
+
+    // Messages
+    chrome.runtime.onMessage.addListener(async (msg) => {
+        // Connection Check
+        if (statusIndicator) statusIndicator.classList.add('connected');
+
+        if (msg.action === 'VIDEO_METADATA') {
+            const d = msg.data;
+            const isNewVideo = d.videoId !== currentVideoId;
+
+            if (isNewVideo || (d.title && d.title !== "YouTube" && currentVideoData.title !== d.title)) {
+
+                // --- Smart Load Logic ---
+                if (isNewVideo) {
+                    // 1. Check Pending Navigation (User clicked specific profile)
+                    const pendingKey = `pending_nav_${d.videoId}`;
+                    const localData = await chrome.storage.local.get(pendingKey);
+
+                    if (localData[pendingKey]) {
+                        console.log("Loading Pending Profile:", localData[pendingKey]);
+                        await loadStorageProfile(localData[pendingKey]);
+                        chrome.storage.local.remove(pendingKey); // Clear
+                    } else {
+                        // 2. Auto Detect (Default or Recent)
+                        const all = await chrome.storage.sync.get(null);
+                        const related = [];
+                        Object.keys(all).forEach(k => {
+                            if (k.startsWith('v_' + d.videoId) && all[k].isSaved) {
+                                related.push({ ...all[k], _key: k });
+                            }
+                        });
+
+                        if (related.length > 0) {
+                            // Sort: Default > Recent
+                            related.sort((a, b) => {
+                                if (a.isDefault && !b.isDefault) return -1;
+                                if (!a.isDefault && b.isDefault) return 1;
+                                return (b.updatedAt || 0) - (a.updatedAt || 0);
+                            });
+                            console.log("Auto-Detected Profile:", related[0]._key);
+                            await loadStorageProfile(related[0]._key);
+                        } else {
+                            // 3. New Session
+                            initNewVideoSession(d.videoId, { title: d.title, thumbnail: d.thumbnail });
+                        }
+                    }
+                } else {
+                    // Same video, just update title if better
+                    currentVideoData.title = d.title;
+                    if (d.thumbnail) currentVideoData.thumbnail = d.thumbnail;
+                    updateHeader();
+                }
+            }
+            if (!isDraggingProgress) {
+                progressBar.max = d.duration;
+                progressBar.value = d.currentTime;
+                // If we receive a message from the content script, assume connected
+                if (connectedTabId === null) {
+                    // Try to infer source tab?
+                    // Usually chrome.runtime.onMessage doesn't give sender tab readily in payload unless we ask for it, 
+                    // but the sender object has it.
+                    // For now, implicit update of UI is enough.
+                }
+
+                timeCurrent.textContent = formatTime(d.currentTime);
+                timeTotal.textContent = formatTime(d.duration);
+            }
+        } else if (msg.action === 'UPDATE_LOOP_TIMES') // ...
+        {
+            if (msg.start !== null) loopStart.value = formatTime(msg.start);
+            if (msg.end !== null) loopEnd.value = formatTime(msg.end);
+            if (typeof msg.enabled === 'boolean') loopToggle.checked = msg.enabled;
+        }
+        else if (msg.action === 'PLAYBACK_STATUS') { updatePlayPauseIcon(msg.playing); }
+        else if (msg.action === 'BOOKMARK_ADDED') {
+            const groupName = currentVideoData.activeGroup || "Formal";
+            if (!currentVideoData.tagGroups) currentVideoData.tagGroups = {};
+            if (!currentVideoData.tagGroups[groupName]) currentVideoData.tagGroups[groupName] = [];
+            currentVideoData.tagGroups[groupName].push({ time: msg.time, label: 'Tag' });
+            saveData();
+            renderBookmarks();
+        }
+    });
+
+    // Helpers
+    function formatTime(s) {
+        if (isNaN(s)) return "0:00";
+        const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = Math.floor(s % 60);
+        return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${m}:${pad(sec)}`;
+    }
+    function pad(n) { return n.toString().padStart(2, '0'); }
+    function parseTime(str) {
+        const p = str.split(':').map(Number);
+        if (p.some(isNaN)) return null;
+        if (p.length === 1) return p[0];
+        if (p.length === 2) return p[0] * 60 + p[1];
+        if (p.length === 3) return p[0] * 3600 + p[1] * 60 + p[2];
         return null;
     }
 
-    // Initial Check
-    getActiveTab().then(tab => {
-        if (tab && tab.url.includes('youtube.com')) {
-            chrome.sidePanel.setOptions({
-                tabId: tab.id,
-                path: 'sidebar.html',
-                enabled: true
-            });
-            sendMessage('GET_STATUS');
+    // --- Standby / Connection Monitor ---
+    const showStandby = (show) => {
+        let overlay = document.getElementById('standby-overlay');
+        if (show) {
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'standby-overlay';
+                overlay.style.cssText = "position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);color:#fff;display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:9999;text-align:center;padding:20px;";
+                overlay.innerHTML = `
+                    <div style="font-size:48px;margin-bottom:10px;">zzz</div>
+                    <div style="font-size:16px;font-weight:600;">Standby Mode</div>
+                    <div style="font-size:12px;color:#aaa;margin-top:5px;">Switch to a YouTube tab<br>to resume control.</div>
+                `;
+                document.body.appendChild(overlay);
+            }
+            overlay.style.display = 'flex';
+        } else {
+            if (overlay) overlay.style.display = 'none';
         }
+    };
+
+    // Monitor Active Tab
+    const checkActiveTab = async () => {
+        try {
+            // Check for passed tabId (Popout Lock)
+            const urlParams = new URLSearchParams(window.location.search);
+            const lockedTabId = urlParams.get('tabId');
+
+            if (lockedTabId) {
+                // Popup mode: Check the locked tab directly
+                try {
+                    const lockedTab = await chrome.tabs.get(parseInt(lockedTabId, 10));
+                    if (lockedTab && lockedTab.url && lockedTab.url.includes('youtube.com/watch')) {
+                        showStandby(false);
+                        if (!connectedTabId || connectedTabId !== lockedTab.id) {
+                            connectedTabId = lockedTab.id;
+                            sendMessage('GET_STATUS');
+                        }
+                    } else {
+                        showStandby(true);
+                    }
+                } catch (e) {
+                    // Locked tab no longer exists
+                    showStandby(true);
+                }
+            } else {
+                // Side panel mode: Check current window active tab
+                const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+                if (tab && tab.url && tab.url.includes('youtube.com/watch')) {
+                    showStandby(false);
+                    if (!connectedTabId || connectedTabId !== tab.id) {
+                        // Auto-connect if changed
+                        connectedTabId = tab.id;
+                        sendMessage('GET_STATUS');
+                    }
+                } else {
+                    showStandby(true);
+                }
+            }
+        } catch (e) { console.error(e); }
+    };
+
+    chrome.tabs.onActivated.addListener(checkActiveTab);
+    chrome.tabs.onUpdated.addListener((id, info, tab) => {
+        if (tab.active) checkActiveTab();
     });
 
-} catch (err) {
-    log("FATAL: " + err.message, 'error');
-}
+    // Initial Check
+    checkActiveTab();
+
+    // Init
+    async function establishConnection() {
+        if (statusIndicator) statusIndicator.classList.remove('connected');
+
+        // 1. Check URL param (Popup Mode)
+        const urlParams = new URLSearchParams(window.location.search);
+        const passedId = urlParams.get('tabId');
+        if (passedId) {
+            const tid = parseInt(passedId, 10);
+            try {
+                await chrome.tabs.get(tid);
+                connectedTabId = tid;
+                console.log("Popup: Locked to Tab", tid);
+            } catch (e) { console.log("Popup: Passed Tab Invalid"); }
+        }
+
+        // 2. Scan active if still null
+        if (!connectedTabId) {
+            const [t] = await chrome.tabs.query({ active: true, currentWindow: true });
+            if (t && t.url.includes('youtube.com/watch')) connectedTabId = t.id;
+        }
+
+        // 3. Scan Global if still null (Popup Fallback)
+        if (!connectedTabId) {
+            const tabs = await chrome.tabs.query({ url: "*://*.youtube.com/watch*" });
+            const active = tabs.find(t => t.active) || tabs[0];
+            if (active) connectedTabId = active.id;
+        }
+
+        // 4. Initial Ping with retry
+        if (connectedTabId) {
+            // Try multiple times with short delays for better responsiveness
+            const tryConnect = async (attempt = 0) => {
+                try {
+                    await sendMessage('GET_STATUS');
+                    console.log('[YT Studio] Connected to tab', connectedTabId);
+                } catch (e) {
+                    if (attempt < 5) {
+                        // Retry with exponential backoff: 100ms, 200ms, 400ms, 800ms, 1600ms
+                        const delay = 100 * Math.pow(2, attempt);
+                        setTimeout(() => tryConnect(attempt + 1), delay);
+                    } else {
+                        console.log('[YT Studio] Connection timeout, content script may not be ready');
+                    }
+                }
+            };
+            tryConnect();
+        } else {
+            console.log("No Video Tab Found");
+        }
+    }
+
+    establishConnection();
+
+} catch (e) { console.error(e); }

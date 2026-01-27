@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,92 +8,208 @@
   <link rel="stylesheet" href="sidebar.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
+
 <body>
   <div class="container">
     <header>
       <h1>YT Studio</h1>
-      <div class="header-controls">
-         <button id="rwd-btn" class="icon-btn" title="Rewind 10s">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/></svg>
-         </button>
-         <button id="play-pause" class="icon-btn large-icon" title="Play/Pause">
-          <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
-            <path d="M8 5v14l11-7z" />
+      <div class="nav-controls">
+        <button id="nav-player" class="nav-btn active">Player</button>
+        <button id="nav-library" class="nav-btn">Library</button>
+        <button id="nav-favorites" class="nav-btn">Favorites</button>
+        <button id="nav-popout" class="nav-btn icon-only" title="Pop Out Window" style="padding: 4px;">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+            <path
+              d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z" />
           </svg>
-         </button>
-         <button id="fwd-btn" class="icon-btn" title="Forward 10s">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/></svg>
-         </button>
-         <div class="status-indicator" id="connection-status" title="Disconnected"></div>
+        </button>
       </div>
+      <div class="status-indicator" id="connection-status" title="Disconnected"></div>
     </header>
 
-    <!-- Playback Speed Section -->
-    <section class="control-group">
-      <div class="section-header">
-        <h2>Playback Speed</h2>
-        <span id="speed-display" class="value-display">1.0x</span>
-      </div>
-      <div class="slider-container">
-        <input type="range" id="speed-slider" min="0.25" max="3.0" step="0.05" value="1.0">
-      </div>
-      <div class="presets">
-        <button class="preset-btn" data-speed="0.5">0.5x</button>
-        <button class="preset-btn" data-speed="1.0">1.0x</button>
-        <button class="preset-btn" data-speed="1.5">1.5x</button>
-        <button class="preset-btn" data-speed="2.0">2.0x</button>
-      </div>
-    </section>
+    <!-- Player View -->
+    <div id="view-player">
 
-    <!-- Loop Section -->
-    <section class="control-group">
-      <div class="section-header">
-        <h2>A-B Loop</h2>
-        <label class="toggle-switch">
-          <input type="checkbox" id="loop-toggle">
-          <span class="slider"></span>
-        </label>
-      </div>
-      <div class="loop-controls">
-        <div class="loop-point">
-          <span class="label">A (Start)</span>
-          <div class="input-group">
-            <input type="text" id="loop-start" placeholder="0:00" readonly>
-            <button id="set-start" class="icon-btn">📍</button>
-          </div>
-        </div>
-        <div class="loop-point">
-          <span class="label">B (End)</span>
-          <div class="input-group">
-            <input type="text" id="loop-end" placeholder="0:00" readonly>
-            <button id="set-end" class="icon-btn">🏁</button>
-          </div>
+      <!-- Video Meta & Library Save -->
+      <div class="video-meta-bar">
+        <div id="current-video-title" class="current-title" title="No Video Detected">No Video</div>
+        <div style="display: flex; gap: 4px;">
+          <button id="btn-detect-video" class="icon-btn small-btn" title="Auto Detect">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+              <path
+                d="M7.5 5.6L10 7 8.6 4.5 10 2 7.5 3.4 5 2 6.4 4.5 5 7zM19 2l-1.4 2.5L15 2l1.4 3.4L15 7l2.5-1.4L19 7l1.4-2.5L23 2l-2.6 1.4zM16.5 9l-1.8 3.9L10.8 15l3.9 1.8L16.5 21l1.8-4.2 3.9-1.8-3.9-1.8z" />
+            </svg>
+          </button>
+          <button id="btn-set-default" class="icon-btn small-btn" title="Set as My default">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+              <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+            </svg>
+          </button>
+          <button id="btn-clone-session" class="icon-btn small-btn" title="Clone Session">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+              <path
+                d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
+            </svg>
+          </button>
+          <button id="toggle-library-save" class="icon-btn small-btn" title="Save to Library">
+            <svg id="icon-heart" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+              stroke-width="2">
+              <path
+                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z">
+              </path>
+            </svg>
+          </button>
         </div>
       </div>
-      <div class="loop-actions" style="display: flex; gap: 8px; margin-top: 12px;">
-         <button id="jump-loop" class="secondary-btn" style="margin-top: 0; flex: 1;">Jump to A</button>
-         <button id="clear-loop" class="secondary-btn" style="margin-top: 0; flex: 1;">Clear</button>
-      </div>
-    </section>
 
-    <!-- Bookmarks Section -->
-    <section class="control-group bookmarks-section">
-      <div class="section-header">
-        <h2>Bookmarks</h2>
-        <button id="add-bookmark" class="action-btn">+ Add</button>
+      <!-- Combined Playback & Progress Section -->
+      <section class="control-group playback-bar">
+        <!-- Progress -->
+        <div class="time-display">
+          <span id="time-current">0:00</span>
+          <span id="time-total">0:00</span>
+        </div>
+        <input type="range" id="progress-bar" class="progress-bar" value="0" min="0" max="100" step="0.1">
+
+        <!-- Transport Controls -->
+        <div class="transport-controls">
+          <button id="restart-btn" class="icon-btn" title="Back to Start">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+              <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" />
+            </svg>
+          </button>
+          <button id="rwd-btn" class="icon-btn" title="Rewind 10s">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+              <path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z" />
+            </svg>
+          </button>
+          <button id="play-pause" class="icon-btn large-play-btn" title="Play/Pause">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </button>
+          <button id="fwd-btn" class="icon-btn" title="Forward 10s">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+              <path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z" />
+            </svg>
+          </button>
+        </div>
+      </section>
+
+      <!-- Playback Speed -->
+      <section class="control-group">
+        <div class="section-header">
+          <h2>Playback Speed</h2>
+          <span id="speed-display" class="value-display">1.0x</span>
+        </div>
+        <div class="slider-container">
+          <input type="range" id="speed-slider" min="0.25" max="3.0" step="0.05" value="1.0">
+        </div>
+        <div class="presets">
+          <button class="preset-btn" data-speed="0.5">0.5x</button>
+          <button class="preset-btn" data-speed="1.0">1.0x</button>
+          <button class="preset-btn" data-speed="1.5">1.5x</button>
+          <button class="preset-btn" data-speed="2.0">2.0x</button>
+        </div>
+      </section>
+
+      <!-- Loop Section -->
+      <section class="control-group">
+        <div class="section-header">
+          <h2>A-B Loop</h2>
+          <label class="toggle-switch">
+            <input type="checkbox" id="loop-toggle">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="loop-controls">
+          <div class="loop-point">
+            <span class="label">A (Start)</span>
+            <div class="input-group">
+              <input type="text" id="loop-start" placeholder="0:00">
+              <button id="set-start" class="icon-btn">📍</button>
+            </div>
+          </div>
+          <div class="loop-point">
+            <span class="label">B (End)</span>
+            <div class="input-group">
+              <input type="text" id="loop-end" placeholder="0:00">
+              <button id="set-end" class="icon-btn">🏁</button>
+            </div>
+          </div>
+        </div>
+        <div class="loop-actions" style="display: flex; gap: 8px; margin-top: 12px;">
+          <button id="jump-loop" class="secondary-btn" style="margin-top: 0; flex: 1;">Jump to A</button>
+          <button id="clear-loop" class="secondary-btn" style="margin-top: 0; flex: 1;">Clear</button>
+        </div>
+      </section>
+
+      <!-- Bookmarks Section (Multi-Group) -->
+      <section class="control-group bookmarks-section">
+        <div class="bookmarks-toolbar">
+          <select id="group-selector" class="group-select">
+            <option value="Formal">Formal</option>
+            <option value="Study">Study</option>
+            <option value="Cust. A">Cust. A</option>
+            <option value="Cust. B">Cust. B</option>
+          </select>
+          <div class="toolbar-actions">
+            <button id="btn-import" class="icon-btn small-action" title="Import JSON">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                <path d="M11 16h2V7h3l-4-5-4 5h3z" />
+                <path d="M5 18h14v2H5z" />
+              </svg>
+            </button>
+            <button id="btn-export" class="icon-btn small-action" title="Export JSON">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                <path d="M11 7h2v9h3l-4 5-4-5h3z" />
+                <path d="M5 4h14v2H5z" />
+              </svg>
+            </button>
+            <input type="file" id="file-import" accept=".json" hidden />
+          </div>
+        </div>
+
+        <button id="add-bookmark" class="action-btn full-width-btn">+ Add Tag to Current Group</button>
+
+        <ul id="bookmarks-list" class="bookmarks-list">
+          <!-- items injected here -->
+        </ul>
+      </section>
+    </div>
+
+    <!-- Library View -->
+    <div id="view-library" style="display: none;">
+      <div class="library-header"
+        style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <h2>Saved Videos</h2>
+        <button id="lib-btn-import" class="action-btn" style="font-size:11px;">+ Import JSON</button>
+        <input type="file" id="lib-file-import" accept=".json" hidden />
       </div>
-      <ul id="bookmarks-list" class="bookmarks-list">
-        <!-- items will be injected here -->
-      </ul>
-    </section>
+      <div id="library-list">
+        <!-- Library Items Injected Here -->
+        <p style="color: #666; text-align: center; padding: 20px;">No saved videos found.</p>
+      </div>
+    </div>
+
+    <!-- Favorites View -->
+    <div id="view-favorites" style="display: none;">
+      <div class="library-header" style="margin-bottom:12px;">
+        <h2>My Favorites (Default)</h2>
+      </div>
+      <div id="favorites-list">
+        <!-- Injected -->
+        <p style="color: #666; text-align: center; padding: 20px;">No favorites set.</p>
+      </div>
+    </div>
 
     <!-- Debug Console -->
-    <div id="debug-console" style="margin-top: 20px; border-top: 1px solid #333; padding-top: 10px; font-family: monospace; font-size: 10px; color: #ff4e45; display: none;">
-      <h3>Debug Logs</h3>
-      <pre id="debug-logs" style="white-space: pre-wrap; word-break: break-all;"></pre>
+    <div id="debug-console"
+      style="margin-top: 20px; border-top: 1px solid #333; padding-top: 10px; font-family: monospace; font-size: 10px; color: #ff4e45; display: none;">
     </div>
   </div>
 
   <script src="sidebar.js"></script>
 </body>
+
 </html>
