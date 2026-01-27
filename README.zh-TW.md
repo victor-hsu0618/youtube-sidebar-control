@@ -4,6 +4,8 @@
 
 專業的 YouTube 播放控制與學習工具。將您的 YouTube 體驗轉變為強大的學習和筆記工作站。
 
+📖 **[閱讀使用手冊](docs/USER_MANUAL.zh-TW.md)** 以獲得完整指南。
+
 ## 📥 安裝說明
 
 本專案是一個瀏覽器擴充功能 (Browser Extension)，目前支援 Chrome 與 Edge 瀏覽器。請依下列步驟以開發者模式安裝：

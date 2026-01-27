@@ -4,6 +4,8 @@
 
 Professional YouTube playback control and learning tool. Transform your YouTube experience into a powerful learning and notetaking workstation.
 
+📖 **[Read the User Manual](docs/USER_MANUAL.md)** for a comprehensive guide.
+
 ## 📥 Installation
 
 This project is a browser extension, currently supporting Chrome and Edge browsers. Please follow these steps to install in Developer Mode:
