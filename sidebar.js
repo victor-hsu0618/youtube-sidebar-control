@@ -34,8 +34,8 @@ try {
             createdAt: 0,
             updatedAt: 0,
             profileName: "New Session",
-            activeGroup: "Formal",
-            tagGroups: { "Formal": [], "Study": [], "Cust. A": [], "Cust. B": [] }
+            activeGroup: "Default",
+            tagGroups: { "Default": [], "Study": [], "Cust. A": [], "Cust. B": [] }
         };
     }
 
@@ -430,12 +430,12 @@ try {
     function migrateDataIfNeeded(key, videoId) {
         let changed = false;
         if (!currentVideoData.tagGroups) {
-            currentVideoData.tagGroups = { "Formal": [], "Study": [], "Cust. A": [], "Cust. B": [] };
-            if (currentVideoData.bookmarks) currentVideoData.tagGroups["Formal"] = [...currentVideoData.bookmarks];
+            currentVideoData.tagGroups = { "Default": [], "Study": [], "Cust. A": [], "Cust. B": [] };
+            if (currentVideoData.bookmarks) currentVideoData.tagGroups["Default"] = [...currentVideoData.bookmarks];
             delete currentVideoData.bookmarks;
             changed = true;
         }
-        if (!currentVideoData.activeGroup) { currentVideoData.activeGroup = "Formal"; changed = true; }
+        if (!currentVideoData.activeGroup) { currentVideoData.activeGroup = "Default"; changed = true; }
 
         if (!currentVideoData.createdAt) {
             currentVideoData.createdAt = currentVideoData.updatedAt || Date.now();
@@ -541,7 +541,7 @@ try {
         reader.onload = async (event) => {
             try {
                 const jsonObj = JSON.parse(event.target.result);
-                const targetGroup = currentVideoData.activeGroup || "Formal";
+                const targetGroup = currentVideoData.activeGroup || "Default";
                 if (confirm(`Import tags into active group "${targetGroup}"?`)) {
                     let newTags = [];
                     if (Array.isArray(jsonObj)) newTags = jsonObj;
@@ -553,13 +553,13 @@ try {
                         let addedCount = 0;
                         newTags.forEach(tag => {
                             if (tag && typeof tag.time === 'number' && !existingTimes.has(tag.time)) {
-                                targetArr.push({ time: tag.time, label: tag.label || 'Imported Tag' });
+                                targetArr.push({ time: tag.time, label: tag.label || 'Imported Marker' });
                                 existingTimes.add(tag.time);
                                 addedCount++;
                             }
                         });
-                        if (addedCount > 0) { await saveData(); renderBookmarks(); alert(`Imported ${addedCount} tags.`); }
-                        else alert("No new tags found.");
+                        if (addedCount > 0) { await saveData(); renderBookmarks(); alert(`Imported ${addedCount} markers.`); }
+                        else alert("No new markers found.");
                     }
                 }
             } catch (e) { alert("Invalid JSON"); }
@@ -614,7 +614,7 @@ try {
 
     // --- Render Bookmarks ---
     function renderBookmarks() {
-        const groupName = currentVideoData.activeGroup || "Formal";
+        const groupName = currentVideoData.activeGroup || "Default";
         const groupTags = currentVideoData.tagGroups ? currentVideoData.tagGroups[groupName] : [];
         if (groupTags) groupTags.sort((a, b) => a.time - b.time);
 
@@ -629,7 +629,7 @@ try {
                     <button class="bookmark-play-btn" title="Play">${ICON_SMALL_PLAY}</button>
                 </div>
                 <input type="text" class="bookmark-time-input" value="${formatTime(bm.time)}">
-                <input type="text" class="bookmark-desc" value="${bm.label || ''}">
+                <input type="text" class="bookmark-desc" value="${bm.label || ''}" placeholder="marker description">
                 <div class="bookmark-controls">
                     <button class="loop-set-btn set-a">A</button>
                     <button class="loop-set-btn set-b">B</button>
@@ -722,7 +722,7 @@ try {
                         ${v.title || 'Untitled'}
                     </div>
                     <div class="library-meta" style="display:flex; justify-content:space-between; align-items:center;">
-                        <span style="font-size:10px; color:#888;">${metaLabel} • ${count} tags</span>
+                        <span style="font-size:10px; color:#888;">${metaLabel} • ${count} markers</span>
                         <button class="icon-btn small-action export-item-btn" title="Export" style="width:20px;height:20px;font-size:10px;">⬇</button>
                     </div>
                 </div>
@@ -887,10 +887,10 @@ try {
         }
         else if (msg.action === 'PLAYBACK_STATUS') { updatePlayPauseIcon(msg.playing); }
         else if (msg.action === 'BOOKMARK_ADDED') {
-            const groupName = currentVideoData.activeGroup || "Formal";
+            const groupName = currentVideoData.activeGroup || "Default";
             if (!currentVideoData.tagGroups) currentVideoData.tagGroups = {};
             if (!currentVideoData.tagGroups[groupName]) currentVideoData.tagGroups[groupName] = [];
-            currentVideoData.tagGroups[groupName].push({ time: msg.time, label: 'Tag' });
+            currentVideoData.tagGroups[groupName].push({ time: msg.time, label: '' });
             saveData();
             renderBookmarks();
         }
@@ -913,21 +913,35 @@ try {
     }
 
     // --- Standby / Connection Monitor ---
-    const showStandby = (show) => {
+    const showStandby = (mode) => {
         let overlay = document.getElementById('standby-overlay');
-        if (show) {
+        if (mode) {
             if (!overlay) {
                 overlay = document.createElement('div');
                 overlay.id = 'standby-overlay';
-                overlay.style.cssText = "position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);color:#fff;display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:9999;text-align:center;padding:20px;";
+                overlay.style.cssText = "position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);color:#fff;display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:9999;text-align:center;padding:20px;transition:opacity 0.2s;";
+                document.body.appendChild(overlay);
+            }
+            overlay.style.display = 'flex';
+
+            if (mode === 'HOME') {
+                overlay.innerHTML = `
+                    <div style="font-size:48px;margin-bottom:10px;">👋</div>
+                    <div style="font-size:18px;font-weight:600;margin-bottom:8px;">Ready</div>
+                    <div style="font-size:13px;color:#ccc;line-height:1.5;">
+                        Select a video to start.<br>
+                        <span style="font-size:11px;color:#888;display:block;margin-top:12px;border-top:1px solid #444;padding-top:8px;">
+                            Controls active during playback
+                        </span>
+                    </div>
+                `;
+            } else {
                 overlay.innerHTML = `
                     <div style="font-size:48px;margin-bottom:10px;">zzz</div>
                     <div style="font-size:16px;font-weight:600;">Standby Mode</div>
                     <div style="font-size:12px;color:#aaa;margin-top:5px;">Switch to a YouTube tab<br>to resume control.</div>
                 `;
-                document.body.appendChild(overlay);
             }
-            overlay.style.display = 'flex';
         } else {
             if (overlay) overlay.style.display = 'none';
         }
@@ -944,32 +958,42 @@ try {
                 // Popup mode: Check the locked tab directly
                 try {
                     const lockedTab = await chrome.tabs.get(parseInt(lockedTabId, 10));
-                    if (lockedTab && lockedTab.url && lockedTab.url.includes('youtube.com/watch')) {
-                        showStandby(false);
-                        if (!connectedTabId || connectedTabId !== lockedTab.id) {
-                            connectedTabId = lockedTab.id;
-                            sendMessage('GET_STATUS');
+                    if (lockedTab && lockedTab.url) {
+                        if (lockedTab.url.includes('youtube.com/watch')) {
+                            showStandby(false);
+                            if (!connectedTabId || connectedTabId !== lockedTab.id) {
+                                connectedTabId = lockedTab.id;
+                                sendMessage('GET_STATUS');
+                            }
+                        } else if (lockedTab.url.includes('youtube.com')) {
+                            showStandby('HOME');
+                        } else {
+                            showStandby('SLEEP');
                         }
                     } else {
-                        showStandby(true);
+                        showStandby('SLEEP');
                     }
                 } catch (e) {
-                    // Locked tab no longer exists
-                    showStandby(true);
+                    showStandby('SLEEP');
                 }
             } else {
                 // Side panel mode: Check current window active tab
                 const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-                if (tab && tab.url && tab.url.includes('youtube.com/watch')) {
-                    showStandby(false);
-                    if (!connectedTabId || connectedTabId !== tab.id) {
-                        // Auto-connect if changed
-                        connectedTabId = tab.id;
-                        sendMessage('GET_STATUS');
+                if (tab && tab.url) {
+                    if (tab.url.includes('youtube.com/watch')) {
+                        showStandby(false);
+                        if (!connectedTabId || connectedTabId !== tab.id) {
+                            connectedTabId = tab.id;
+                            sendMessage('GET_STATUS');
+                        }
+                    } else if (tab.url.includes('youtube.com')) {
+                        showStandby('HOME');
+                    } else {
+                        showStandby('SLEEP');
                     }
                 } else {
-                    showStandby(true);
+                    showStandby('SLEEP');
                 }
             }
         } catch (e) { console.error(e); }
