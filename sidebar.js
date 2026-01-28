@@ -1129,9 +1129,18 @@ try {
             const groupName = currentVideoData.activeGroup || "Default";
             if (!currentVideoData.tagGroups) currentVideoData.tagGroups = {};
             if (!currentVideoData.tagGroups[groupName]) currentVideoData.tagGroups[groupName] = [];
-            currentVideoData.tagGroups[groupName].push({ time: msg.time, label: '' });
-            saveData();
-            renderBookmarks(msg.time); // Pass time to trigger highlight
+
+            const groupTags = currentVideoData.tagGroups[groupName];
+            const isDuplicate = groupTags.some(bm => Math.abs(bm.time - msg.time) < 0.05);
+
+            if (!isDuplicate) {
+                groupTags.push({ time: msg.time, label: '' });
+                saveData();
+            } else {
+                console.log(`[YT Studio] Duplicate marker at ${msg.time} ignored.`);
+            }
+
+            renderBookmarks(msg.time); // Always render/highlight to show feedback
         }
     });
 
