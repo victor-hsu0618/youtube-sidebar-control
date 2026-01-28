@@ -177,8 +177,8 @@ h2 {
 }
 
 h1#app-title {
-  color: #666;
-  /* Disconnected state: Grey */
+  color: #ffffff;
+  /* Explicitly White */
   transition: color 0.3s ease;
 }
 
