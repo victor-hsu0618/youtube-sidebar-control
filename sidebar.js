@@ -813,6 +813,9 @@ try {
             });
             list.appendChild(li);
         });
+
+        // Always re-apply active highlight after render to prevent flickering
+        updateActiveMarker(lastKnownCurrentTime);
     }
 
     function updateActiveMarker(currentTime) {
@@ -1104,6 +1107,8 @@ try {
                     updateHeader();
                 }
             }
+
+            lastKnownCurrentTime = d.currentTime; // Sync cache
 
             if (!isDraggingProgress) {
                 progressBar.max = d.duration;
