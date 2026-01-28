@@ -157,6 +157,32 @@ header {
   font-family: monospace;
 }
 
+.header-add-btn {
+  background: var(--accent-color);
+  color: #000;
+  border: none;
+  border-radius: 4px;
+  width: 18px;
+  height: 18px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 2px;
+  transition: transform 0.1s;
+}
+
+.header-add-btn:hover {
+  transform: scale(1.1);
+  background: #fff;
+}
+
+.header-add-btn:active {
+  transform: scale(0.95);
+}
+
 .nav-btn {
   background: transparent;
   color: var(--text-secondary);
@@ -700,10 +726,8 @@ input:checked+.slider:before {
 /* Bookmark Toolbar (Multi-Group) */
 .bookmarks-toolbar {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
   gap: 8px;
+  margin-bottom: 8px;
 }
 
 .group-select {
@@ -721,17 +745,7 @@ input:checked+.slider:before {
   outline: none;
 }
 
-.toolbar-actions {
-  display: flex;
-  gap: 4px;
-}
-
-.small-action {
-  background: #2a2a2a;
-  border: 1px solid #444;
-  width: 28px;
-  height: 28px;
-}
+/* Toolbar actions and buttons removed for Pro-Mode */
 
 .small-action:hover {
   background: #444;

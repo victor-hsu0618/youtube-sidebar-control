@@ -16,6 +16,7 @@
         <div class="brand-assets">
           <span class="version-badge">v2.0</span>
           <div class="status-indicator" id="connection-status" title="Disconnected"></div>
+          <button id="add-bookmark" class="header-add-btn" title="Add Marker at current time">+</button>
         </div>
         <button id="nav-player" class="nav-btn active">Player</button>
         <button id="nav-library" class="nav-btn">Library</button>
@@ -165,24 +166,7 @@
                 <option value="Cust. A">Cust. A</option>
                 <option value="Cust. B">Cust. B</option>
               </select>
-              <div class="toolbar-actions">
-                <button id="btn-import" class="icon-btn small-action" title="Import JSON">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-                    <path d="M11 16h2V7h3l-4-5-4 5h3z" />
-                    <path d="M5 18h14v2H5z" />
-                  </svg>
-                </button>
-                <button id="btn-export" class="icon-btn small-action" title="Export JSON">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-                    <path d="M11 7h2v9h3l-4 5-4-5h3z" />
-                    <path d="M5 4h14v2H5z" />
-                  </svg>
-                </button>
-                <input type="file" id="file-import" accept=".json" hidden />
-              </div>
             </div>
-
-            <button id="add-bookmark" class="action-btn full-width-btn">+ Add Marker</button>
           </div>
 
           <!-- Scrollable List -->
