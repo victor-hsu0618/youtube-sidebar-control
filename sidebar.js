@@ -64,6 +64,13 @@ try {
     const ICON_PAUSE = '<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
     const ICON_SMALL_PLAY = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
 
+    // Loop Markers
+    const markerA = document.getElementById('marker-a');
+    const markerB = document.getElementById('marker-b');
+    let currentLoopStart = 0;
+    let currentLoopEnd = 0;
+    let currentLoopEnabled = false;
+
     // --- Navigation ---
     function switchView(viewName) {
         Object.keys(views).forEach(k => {
@@ -337,32 +344,64 @@ try {
     });
 
     // Loop & Manual Input
-    const loopToggle = document.getElementById('loop-toggle');
+    const loopToggleBtn = document.getElementById('loop-toggle-btn');
     const loopStart = document.getElementById('loop-start');
     const loopEnd = document.getElementById('loop-end');
 
-    document.getElementById('set-start').addEventListener('click', () => { sendMessage('SET_LOOP_START'); setLoopAccordionState(true); });
-    document.getElementById('set-end').addEventListener('click', () => { sendMessage('SET_LOOP_END'); setLoopAccordionState(true); });
+    function updateLoopVisuals() {
+        if (!progressBar.max || parseFloat(progressBar.max) <= 0) return;
+        const total = parseFloat(progressBar.max);
+
+        if (markerA) {
+            const posA = (currentLoopStart / total) * 100;
+            markerA.style.left = `${posA}%`;
+            markerA.classList.toggle('visible', currentLoopStart > 0);
+        }
+        if (markerB) {
+            const posB = (currentLoopEnd / total) * 100;
+            markerB.style.left = `${posB}%`;
+            markerB.classList.toggle('visible', currentLoopEnd > 0);
+        }
+        if (loopToggleBtn) {
+            loopToggleBtn.classList.toggle('active', currentLoopEnabled);
+        }
+    }
+
+    document.getElementById('set-start').addEventListener('click', () => { sendMessage('SET_LOOP_START'); });
+    document.getElementById('set-end').addEventListener('click', () => { sendMessage('SET_LOOP_END'); });
 
     loopStart.addEventListener('change', () => {
         const t = parseTime(loopStart.value);
-        if (t !== null) sendMessage('SET_LOOP_START', { time: t });
-        setLoopAccordionState(true);
+        if (t !== null) {
+            currentLoopStart = t;
+            sendMessage('SET_LOOP_START', { time: t });
+            updateLoopVisuals();
+        }
     });
     loopEnd.addEventListener('change', () => {
         const t = parseTime(loopEnd.value);
-        if (t !== null) sendMessage('SET_LOOP_END', { time: t });
-        setLoopAccordionState(true);
+        if (t !== null) {
+            currentLoopEnd = t;
+            sendMessage('SET_LOOP_END', { time: t });
+            updateLoopVisuals();
+        }
     });
 
     document.getElementById('clear-loop')?.addEventListener('click', () => {
-        loopStart.value = ''; loopEnd.value = ''; sendMessage('CLEAR_LOOP');
+        loopStart.value = '0:00';
+        loopEnd.value = '0:00';
+        currentLoopStart = 0;
+        currentLoopEnd = 0;
+        sendMessage('CLEAR_LOOP');
+        updateLoopVisuals();
     });
+
     document.getElementById('jump-loop')?.addEventListener('click', () => sendMessage('JUMP_LOOP_START'));
 
-    loopToggle.addEventListener('change', (e) => {
-        sendMessage('TOGGLE_LOOP', { enabled: e.target.checked });
-        setLoopAccordionState(e.target.checked);
+    loopToggleBtn.addEventListener('click', () => {
+        currentLoopEnabled = !currentLoopEnabled;
+        sendMessage('TOGGLE_LOOP', { enabled: currentLoopEnabled });
+        updateLoopVisuals();
     });
 
     // --- Marker Follow Persistence ---
@@ -1189,15 +1228,22 @@ try {
                 timeTotal.textContent = formatTime(d.duration);
                 updateAddMarkerBtn(d.currentTime);
                 updateActiveMarker(d.currentTime);
+                updateLoopVisuals(); // Keep markers aligned if duration changes
             }
         }
         else if (msg.action === 'UPDATE_LOOP_TIMES') {
-            if (msg.start !== null) loopStart.value = formatTime(msg.start);
-            if (msg.end !== null) loopEnd.value = formatTime(msg.end);
-            if (typeof msg.enabled === 'boolean') {
-                loopToggle.checked = msg.enabled;
-                setLoopAccordionState(msg.enabled);
+            if (msg.start !== null) {
+                currentLoopStart = msg.start;
+                loopStart.value = formatTime(msg.start);
             }
+            if (msg.end !== null) {
+                currentLoopEnd = msg.end;
+                loopEnd.value = formatTime(msg.end);
+            }
+            if (typeof msg.enabled === 'boolean') {
+                currentLoopEnabled = msg.enabled;
+            }
+            updateLoopVisuals();
         }
         else if (msg.action === 'PLAYBACK_STATUS') {
             updatePlayPauseIcon(msg.playing);
