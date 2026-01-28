@@ -527,6 +527,12 @@ header {
   background: rgba(255, 255, 255, 0.05);
 }
 
+h2 {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0;
+}
+
 .section-header {
   display: flex;
   justify-content: space-between;
