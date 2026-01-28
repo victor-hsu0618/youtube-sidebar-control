@@ -24,6 +24,7 @@ try {
     let isDraggingProgress = false;
     let connectedTabId = null; // Track connected tab for Popout
     let pendingHighlightTime = null; // Persistent highlight state
+    let isSyncing = false; // Prevent concurrent profile loads
 
     function createEmptyData(id = null, title = "Unknown") {
         return {
@@ -935,19 +936,26 @@ try {
         if (msg.action === 'VIDEO_METADATA') {
             const d = msg.data;
             const isNewVideo = d.videoId !== currentVideoId;
+            const isUninitialized = currentVideoId === null;
 
             if (isNewVideo || (d.title && d.title !== "YouTube" && currentVideoData.title !== d.title)) {
+                // Keep ID updated immediately
+                currentVideoId = d.videoId;
 
                 // --- Smart Load Logic ---
-                if (isNewVideo) {
+                if (isNewVideo || isUninitialized) {
+                    if (isSyncing) return; // Wait for current sync to finish
+
                     // 1. Check Pending Navigation (User clicked specific profile)
                     const pendingKey = `pending_nav_${d.videoId}`;
                     const localData = await chrome.storage.local.get(pendingKey);
 
                     if (localData[pendingKey]) {
                         console.log("Loading Pending Profile:", localData[pendingKey]);
+                        isSyncing = true;
                         await loadStorageProfile(localData[pendingKey]);
                         chrome.storage.local.remove(pendingKey); // Clear
+                        isSyncing = false;
                     } else {
                         // 2. Auto Detect (Default or Recent)
                         const all = await chrome.storage.sync.get(null);
@@ -966,9 +974,13 @@ try {
                                 return (b.updatedAt || 0) - (a.updatedAt || 0);
                             });
                             console.log("Auto-Detected Profile:", related[0]._key);
+                            log(`Auto-detected: ${related[0].title || 'video'}`, 'success');
+                            isSyncing = true;
                             await loadStorageProfile(related[0]._key);
+                            isSyncing = false;
                         } else {
                             // 3. New Session
+                            log(`New session: ${d.title}`, 'info');
                             initNewVideoSession(d.videoId, { title: d.title, thumbnail: d.thumbnail });
                         }
                     }
@@ -979,34 +991,26 @@ try {
                     updateHeader();
                 }
             }
+
             if (!isDraggingProgress) {
                 progressBar.max = d.duration;
                 progressBar.value = d.currentTime;
-                // If we receive a message from the content script, assume connected
-                if (connectedTabId === null) {
-                    // Try to infer source tab?
-                    // Usually chrome.runtime.onMessage doesn't give sender tab readily in payload unless we ask for it, 
-                    // but the sender object has it.
-                    // For now, implicit update of UI is enough.
-                }
-
                 timeCurrent.textContent = formatTime(d.currentTime);
                 timeTotal.textContent = formatTime(d.duration);
-
-                // Update Button Label (Throttle slightly if needed, but per-second is fine)
                 updateAddMarkerBtn(d.currentTime);
             }
-        } else if (msg.action === 'UPDATE_LOOP_TIMES') // ...
-        {
+        }
+        else if (msg.action === 'UPDATE_LOOP_TIMES') {
             if (msg.start !== null) loopStart.value = formatTime(msg.start);
             if (msg.end !== null) loopEnd.value = formatTime(msg.end);
             if (typeof msg.enabled === 'boolean') {
                 loopToggle.checked = msg.enabled;
-                // Sync UI state with backend state
                 setLoopAccordionState(msg.enabled);
             }
         }
-        else if (msg.action === 'PLAYBACK_STATUS') { updatePlayPauseIcon(msg.playing); }
+        else if (msg.action === 'PLAYBACK_STATUS') {
+            updatePlayPauseIcon(msg.playing);
+        }
         else if (msg.action === 'BOOKMARK_ADDED') {
             const groupName = currentVideoData.activeGroup || "Default";
             if (!currentVideoData.tagGroups) currentVideoData.tagGroups = {};
@@ -1155,7 +1159,10 @@ try {
         // 2. Scan active if still null
         if (!connectedTabId) {
             const [t] = await chrome.tabs.query({ active: true, currentWindow: true });
-            if (t && t.url.includes('youtube.com/watch')) connectedTabId = t.id;
+            if (t && t.url.includes('youtube.com/watch')) {
+                connectedTabId = t.id;
+                log("Detecting YouTube video...", "info");
+            }
         }
 
         // 3. Scan Global if still null (Popup Fallback)
