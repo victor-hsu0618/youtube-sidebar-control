@@ -191,14 +191,13 @@ h1#app-title .version-badge {
 }
 
 .status-indicator {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  /* Slightly smaller for better stack look */
+  height: 6px;
   border-radius: 50%;
   background-color: #444;
   box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
   transition: background-color 0.3s, box-shadow 0.3s;
-  margin-left: -4px;
-  /* Tuck it close to v2.0 */
 }
 
 .status-indicator.connected {
