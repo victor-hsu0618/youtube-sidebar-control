@@ -714,6 +714,7 @@ input:checked+.slider:before {
   transform: translateY(0);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
+
 /* Highlight Animation for New Markers */
 @keyframes highlight-pulse {
   0% {
@@ -721,6 +722,7 @@ input:checked+.slider:before {
     border-color: var(--accent-color);
     box-shadow: 0 0 10px rgba(62, 166, 255, 0.3);
   }
+
   100% {
     background-color: #2a2a2a;
     border-color: transparent;
@@ -733,24 +735,27 @@ input:checked+.slider:before {
   border-color: var(--accent-color);
 }
 
-/* Collapsible Loop Section */
-.loop-content {
+/* Generalized Collapsible Section (Accordion) */
+.accordion-content {
   overflow: hidden;
   transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
-  max-height: 500px; /* Arbitrary large height */
+  max-height: 500px;
+  /* Arbitrary large height */
   opacity: 1;
 }
 
-.loop-content.collapsed {
+.accordion-content.collapsed {
   max-height: 0;
   opacity: 0;
-  margin-top: 0; /* Remove potential margin from children if needed, but flex gap usually handles it */
+  margin-top: 0;
   pointer-events: none;
 }
 
 .accordion-header:hover {
-  background-color: #333; /* Slight highlight on hover */
-  border-radius: 4px; /* Match parent radius logic if needed */
+  background-color: #333;
+  /* Slight highlight on hover */
+  border-radius: 4px;
+  /* Match parent radius logic if needed */
 }
 
 /* Chevron rotation */

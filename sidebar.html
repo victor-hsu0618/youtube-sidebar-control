@@ -100,53 +100,59 @@
 
         <!-- Playback Speed -->
         <section class="control-group">
-          <div class="section-header">
-            <h2>Playback Speed</h2>
+          <div id="speed-header" class="section-header accordion-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span id="speed-chevron" class="chevron" style="display:inline-block; transition:transform 0.2s;">▶</span>
+              <h2>Playback Speed</h2>
+            </div>
             <span id="speed-display" class="value-display">1.0x</span>
           </div>
-          <div class="slider-container">
-            <input type="range" id="speed-slider" min="0.25" max="3.0" step="0.05" value="1.0">
-          </div>
-          <div class="presets">
-            <button class="preset-btn" data-speed="0.5">0.5x</button>
-            <button class="preset-btn" data-speed="1.0">1.0x</button>
-            <button class="preset-btn" data-speed="1.5">1.5x</button>
-            <button class="preset-btn" data-speed="2.0">2.0x</button>
+          <div id="speed-content" class="accordion-content collapsed">
+            <div class="slider-container">
+              <input type="range" id="speed-slider" min="0.25" max="3.0" step="0.05" value="1.0">
+            </div>
+            <div class="presets">
+              <button class="preset-btn" data-speed="0.5">0.5x</button>
+              <button class="preset-btn" data-speed="1.0">1.0x</button>
+              <button class="preset-btn" data-speed="1.5">1.5x</button>
+              <button class="preset-btn" data-speed="2.0">2.0x</button>
+            </div>
           </div>
         </section>
 
-        <!-- Loop Section -->
-        <section class="control-group" id="loop-group">
-          <div class="section-header accordion-header" id="loop-header" style="cursor: pointer;">
-            <div style="display:flex; align-items:center; gap:6px;">
-              <span id="loop-chevron" style="font-size:10px; transition: transform 0.2s;">▶</span>
+        <!-- A-B Loop -->
+        <section class="control-group">
+          <div id="loop-header" class="section-header accordion-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span id="loop-chevron" class="chevron" style="display:inline-block; transition:transform 0.2s;">▶</span>
               <h2>A-B Loop</h2>
             </div>
-            <label class="toggle-switch" onclick="event.stopPropagation()">
+            <label class="toggle-switch">
               <input type="checkbox" id="loop-toggle">
               <span class="slider"></span>
             </label>
           </div>
 
-          <div id="loop-content" class="loop-content collapsed">
+          <div id="loop-content" class="accordion-content collapsed">
             <div class="loop-controls">
               <div class="loop-point">
-                <span class="label">A (Start)</span>
+                <span class="label">START</span>
                 <div class="input-group">
-                  <input type="text" id="loop-start" placeholder="0:00">
-                  <button id="set-start" class="icon-btn">📍</button>
+                  <input type="text" id="loop-start" value="0:00" placeholder="0:00">
+                  <button id="set-start" class="icon-btn small-btn" title="Set current time">S</button>
                 </div>
               </div>
               <div class="loop-point">
-                <span class="label">B (End)</span>
+                <span class="label">END</span>
                 <div class="input-group">
-                  <input type="text" id="loop-end" placeholder="0:00">
-                  <button id="set-end" class="icon-btn">🏁</button>
+                  <input type="text" id="loop-end" value="0:00" placeholder="0:00">
+                  <button id="set-end" class="icon-btn small-btn" title="Set current time">E</button>
                 </div>
               </div>
             </div>
-            <div class="loop-actions" style="display: flex; gap: 8px; margin-top: 12px;">
-              <button id="jump-loop" class="secondary-btn" style="margin-top: 0; flex: 1;">Jump to A</button>
+
+            <div style="display:flex; gap:8px; margin-top:12px;">
+              <button id="jump-loop" class="secondary-btn" style="margin-top: 0; flex: 1;">Jump</button>
               <button id="clear-loop" class="secondary-btn" style="margin-top: 0; flex: 1;">Clear</button>
             </div>
           </div>

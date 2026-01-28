@@ -239,8 +239,57 @@ try {
             speedSlider.value = val;
             speedDisplay.textContent = val + 'x';
             sendMessage('SET_SPEED', { speed: parseFloat(val) });
+            // Optional: Auto-expand if set via presets somehow? Usually already expanded.
         });
     });
+
+    // --- Accordions (Collapsible Sections) ---
+    const speedHeader = document.getElementById('speed-header');
+    const speedContent = document.getElementById('speed-content');
+    const speedChevron = document.getElementById('speed-chevron');
+
+    if (speedHeader && speedContent) {
+        speedHeader.addEventListener('click', () => {
+            const isExpanding = speedContent.classList.contains('collapsed');
+            setSpeedAccordionState(isExpanding);
+        });
+    }
+
+    function setSpeedAccordionState(expand) {
+        if (speedContent && speedChevron) {
+            if (expand) {
+                speedContent.classList.remove('collapsed');
+                speedChevron.style.transform = 'rotate(90deg)';
+            } else {
+                speedContent.classList.add('collapsed');
+                speedChevron.style.transform = 'rotate(0deg)';
+            }
+        }
+    }
+
+    const loopHeader = document.getElementById('loop-header');
+    const loopContent = document.getElementById('loop-content');
+    const loopChevron = document.getElementById('loop-chevron');
+
+    if (loopHeader && loopContent) {
+        loopHeader.addEventListener('click', (e) => {
+            if (e.target.closest('.toggle-switch')) return;
+            const isExpanding = loopContent.classList.contains('collapsed');
+            setLoopAccordionState(isExpanding);
+        });
+    }
+
+    function setLoopAccordionState(expand) {
+        if (loopContent && loopChevron) {
+            if (expand) {
+                loopContent.classList.remove('collapsed');
+                loopChevron.style.transform = 'rotate(90deg)';
+            } else {
+                loopContent.classList.add('collapsed');
+                loopChevron.style.transform = 'rotate(0deg)';
+            }
+        }
+    }
 
     // Progress
     const timeCurrent = document.getElementById('time-current');
@@ -277,46 +326,12 @@ try {
         loopStart.value = ''; loopEnd.value = ''; sendMessage('CLEAR_LOOP');
     });
     document.getElementById('jump-loop')?.addEventListener('click', () => sendMessage('JUMP_LOOP_START'));
-    // Loop Visibility Helper
-    function setLoopAccordionState(expand) {
-        const content = document.getElementById('loop-content');
-        const chevron = document.getElementById('loop-chevron');
-        if (content && chevron) {
-            if (expand) {
-                content.classList.remove('collapsed');
-                chevron.style.transform = 'rotate(90deg)';
-            } else {
-                content.classList.add('collapsed');
-                chevron.style.transform = 'rotate(0deg)';
-            }
-        }
-    }
 
     loopToggle.addEventListener('change', (e) => {
         sendMessage('TOGGLE_LOOP', { enabled: e.target.checked });
         setLoopAccordionState(e.target.checked);
     });
 
-    // Loop Accordion
-    const loopHeader = document.getElementById('loop-header');
-    const loopContent = document.getElementById('loop-content');
-    const loopChevron = document.getElementById('loop-chevron');
-
-    if (loopHeader && loopContent) {
-        loopHeader.addEventListener('click', (e) => {
-            // Prevent toggling if clicking directly on the switch (handled by stopPropagation in HTML, but good safety)
-            if (e.target.closest('.toggle-switch')) return;
-
-            loopContent.classList.toggle('collapsed');
-            if (loopChevron) {
-                if (!loopContent.classList.contains('collapsed')) {
-                    loopChevron.style.transform = 'rotate(90deg)';
-                } else {
-                    loopChevron.style.transform = 'rotate(0deg)';
-                }
-            }
-        });
-    }
 
     // Bookmarks UI
     const groupSelector = document.getElementById('group-selector');
