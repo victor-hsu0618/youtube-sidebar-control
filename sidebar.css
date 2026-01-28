@@ -6,6 +6,8 @@
   --accent-color: #3ea6ff;
   --accent-hover: #65b8ff;
   --danger-color: #ff4e45;
+  --warning-color: #f1c40f;
+  --success-color: #4cc713;
   --border-radius: 12px;
   --spacing-sm: 8px;
   --spacing-md: 16px;
@@ -56,13 +58,19 @@ body {
 #view-player,
 #view-library,
 #view-favorites {
-  display: flex;
-  flex-direction: column;
+  display: none;
   flex: 1;
+  flex-direction: column;
   min-height: 0;
   gap: 12px;
   overflow: hidden;
-  /* CRITICAL: Forces internal containers to scroll */
+}
+
+#favorites-list {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  padding-right: 4px;
 }
 
 /* Player View Specific */
@@ -638,9 +646,20 @@ input:checked+.slider:before {
 
 /* Library View */
 #view-library {
+  flex: 1;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
   gap: 12px;
+}
+
+#library-list {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  padding-right: 4px;
+  /* Space for scrollbar */
 }
 
 .library-item {

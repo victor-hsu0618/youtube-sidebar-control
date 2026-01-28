@@ -545,6 +545,7 @@ try {
 
         currentVideoData.updatedAt = Date.now();
         await chrome.storage.sync.set({ [currentStorageKey]: currentVideoData });
+        updateStorageUsage();
 
         const heartBtn = document.getElementById('toggle-library-save');
         if (heartBtn) heartBtn.classList.toggle('active', !!currentVideoData.isSaved);
@@ -877,6 +878,7 @@ try {
     async function loadLibrary() {
         const container = document.getElementById('library-list');
         if (!container) return;
+        updateStorageUsage();
         container.innerHTML = 'Loading...';
         const all = await chrome.storage.sync.get(null);
         let items = [];
@@ -1339,5 +1341,31 @@ try {
     }
 
     establishConnection();
+
+    /* --- Storage Usage Monitoring --- */
+    async function updateStorageUsage() {
+        if (!chrome || !chrome.storage || !chrome.storage.sync || !chrome.storage.sync.getBytesInUse) return;
+
+        const usageBar = document.getElementById('sync-usage-bar');
+        const usageText = document.getElementById('sync-usage-text');
+        if (!usageBar || !usageText) return;
+
+        chrome.storage.sync.getBytesInUse(null, (bytes) => {
+            const quota = chrome.storage.sync.QUOTA_BYTES || 102400;
+            const percent = Math.min(100, Math.ceil((bytes / quota) * 100));
+
+            usageBar.style.width = percent + '%';
+            usageText.textContent = `${percent}% Used`;
+
+            // Color Coding
+            if (percent < 70) {
+                usageBar.style.backgroundColor = 'var(--success-color)';
+            } else if (percent < 90) {
+                usageBar.style.backgroundColor = 'var(--warning-color)';
+            } else {
+                usageBar.style.backgroundColor = 'var(--danger-color)';
+            }
+        });
+    }
 
 } catch (e) { console.error(e); }
