@@ -456,9 +456,8 @@ try {
             if (tVal) timeStr = tVal;
         }
 
-        // In Pro-Mode header, we keep it as a simple "+" icon
-        addMarkerBtn.textContent = '+';
-        addMarkerBtn.title = `Add Marker at ${timeStr} to "${groupName}"`;
+        // 3. Format Label: Add "Now(12:34)" to "Study"
+        addMarkerBtn.textContent = `Add "Now(${timeStr})" to "${groupName}"`;
     }
 
     document.getElementById('add-bookmark')?.addEventListener('click', () => sendMessage('ADD_BOOKMARK_REQUEST'));

@@ -158,29 +158,8 @@ header {
 }
 
 .header-add-btn {
-  background: var(--accent-color);
-  color: #000;
-  border: none;
-  border-radius: 4px;
-  width: 18px;
-  height: 18px;
-  font-size: 14px;
-  font-weight: 800;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-left: 2px;
-  transition: transform 0.1s;
-}
-
-.header-add-btn:hover {
-  transform: scale(1.1);
-  background: #fff;
-}
-
-.header-add-btn:active {
-  transform: scale(0.95);
+  display: none;
+  /* Removed in 2.4 */
 }
 
 .nav-btn {
@@ -582,10 +561,10 @@ button {
 .action-btn {
   background: var(--accent-color);
   color: #000;
-  font-weight: 600;
+  font-weight: 700;
   padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 12px;
+  border-radius: 4px;
+  font-size: 11px;
 }
 
 .action-btn:hover {
@@ -594,8 +573,8 @@ button {
 
 .full-width-btn {
   width: 100%;
-  padding: 8px;
-  margin-bottom: 12px;
+  padding: 6px;
+  margin-bottom: 4px;
 }
 
 .secondary-btn {
