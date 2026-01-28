@@ -48,7 +48,8 @@ body {
   flex-direction: column;
   gap: 16px;
   height: 100%;
-  /* Take full height of body */
+  overflow: hidden;
+  /* CRITICAL: Prevent viewport displacement */
 }
 
 /* Views Layout */
@@ -58,10 +59,10 @@ body {
   display: flex;
   flex-direction: column;
   flex: 1;
-  /* These views take all available vertical space */
   min-height: 0;
-  /* Important for enabling inner scroll */
   gap: 12px;
+  overflow: hidden;
+  /* CRITICAL: Prevent children from scrolling this view */
 }
 
 /* Player View Specific */

@@ -767,8 +767,16 @@ try {
             if (checkTime !== null && Math.abs(bm.time - checkTime) < 0.001) {
                 li.classList.add('highlight-new');
                 setTimeout(() => {
-                    li.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    // Clear only after successful application
+                    const container = document.querySelector('.bookmarks-list-container');
+                    if (container) {
+                        const topPos = li.offsetTop;
+                        const containerHeight = container.clientHeight;
+                        container.scrollTo({
+                            top: topPos - containerHeight / 2,
+                            behavior: 'smooth'
+                        });
+                    }
+                    // Clear after application
                     if (pendingHighlightTime === checkTime) pendingHighlightTime = null;
                 }, 100);
             }
