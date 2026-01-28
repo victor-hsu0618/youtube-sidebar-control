@@ -100,11 +100,14 @@ body {
   z-index: 5;
 }
 
+/* Bookmarks List Container */
 .bookmarks-list-container {
   padding: 0 12px 12px 12px;
   overflow-y: auto;
   /* Scroll THIS area */
   flex: 1;
+  min-height: 0;
+  /* CRITICAL: Allows flex child to shrink below content size */
 }
 
 /* Since we moved padding to inner container, remove conflict if any */
@@ -676,10 +679,13 @@ input:checked+.slider:before {
 
 /* Sponsor / Footer */
 .app-footer {
-  margin-top: 16px;
+  margin-top: auto;
+  /* Push to bottom if space allows, though flex gap handles most */
   display: flex;
   justify-content: center;
   padding-bottom: 8px;
+  flex-shrink: 0;
+  /* Don't shrink */
 }
 
 .bmc-btn {
