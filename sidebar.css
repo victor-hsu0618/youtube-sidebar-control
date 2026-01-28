@@ -732,3 +732,28 @@ input:checked+.slider:before {
   animation: highlight-pulse 2s ease-out forwards;
   border-color: var(--accent-color);
 }
+
+/* Collapsible Loop Section */
+.loop-content {
+  overflow: hidden;
+  transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+  max-height: 500px; /* Arbitrary large height */
+  opacity: 1;
+}
+
+.loop-content.collapsed {
+  max-height: 0;
+  opacity: 0;
+  margin-top: 0; /* Remove potential margin from children if needed, but flex gap usually handles it */
+  pointer-events: none;
+}
+
+.accordion-header:hover {
+  background-color: #333; /* Slight highlight on hover */
+  border-radius: 4px; /* Match parent radius logic if needed */
+}
+
+/* Chevron rotation */
+.loop-chevron-rotated {
+  transform: rotate(90deg);
+}

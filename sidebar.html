@@ -116,33 +116,39 @@
         </section>
 
         <!-- Loop Section -->
-        <section class="control-group">
-          <div class="section-header">
-            <h2>A-B Loop</h2>
-            <label class="toggle-switch">
+        <section class="control-group" id="loop-group">
+          <div class="section-header accordion-header" id="loop-header" style="cursor: pointer;">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span id="loop-chevron" style="font-size:10px; transition: transform 0.2s;">▶</span>
+              <h2>A-B Loop</h2>
+            </div>
+            <label class="toggle-switch" onclick="event.stopPropagation()">
               <input type="checkbox" id="loop-toggle">
               <span class="slider"></span>
             </label>
           </div>
-          <div class="loop-controls">
-            <div class="loop-point">
-              <span class="label">A (Start)</span>
-              <div class="input-group">
-                <input type="text" id="loop-start" placeholder="0:00">
-                <button id="set-start" class="icon-btn">📍</button>
+
+          <div id="loop-content" class="loop-content collapsed">
+            <div class="loop-controls">
+              <div class="loop-point">
+                <span class="label">A (Start)</span>
+                <div class="input-group">
+                  <input type="text" id="loop-start" placeholder="0:00">
+                  <button id="set-start" class="icon-btn">📍</button>
+                </div>
+              </div>
+              <div class="loop-point">
+                <span class="label">B (End)</span>
+                <div class="input-group">
+                  <input type="text" id="loop-end" placeholder="0:00">
+                  <button id="set-end" class="icon-btn">🏁</button>
+                </div>
               </div>
             </div>
-            <div class="loop-point">
-              <span class="label">B (End)</span>
-              <div class="input-group">
-                <input type="text" id="loop-end" placeholder="0:00">
-                <button id="set-end" class="icon-btn">🏁</button>
-              </div>
+            <div class="loop-actions" style="display: flex; gap: 8px; margin-top: 12px;">
+              <button id="jump-loop" class="secondary-btn" style="margin-top: 0; flex: 1;">Jump to A</button>
+              <button id="clear-loop" class="secondary-btn" style="margin-top: 0; flex: 1;">Clear</button>
             </div>
-          </div>
-          <div class="loop-actions" style="display: flex; gap: 8px; margin-top: 12px;">
-            <button id="jump-loop" class="secondary-btn" style="margin-top: 0; flex: 1;">Jump to A</button>
-            <button id="clear-loop" class="secondary-btn" style="margin-top: 0; flex: 1;">Clear</button>
           </div>
         </section>
       </div> <!-- End player-top-panel -->

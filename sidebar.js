@@ -275,6 +275,27 @@ try {
     document.getElementById('jump-loop')?.addEventListener('click', () => sendMessage('JUMP_LOOP_START'));
     loopToggle.addEventListener('change', (e) => sendMessage('TOGGLE_LOOP', { enabled: e.target.checked }));
 
+    // Loop Accordion
+    const loopHeader = document.getElementById('loop-header');
+    const loopContent = document.getElementById('loop-content');
+    const loopChevron = document.getElementById('loop-chevron');
+
+    if (loopHeader && loopContent) {
+        loopHeader.addEventListener('click', (e) => {
+            // Prevent toggling if clicking directly on the switch (handled by stopPropagation in HTML, but good safety)
+            if (e.target.closest('.toggle-switch')) return;
+
+            loopContent.classList.toggle('collapsed');
+            if (loopChevron) {
+                if (!loopContent.classList.contains('collapsed')) {
+                    loopChevron.style.transform = 'rotate(90deg)';
+                } else {
+                    loopChevron.style.transform = 'rotate(0deg)';
+                }
+            }
+        });
+    }
+
     // Bookmarks UI
     const groupSelector = document.getElementById('group-selector');
     const fileImport = document.getElementById('file-import');
