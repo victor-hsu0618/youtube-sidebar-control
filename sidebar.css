@@ -405,10 +405,13 @@ header {
   width: 28px;
   height: 28px;
   display: flex;
+  flex-direction: column;
+  /* Stack SVG and Badge */
   align-items: center;
   justify-content: center;
   color: var(--text-secondary);
   transition: all 0.2s;
+  position: relative;
 }
 
 .mini-loop-btn:hover {
@@ -424,8 +427,23 @@ header {
 }
 
 .mini-loop-btn svg {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  /* Slightly smaller to make room for text */
+  height: 14px;
+}
+
+.btn-badge {
+  font-size: 7px;
+  font-weight: 800;
+  font-family: 'Inter', sans-serif;
+  line-height: 1;
+  margin-top: 1px;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.mini-loop-btn.active .btn-badge {
+  color: #000;
 }
 
 .large-play-btn {
