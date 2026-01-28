@@ -1080,6 +1080,14 @@ try {
                 if (currentVideoId) updateDataCache(all, currentVideoId);
             });
         }
+
+        // --- Follow Markers Sync ---
+        if (changes.followMarkers) {
+            const followToggle = document.getElementById('follow-playback-toggle');
+            if (followToggle) {
+                followToggle.checked = changes.followMarkers.newValue;
+            }
+        }
     });
 
     // Messages
