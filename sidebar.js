@@ -283,7 +283,36 @@ try {
         currentVideoData.activeGroup = e.target.value;
         saveData();
         renderBookmarks();
+        updateAddMarkerBtn(); // Update label on group change
     });
+
+    // --- Dynamic Marker Button ---
+    const addMarkerBtn = document.getElementById('add-bookmark');
+    let lastFormattedTime = "";
+
+    function updateAddMarkerBtn(currentTime = null) {
+        if (!addMarkerBtn) return;
+
+        // 1. Get Group Name
+        const groupName = groupSelector ? groupSelector.value : "Default";
+
+        // 2. Get Time (if not passed, try to use last known or 0)
+        // We need a stable source of 'current display time' if not provided
+        let timeStr = "0:00";
+        if (currentTime !== null) {
+            timeStr = formatTime(currentTime);
+            lastFormattedTime = timeStr;
+        } else if (lastFormattedTime) {
+            timeStr = lastFormattedTime;
+        } else {
+            // Fallback: try reading from DOM if needed, or just keep default
+            const tVal = document.getElementById('time-current')?.textContent;
+            if (tVal) timeStr = tVal;
+        }
+
+        // 3. Format Label: Add "Now(12:34)" to "Study"
+        addMarkerBtn.textContent = `Add "Now(${timeStr})" to "${groupName}"`;
+    }
 
     document.getElementById('add-bookmark').addEventListener('click', () => sendMessage('ADD_BOOKMARK_REQUEST'));
     document.getElementById('btn-export').addEventListener('click', exportData);
@@ -907,6 +936,9 @@ try {
 
                 timeCurrent.textContent = formatTime(d.currentTime);
                 timeTotal.textContent = formatTime(d.duration);
+
+                // Update Button Label (Throttle slightly if needed, but per-second is fine)
+                updateAddMarkerBtn(d.currentTime);
             }
         } else if (msg.action === 'UPDATE_LOOP_TIMES') // ...
         {
