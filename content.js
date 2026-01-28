@@ -122,7 +122,11 @@ chrome.runtime.onMessage.addListener((msg) => {
             break;
         case 'SET_LOOP_END':
             loopEnd = (msg.time !== undefined) ? msg.time : video.currentTime;
-            if (loopStart !== null) loopEnabled = true;
+            if (loopStart !== null) {
+                loopEnabled = true;
+                video.currentTime = loopStart;
+                video.play();
+            }
             notifyLoop();
             break;
         case 'CLEAR_LOOP':
@@ -137,6 +141,10 @@ chrome.runtime.onMessage.addListener((msg) => {
             break;
         case 'TOGGLE_LOOP':
             loopEnabled = msg.enabled;
+            if (loopEnabled && loopStart !== null) {
+                video.currentTime = loopStart;
+                video.play();
+            }
             break;
         case 'ADD_BOOKMARK_REQUEST':
             chrome.runtime.sendMessage({ action: 'BOOKMARK_ADDED', time: video.currentTime }).catch(() => { });
