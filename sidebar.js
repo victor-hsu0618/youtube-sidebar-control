@@ -339,6 +339,22 @@ try {
         setLoopAccordionState(e.target.checked);
     });
 
+    // --- Marker Follow Persistence ---
+    const followToggle = document.getElementById('follow-playback-toggle');
+    if (followToggle) {
+        // Load preference
+        chrome.storage.sync.get('followMarkers', (res) => {
+            if (res.hasOwnProperty('followMarkers')) {
+                followToggle.checked = res.followMarkers;
+            }
+        });
+
+        // Save preference
+        followToggle.addEventListener('change', (e) => {
+            chrome.storage.sync.set({ followMarkers: e.target.checked });
+        });
+    }
+
 
     // Bookmarks UI
     const groupSelector = document.getElementById('group-selector');
