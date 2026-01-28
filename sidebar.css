@@ -25,7 +25,8 @@ body {
   font-size: 14px;
   padding: var(--spacing-md);
   height: 100vh;
-  overflow-y: auto;
+  overflow: hidden;
+  /* Hide main body scroll */
 }
 
 /* Scrollbar */
@@ -46,7 +47,67 @@ body {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  height: 100%;
+  /* Take full height of body */
 }
+
+/* Views Layout */
+#view-player,
+#view-library,
+#view-favorites {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  /* These views take all available vertical space */
+  min-height: 0;
+  /* Important for enabling inner scroll */
+  gap: 12px;
+}
+
+/* Player View Specific */
+.player-top-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex-shrink: 0;
+  /* Prevent shrinking */
+  /* Optional: if you want the top panel to be scrollable if screen is TINY */
+  /* overflow-y: auto; */
+  /* max-height: 50vh; */
+}
+
+.bookmarks-section {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  /* Take remaining space */
+  min-height: 0;
+  /* Allow shrinking for scroll */
+  padding: 0 !important;
+  /* Reset padding to handle inner logic if needed, or keep unified */
+  border: 1px solid #333;
+  background-color: var(--card-bg);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  /* Contain children */
+}
+
+.bookmarks-sticky-header {
+  padding: 12px 12px 0 12px;
+  background: var(--card-bg);
+  /* Ensure opaque background */
+  flex-shrink: 0;
+  z-index: 5;
+}
+
+.bookmarks-list-container {
+  padding: 0 12px 12px 12px;
+  overflow-y: auto;
+  /* Scroll THIS area */
+  flex: 1;
+}
+
+/* Since we moved padding to inner container, remove conflict if any */
 
 /* Header & Nav */
 header {

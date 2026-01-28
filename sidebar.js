@@ -780,32 +780,61 @@ try {
     }
 
     // --- State Sync (Multi-Window) ---
+    // --- State Sync (Multi-Window) ---
     chrome.storage.onChanged.addListener((changes, namespace) => {
         if (namespace !== 'sync') return;
 
         let shouldRefreshLib = false;
+        let shouldRefreshFav = false;
 
-        for (let [key, { oldValue, newValue }] of Object.entries(changes)) {
-            // If current profile updated externally
-            if (key === currentStorageKey && newValue) {
-                // If timestamp changed (meaning it was saved/edited elsewhere)
-                if (newValue.updatedAt !== currentVideoData.updatedAt) {
-                    currentVideoData = newValue;
+        // Optimized Logic: Only refresh if relevant keys changed significantly
+        // or if a new video was added/removed (keys starting with v_ count changed)
+
+        const videoKeysChanged = Object.keys(changes).filter(k => k.startsWith('v_'));
+
+        if (videoKeysChanged.length > 0) {
+            // Check if any change was an ADD or REMOVE or IS_DEFAULT toggle
+            // If it's just a timestamp update, we might not need to re-render the whole list
+            const significantChange = videoKeysChanged.some(k => {
+                const val = changes[k].newValue;
+                const old = changes[k].oldValue;
+
+                // Added or Removed
+                if (!val || !old) return true;
+
+                // Title changed, Default changed, Saved status changed
+                if (val.title !== old.title) return true;
+                if (val.isDefault !== old.isDefault) return true;
+                if (val.isSaved !== old.isSaved) return true;
+
+                // If Tag count changed, we should probably update list metadata
+                const newCount = val.tagGroups ? Object.values(val.tagGroups).reduce((acc, g) => acc + g.length, 0) : 0;
+                const oldCount = old.tagGroups ? Object.values(old.tagGroups).reduce((acc, g) => acc + g.length, 0) : 0;
+                if (newCount !== oldCount) return true;
+
+                return false;
+            });
+
+            if (significantChange) {
+                shouldRefreshLib = true;
+                shouldRefreshFav = true;
+            }
+
+            // Specific case: Current video updated externally (e.g. from popup to sidebar)
+            if (videoKeysChanged.includes(currentStorageKey)) {
+                if (changes[currentStorageKey].newValue) {
+                    // Silent update of data, don't necessarily re-render the whole list
+                    currentVideoData = changes[currentStorageKey].newValue;
                     updateHeader();
                     renderBookmarks();
                 }
             }
-
-            // If ANY key started with v_ changed => Refresh Library
-            if (key.startsWith('v_')) {
-                shouldRefreshLib = true;
-            }
         }
 
-        if (shouldRefreshLib) {
-            loadLibrary();
-            loadFavorites();
+        if (shouldRefreshLib) loadLibrary();
+        if (shouldRefreshFav) loadFavorites();
 
+        if (shouldRefreshLib || shouldRefreshFav) {
             // Update Cache for Detect Button
             chrome.storage.sync.get(null).then(all => {
                 if (currentVideoId) updateDataCache(all, currentVideoId);
@@ -948,60 +977,68 @@ try {
     };
 
     // Monitor Active Tab
+    let activeTabCheckTimeout;
     const checkActiveTab = async () => {
-        try {
-            // Check for passed tabId (Popout Lock)
-            const urlParams = new URLSearchParams(window.location.search);
-            const lockedTabId = urlParams.get('tabId');
+        // Debounce to prevent rapid firing during tab switch
+        if (activeTabCheckTimeout) clearTimeout(activeTabCheckTimeout);
 
-            if (lockedTabId) {
-                // Popup mode: Check the locked tab directly
-                try {
-                    const lockedTab = await chrome.tabs.get(parseInt(lockedTabId, 10));
-                    if (lockedTab && lockedTab.url) {
-                        if (lockedTab.url.includes('youtube.com/watch')) {
-                            showStandby(false);
-                            if (!connectedTabId || connectedTabId !== lockedTab.id) {
-                                connectedTabId = lockedTab.id;
-                                sendMessage('GET_STATUS');
-                            }
-                        } else if (lockedTab.url.includes('youtube.com')) {
-                            showStandby('HOME');
-                        } else {
-                            showStandby('SLEEP');
-                        }
-                    } else {
-                        showStandby('SLEEP');
-                    }
-                } catch (e) {
-                    showStandby('SLEEP');
+        activeTabCheckTimeout = setTimeout(async () => {
+            try {
+                // Check for passed tabId (Popout Lock)
+                const urlParams = new URLSearchParams(window.location.search);
+                const lockedTabId = urlParams.get('tabId');
+
+                // Helper to determine status
+                const determineStatus = (url) => {
+                    if (!url) return 'SLEEP';
+                    if (url.includes('youtube.com/watch')) return 'WATCH';
+                    if (url.includes('youtube.com')) return 'HOME';
+                    return 'SLEEP';
+                };
+
+                let targetTab = null;
+                let status = 'SLEEP';
+
+                if (lockedTabId) {
+                    try {
+                        targetTab = await chrome.tabs.get(parseInt(lockedTabId, 10));
+                    } catch (e) { /* Tab might be closed */ }
+                } else {
+                    const [t] = await chrome.tabs.query({ active: true, currentWindow: true });
+                    targetTab = t;
                 }
-            } else {
-                // Side panel mode: Check current window active tab
-                const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-                if (tab && tab.url) {
-                    if (tab.url.includes('youtube.com/watch')) {
+                if (targetTab) {
+                    status = determineStatus(targetTab.url);
+
+                    if (status === 'WATCH') {
                         showStandby(false);
-                        if (!connectedTabId || connectedTabId !== tab.id) {
-                            connectedTabId = tab.id;
+                        // Only update if we are NOT already connected to this tab
+                        // This prevents resetting UI just because we checked again
+                        if (!connectedTabId || connectedTabId !== targetTab.id) {
+                            connectedTabId = targetTab.id;
+                            console.log("Re-connecting to tab:", connectedTabId);
                             sendMessage('GET_STATUS');
                         }
-                    } else if (tab.url.includes('youtube.com')) {
-                        showStandby('HOME');
                     } else {
-                        showStandby('SLEEP');
+                        // Only show standby if we are DEFINITELY not watching
+                        // But for Side Panel, we might still want to keep "connectedTabId" valid 
+                        // if the user just briefly switched away? 
+                        // Actually, for Side Panel, if they switch tab, they ARE away.
+                        // So showing standby is correct.
+                        showStandby(status);
                     }
                 } else {
                     showStandby('SLEEP');
                 }
-            }
-        } catch (e) { console.error(e); }
+
+            } catch (e) { console.error(e); }
+        }, 300); // 300ms debounce
     };
 
     chrome.tabs.onActivated.addListener(checkActiveTab);
     chrome.tabs.onUpdated.addListener((id, info, tab) => {
-        if (tab.active) checkActiveTab();
+        if (tab.active && info.status === 'complete') checkActiveTab();
     });
 
     // Initial Check
