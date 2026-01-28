@@ -642,7 +642,7 @@ try {
     }
 
     // --- Render Bookmarks ---
-    function renderBookmarks() {
+    function renderBookmarks(highlightTime = null) {
         const groupName = currentVideoData.activeGroup || "Default";
         const groupTags = currentVideoData.tagGroups ? currentVideoData.tagGroups[groupName] : [];
         if (groupTags) groupTags.sort((a, b) => a.time - b.time);
@@ -653,6 +653,15 @@ try {
         groupTags.forEach((bm, i) => {
             const li = document.createElement('li');
             li.className = 'bookmark-item';
+
+            // Highlight Check
+            if (highlightTime !== null && Math.abs(bm.time - highlightTime) < 0.001) {
+                li.classList.add('highlight-new');
+                setTimeout(() => {
+                    li.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 100);
+            }
+
             li.innerHTML = `
                 <div class="bookmark-controls">
                     <button class="bookmark-play-btn" title="Play">${ICON_SMALL_PLAY}</button>
@@ -953,7 +962,7 @@ try {
             if (!currentVideoData.tagGroups[groupName]) currentVideoData.tagGroups[groupName] = [];
             currentVideoData.tagGroups[groupName].push({ time: msg.time, label: '' });
             saveData();
-            renderBookmarks();
+            renderBookmarks(msg.time); // Pass time to trigger highlight
         }
     });
 
