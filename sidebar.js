@@ -26,6 +26,7 @@ try {
     let pendingHighlightTime = null; // Persistent highlight state
     let isSyncing = false; // Prevent concurrent profile loads
     let lastKnownCurrentTime = 0; // Cache for active marker tracking
+    let lastActiveLiTime = -1; // Track which marker is currently active to avoid redundant scroll/updates
 
     function createEmptyData(id = null, title = "Unknown") {
         return {
@@ -816,17 +817,21 @@ try {
         });
 
         // Always re-apply active highlight after render to prevent flickering
-        updateActiveMarker(lastKnownCurrentTime);
+        // Use requestAnimationFrame to ensure DOM is ready for scroll calculations
+        requestAnimationFrame(() => {
+            updateActiveMarker(lastKnownCurrentTime, true);
+        });
     }
 
-    function updateActiveMarker(currentTime) {
+    function updateActiveMarker(currentTime, forceUpdate = false) {
         const listItems = document.querySelectorAll('#bookmarks-list .bookmark-item');
         let activeLi = null;
 
-        // The active marker is the one with the largest time <= currentTime
+        // The active marker is the one with the largest time <= (currentTime + epsilon)
+        // Epsilon (0.1) handles small floating point differences at the end of the video
         listItems.forEach(li => {
             const itemTime = parseFloat(li.dataset.time);
-            if (itemTime <= currentTime) {
+            if (itemTime <= (currentTime + 0.1)) {
                 if (!activeLi || itemTime > parseFloat(activeLi.dataset.time)) {
                     activeLi = li;
                 }
@@ -836,26 +841,35 @@ try {
 
         if (activeLi) {
             activeLi.classList.add('active-playing');
+            const activeTime = parseFloat(activeLi.dataset.time);
 
-            // Auto-scroll if enabled
-            const followToggle = document.getElementById('follow-playback-toggle');
-            if (followToggle && followToggle.checked) {
-                const container = document.querySelector('.bookmarks-list-container');
-                if (container) {
-                    const topPos = activeLi.offsetTop;
-                    const containerHeight = container.clientHeight;
-                    const itemHeight = activeLi.clientHeight;
-                    const targetScroll = topPos - (containerHeight / 2) + (itemHeight / 2);
+            // Change Detection: Only scroll if the active marker has changed OR if forced
+            const hasChanged = activeTime !== lastActiveLiTime;
+            if (hasChanged || forceUpdate) {
+                lastActiveLiTime = activeTime;
 
-                    // Only scroll if significantly different to avoid jitter
-                    if (Math.abs(container.scrollTop - targetScroll) > 10) {
-                        container.scrollTo({
-                            top: targetScroll,
-                            behavior: 'smooth'
-                        });
+                // Auto-scroll if enabled
+                const followToggle = document.getElementById('follow-playback-toggle');
+                if (followToggle && followToggle.checked) {
+                    const container = document.querySelector('.bookmarks-list-container');
+                    if (container) {
+                        const topPos = activeLi.offsetTop;
+                        const containerHeight = container.clientHeight;
+                        const itemHeight = activeLi.clientHeight;
+                        const targetScroll = topPos - (containerHeight / 2) + (itemHeight / 2);
+
+                        // Only scroll if significantly different to avoid jitter or if forced
+                        if (forceUpdate || Math.abs(container.scrollTop - targetScroll) > 5) {
+                            container.scrollTo({
+                                top: targetScroll,
+                                behavior: forceUpdate ? 'auto' : 'smooth'
+                            });
+                        }
                     }
                 }
             }
+        } else {
+            lastActiveLiTime = -1;
         }
     }
 

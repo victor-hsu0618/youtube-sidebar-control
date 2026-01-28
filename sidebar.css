@@ -740,8 +740,8 @@ input:checked+.slider:before {
 }
 
 .bookmark-item.active-playing {
-  background-color: #383838;
-  border-left: 3px solid var(--accent-color);
+  background-color: #383838 !important;
+  border-left: 3px solid var(--accent-color) !important;
   transition: background-color 0.3s ease, border-left 0.3s ease;
 }
 
