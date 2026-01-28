@@ -1,6 +1,6 @@
 [English](README.md) | [繁體中文](README.zh-TW.md)
 
-# YouTube Studio Sidebar
+# YouTube Studio Sidebar v2.0
 
 Professional YouTube playback control and learning tool. Transform your YouTube experience into a powerful learning and notetaking workstation.
 
