@@ -65,7 +65,7 @@ try {
     // --- Navigation ---
     function switchView(viewName) {
         Object.keys(views).forEach(k => {
-            if (views[k]) views[k].style.display = (k === viewName) ? 'block' : 'none';
+            if (views[k]) views[k].style.display = (k === viewName) ? 'flex' : 'none';
         });
         Object.keys(navs).forEach(k => {
             if (navs[k]) navs[k].classList.toggle('active', k === viewName);
