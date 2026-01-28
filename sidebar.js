@@ -156,7 +156,7 @@ try {
     }
 
     // --- Communication ---
-    const statusIndicator = document.getElementById('app-title');
+    const statusIndicator = document.getElementById('connection-status');
 
     // Check URL for passed tabId
     const urlParams = new URLSearchParams(window.location.search);
@@ -204,7 +204,7 @@ try {
             connectedTabId = targetTabId;
             statusIndicator.classList.add('connected');
             statusIndicator.title = `Connected to Tab: ${targetTabId}`;
-            const response = await chrome.tabs.sendMessage(targetTabId, { action, payload });
+            const response = await chrome.tabs.sendMessage(targetTabId, { action, ...payload });
         } catch (error) {
             statusIndicator.classList.remove('connected');
             statusIndicator.title = "Disconnected (Error)";
