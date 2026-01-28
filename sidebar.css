@@ -729,6 +729,20 @@ input:checked+.slider:before {
   border-bottom: 1px solid #333;
 }
 
+.group-select-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+
+.toolbar-label {
+  font-size: 10px;
+  color: var(--text-secondary);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
 .group-select {
   flex: 1;
   background: #333;
@@ -1044,15 +1058,13 @@ input:checked+.slider:before {
   text-overflow: ellipsis;
 }
 
-/* Sponsor / Footer */
-.app-footer {
-  margin-top: auto;
+/* View-specific footer for sponsorship */
+.view-footer {
+  margin-top: 12px;
   display: flex;
   justify-content: center;
-  padding: 4px 0;
-  flex-shrink: 0;
+  padding: 8px 0;
   border-top: 1px solid #333;
-  background-color: var(--bg-color);
 }
 
 .bmc-btn {

@@ -149,16 +149,18 @@
           <div class="bookmarks-sticky-header">
             <div
               style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; gap: 8px;">
-              <select id="group-selector" class="group-select compact-select">
-                <option value="Default">Default</option>
-                <option value="Study">Study</option>
-                <option value="Cust. A">Cust. A</option>
-                <option value="Cust. B">Cust. B</option>
-              </select>
+              <div class="group-select-wrapper">
+                <span class="toolbar-label">Group</span>
+                <select id="group-selector" class="group-select compact-select">
+                  <option value="Default">Default</option>
+                  <option value="Study">Study</option>
+                  <option value="Cust. A">Cust. A</option>
+                  <option value="Cust. B">Cust. B</option>
+                </select>
+              </div>
               <div class="follow-playback-container" title="Auto-scroll to current marker"
                 style="display: flex; align-items: center; gap: 4px;">
-                <span
-                  style="font-size: 9px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Follow</span>
+                <span class="toolbar-label">Follow</span>
                 <label class="toggle-switch small-toggle">
                   <input type="checkbox" id="follow-playback-toggle" checked>
                   <span class="slider"></span>
@@ -233,6 +235,17 @@
         <!-- Library Items Injected Here -->
         <p style="color: #666; text-align: center; padding: 20px;">No saved videos found.</p>
       </div>
+
+      <!-- Sponsorship only in Library -->
+      <div class="view-footer">
+        <a href="https://www.buymeacoffee.com/victorhsu" target="_blank" class="bmc-btn">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+            <path
+              d="M20.216 6.415l-.132-.666c-.119-.596-.385-1.135-.77-1.566-.426-.477-.972-.81-1.584-.962-.437-.109-.893-.163-1.346-.164H9.006c-.906 0-1.786.176-2.616.523-1.127.472-2.094 1.253-2.77 2.235-.55.795-.89 1.718-.98 2.684l-.193.364c-1.353.16-2.395 1.306-2.395 2.693 0 1.493 1.215 2.708 2.709 2.708h.122c.245 2.36 2.067 4.256 4.416 4.629l.34.054c.758 1.8 2.508 3.037 4.544 3.037h.03c2.036 0 3.786-1.238 4.544-3.037l.34-.054c2.518-.399 4.39-2.525 4.39-4.99 0-2.464-1.872-4.59-4.39-4.99l-.216-.76zM4.764 13.56c-.714 0-1.294-.58-1.294-1.294 0-.714.58-1.294 1.294-1.294h.61c.21 0 .42.022.624.062l.27.79.034.618a8.3 8.3 0 0 1-.295 1.118h-1.24zm10.74 3.036c-2.464.399-4.39 2.526-4.39 4.99h-1.415c0-2.464-1.925-4.59-4.39-4.99l-.341-.054a5.003 5.003 0 0 1-4.417-4.63h.03c.596 0 1.16-.13 1.666-.364.676-.314 1.258-.78 1.706-1.362.437-.568.746-1.23.896-1.926l.132-.666h7.614l.132.666c.15.697.459 1.358.896 1.926.448.582 1.03 1.048 1.706 1.362.506.234 1.07.364 1.666.364h.03a5.003 5.003 0 0 1-4.417 4.63l-.34.054z" />
+          </svg>
+          Buy me a coffee
+        </a>
+      </div>
     </div>
 
     <!-- Favorites View -->
@@ -244,18 +257,21 @@
         <!-- Injected -->
         <p style="color: #666; text-align: center; padding: 20px;">No favorites set.</p>
       </div>
+
+      <!-- Sponsorship also in Favorites -->
+      <div class="view-footer">
+        <a href="https://www.buymeacoffee.com/victorhsu" target="_blank" class="bmc-btn">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+            <path
+              d="M20.216 6.415l-.132-.666c-.119-.596-.385-1.135-.77-1.566-.426-.477-.972-.81-1.584-.962-.437-.109-.893-.163-1.346-.164H9.006c-.906 0-1.786.176-2.616.523-1.127.472-2.094 1.253-2.77 2.235-.55.795-.89 1.718-.98 2.684l-.193.364c-1.353.16-2.395 1.306-2.395 2.693 0 1.493 1.215 2.708 2.709 2.708h.122c.245 2.36 2.067 4.256 4.416 4.629l.34.054c.758 1.8 2.508 3.037 4.544 3.037h.03c2.036 0 3.786-1.238 4.544-3.037l.34-.054c2.518-.399 4.39-2.525 4.39-4.99 0-2.464-1.872-4.59-4.39-4.99l-.216-.76zM4.764 13.56c-.714 0-1.294-.58-1.294-1.294 0-.714.58-1.294 1.294-1.294h.61c.21 0 .42.022.624.062l.27.79.034.618a8.3 8.3 0 0 1-.295 1.118h-1.24zm10.74 3.036c-2.464.399-4.39 2.526-4.39 4.99h-1.415c0-2.464-1.925-4.59-4.39-4.99l-.341-.054a5.003 5.003 0 0 1-4.417-4.63h.03c.596 0 1.16-.13 1.666-.364.676-.314 1.258-.78 1.706-1.362.437-.568.746-1.23.896-1.926l.132-.666h7.614l.132.666c.15.697.459 1.358.896 1.926.448.582 1.03 1.048 1.706 1.362.506.234 1.07.364 1.666.364h.03a5.003 5.003 0 0 1-4.417 4.63l-.34.054z" />
+          </svg>
+          Buy me a coffee
+        </a>
+      </div>
     </div>
 
     <!-- Footer / Sponsorship -->
-    <footer class="app-footer">
-      <a href="https://www.buymeacoffee.com/victorhsu" target="_blank" class="bmc-btn">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-          <path
-            d="M20.216 6.415l-.132-.666c-.119-.596-.385-1.135-.77-1.566-.426-.477-.972-.81-1.584-.962-.437-.109-.893-.163-1.346-.164H9.006c-.906 0-1.786.176-2.616.523-1.127.472-2.094 1.253-2.77 2.235-.55.795-.89 1.718-.98 2.684l-.193.364c-1.353.16-2.395 1.306-2.395 2.693 0 1.493 1.215 2.708 2.709 2.708h.122c.245 2.36 2.067 4.256 4.416 4.629l.34.054c.758 1.8 2.508 3.037 4.544 3.037h.03c2.036 0 3.786-1.238 4.544-3.037l.34-.054c2.518-.399 4.39-2.525 4.39-4.99 0-2.464-1.872-4.59-4.39-4.99l-.216-.76zM4.764 13.56c-.714 0-1.294-.58-1.294-1.294 0-.714.58-1.294 1.294-1.294h.61c.21 0 .42.022.624.062l.27.79.034.618a8.3 8.3 0 0 1-.295 1.118h-1.24zm10.74 3.036c-2.464.399-4.39 2.526-4.39 4.99h-1.415c0-2.464-1.925-4.59-4.39-4.99l-.341-.054a5.003 5.003 0 0 1-4.417-4.63h.03c.596 0 1.16-.13 1.666-.364.676-.314 1.258-.78 1.706-1.362.437-.568.746-1.23.896-1.926l.132-.666h7.614l.132.666c.15.697.459 1.358.896 1.926.448.582 1.03 1.048 1.706 1.362.506.234 1.07.364 1.666.364h.03a5.003 5.003 0 0 1-4.417 4.63l-.34.054z" />
-        </svg>
-        Buy me a coffee
-      </a>
-    </footer>
+    <!-- Footer Removed from Global to be view-specific -->
 
     <!-- Debug Console -->
     <div id="debug-console"
