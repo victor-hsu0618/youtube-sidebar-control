@@ -764,7 +764,7 @@ try {
             li.className = 'bookmark-item';
 
             // Highlight Check
-            if (checkTime !== null && Math.abs(bm.time - checkTime) < 0.001) {
+            if (checkTime !== null && Math.abs(bm.time - checkTime) < 0.05) {
                 li.classList.add('highlight-new');
                 setTimeout(() => {
                     const container = document.querySelector('.bookmarks-list-container');
