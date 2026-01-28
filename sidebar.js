@@ -67,8 +67,8 @@ try {
     // Loop Markers
     const markerA = document.getElementById('marker-a');
     const markerB = document.getElementById('marker-b');
-    let currentLoopStart = 0;
-    let currentLoopEnd = 0;
+    let currentLoopStart = null;
+    let currentLoopEnd = null;
     let currentLoopEnabled = false;
 
     // --- Navigation ---
@@ -268,9 +268,9 @@ try {
     // Speed
     const speedSlider = document.getElementById('speed-slider');
     const speedDisplay = document.getElementById('speed-display');
-    speedSlider.addEventListener('input', (e) => {
+    speedSlider?.addEventListener('input', (e) => {
         const val = e.target.value;
-        speedDisplay.textContent = val + 'x';
+        if (speedDisplay) speedDisplay.textContent = val + 'x';
         sendMessage('SET_SPEED', { speed: parseFloat(val) });
     });
     document.querySelectorAll('.preset-btn').forEach(btn => {
@@ -353,24 +353,24 @@ try {
         const total = parseFloat(progressBar.max);
 
         if (markerA) {
-            const posA = (currentLoopStart / total) * 100;
+            const posA = (currentLoopStart !== null) ? (currentLoopStart / total) * 100 : 0;
             markerA.style.left = `${posA}%`;
-            markerA.classList.toggle('visible', currentLoopStart > 0);
+            markerA.classList.toggle('visible', currentLoopStart !== null);
         }
         if (markerB) {
-            const posB = (currentLoopEnd / total) * 100;
+            const posB = (currentLoopEnd !== null) ? (currentLoopEnd / total) * 100 : 0;
             markerB.style.left = `${posB}%`;
-            markerB.classList.toggle('visible', currentLoopEnd > 0);
+            markerB.classList.toggle('visible', currentLoopEnd !== null);
         }
         if (loopToggleBtn) {
             loopToggleBtn.classList.toggle('active', currentLoopEnabled);
         }
     }
 
-    document.getElementById('set-start').addEventListener('click', () => { sendMessage('SET_LOOP_START'); });
-    document.getElementById('set-end').addEventListener('click', () => { sendMessage('SET_LOOP_END'); });
+    // document.getElementById('set-start')?.addEventListener('click', () => { sendMessage('SET_LOOP_START'); });
+    // document.getElementById('set-end')?.addEventListener('click', () => { sendMessage('SET_LOOP_END'); });
 
-    loopStart.addEventListener('change', () => {
+    loopStart?.addEventListener('change', () => {
         const t = parseTime(loopStart.value);
         if (t !== null) {
             currentLoopStart = t;
@@ -378,7 +378,7 @@ try {
             updateLoopVisuals();
         }
     });
-    loopEnd.addEventListener('change', () => {
+    loopEnd?.addEventListener('change', () => {
         const t = parseTime(loopEnd.value);
         if (t !== null) {
             currentLoopEnd = t;
@@ -388,17 +388,17 @@ try {
     });
 
     document.getElementById('clear-loop')?.addEventListener('click', () => {
-        loopStart.value = '0:00';
-        loopEnd.value = '0:00';
-        currentLoopStart = 0;
-        currentLoopEnd = 0;
+        if (loopStart) loopStart.value = '0:00';
+        if (loopEnd) loopEnd.value = '0:00';
+        currentLoopStart = null;
+        currentLoopEnd = null;
         sendMessage('CLEAR_LOOP');
         updateLoopVisuals();
     });
 
     document.getElementById('jump-loop')?.addEventListener('click', () => sendMessage('JUMP_LOOP_START'));
 
-    loopToggleBtn.addEventListener('click', () => {
+    loopToggleBtn?.addEventListener('click', () => {
         currentLoopEnabled = !currentLoopEnabled;
         sendMessage('TOGGLE_LOOP', { enabled: currentLoopEnabled });
         updateLoopVisuals();
@@ -425,7 +425,7 @@ try {
     const groupSelector = document.getElementById('group-selector');
     const fileImport = document.getElementById('file-import');
 
-    groupSelector.addEventListener('change', (e) => {
+    groupSelector?.addEventListener('change', (e) => {
         currentVideoData.activeGroup = e.target.value;
         saveData();
         renderBookmarks();
@@ -460,14 +460,14 @@ try {
         addMarkerBtn.textContent = `Add "Now(${timeStr})" to "${groupName}"`;
     }
 
-    document.getElementById('add-bookmark').addEventListener('click', () => sendMessage('ADD_BOOKMARK_REQUEST'));
-    document.getElementById('btn-export').addEventListener('click', exportData);
-    document.getElementById('btn-import').addEventListener('click', () => fileImport.click());
-    fileImport.addEventListener('change', importData);
+    document.getElementById('add-bookmark')?.addEventListener('click', () => sendMessage('ADD_BOOKMARK_REQUEST'));
+    document.getElementById('btn-export')?.addEventListener('click', exportData);
+    document.getElementById('btn-import')?.addEventListener('click', () => fileImport?.click());
+    fileImport?.addEventListener('change', importData);
 
     const libFileImport = document.getElementById('lib-file-import');
-    document.getElementById('lib-btn-import').addEventListener('click', () => libFileImport.click());
-    libFileImport.addEventListener('change', importVideoData);
+    document.getElementById('lib-btn-import')?.addEventListener('click', () => libFileImport?.click());
+    libFileImport?.addEventListener('change', importVideoData);
 
     // --- Auto Detect Button ---
     document.getElementById('btn-detect-video')?.addEventListener('click', async () => {
@@ -685,7 +685,7 @@ try {
         }
     }
 
-    document.getElementById('toggle-library-save').addEventListener('click', () => {
+    document.getElementById('toggle-library-save')?.addEventListener('click', () => {
         if (currentVideoData.isSaved) {
             if (confirm("Remove this session from Library?")) {
                 // Delete
@@ -1232,17 +1232,13 @@ try {
             }
         }
         else if (msg.action === 'UPDATE_LOOP_TIMES') {
-            if (msg.start !== null) {
-                currentLoopStart = msg.start;
-                loopStart.value = formatTime(msg.start);
-            }
-            if (msg.end !== null) {
-                currentLoopEnd = msg.end;
-                loopEnd.value = formatTime(msg.end);
-            }
-            if (typeof msg.enabled === 'boolean') {
-                currentLoopEnabled = msg.enabled;
-            }
+            currentLoopStart = msg.start;
+            currentLoopEnd = msg.end;
+            currentLoopEnabled = msg.enabled;
+
+            if (loopStart) loopStart.value = (msg.start !== null) ? formatTime(msg.start) : '0:00';
+            if (loopEnd) loopEnd.value = (msg.end !== null) ? formatTime(msg.end) : '0:00';
+
             updateLoopVisuals();
         }
         else if (msg.action === 'PLAYBACK_STATUS') {

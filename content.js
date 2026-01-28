@@ -124,15 +124,30 @@ chrome.runtime.onMessage.addListener((msg) => {
             video.currentTime += msg.offset;
             break;
         case 'SET_LOOP_START':
-            loopStart = (msg.time !== undefined) ? msg.time : video.currentTime;
+            const startVal = (msg.time !== undefined) ? msg.time : video.currentTime;
+            loopStart = startVal;
+            // If new A >= current B, clear B
+            if (loopEnd !== null && loopStart >= loopEnd) {
+                loopEnd = null;
+                loopEnabled = false;
+            }
             notifyLoop();
             break;
         case 'SET_LOOP_END':
-            loopEnd = (msg.time !== undefined) ? msg.time : video.currentTime;
-            if (loopStart !== null) {
-                loopEnabled = true;
-                video.currentTime = loopStart;
-                video.play();
+            const endVal = (msg.time !== undefined) ? msg.time : video.currentTime;
+            // Allow B to be set ONLY if it's after A (if A exists)
+            if (loopStart !== null && endVal <= loopStart) {
+                // If trying to set B before A, clear B
+                loopEnd = null;
+                loopEnabled = false;
+            } else {
+                loopEnd = endVal;
+                // Only enable loop if both points are set
+                if (loopStart !== null) {
+                    loopEnabled = true;
+                    video.currentTime = loopStart;
+                    video.play();
+                }
             }
             notifyLoop();
             break;

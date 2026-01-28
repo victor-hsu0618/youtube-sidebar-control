@@ -127,18 +127,34 @@ body {
 /* Header & Nav */
 header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 4px;
-  background: #252525;
-  padding: 8px 12px;
-  border-radius: 12px;
+  background: #202020;
+  padding: 4px 10px;
+  border-radius: 10px;
+  margin-bottom: 2px;
 }
 
 .nav-controls {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  gap: 4px;
   flex: 1;
+}
+
+.brand-assets {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 12px;
+  padding-right: 12px;
+  border-right: 1px solid #333;
+}
+
+.version-badge {
+  font-size: 9px;
+  font-weight: 700;
+  color: #666;
+  font-family: monospace;
 }
 
 .nav-btn {
@@ -161,48 +177,17 @@ header {
   color: var(--text-primary);
 }
 
-h1 {
-  font-size: 18px;
-  font-weight: 600;
-  letter-spacing: -0.5px;
-  margin-right: 16px;
-  color: var(--text-primary);
-}
-
-h2 {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-h1#app-title {
-  color: #ffffff;
-  /* Explicitly White */
-  transition: color 0.3s ease;
-}
-
-h1#app-title .version-badge {
-  font-size: 10px;
-  font-weight: 400;
-  opacity: 1;
-  color: #ffffff;
-}
-
 .status-indicator {
   width: 6px;
-  /* Slightly smaller for better stack look */
   height: 6px;
   border-radius: 50%;
   background-color: #444;
-  box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
-  transition: background-color 0.3s, box-shadow 0.3s;
+  transition: all 0.3s;
 }
 
 .status-indicator.connected {
-  background-color: #4cc713;
-  box-shadow: 0 0 8px #4cc71380;
+  background-color: var(--success-color);
+  box-shadow: 0 0 6px var(--success-color);
 }
 
 /* Video Meta Bar */
@@ -291,31 +276,30 @@ h1#app-title .version-badge {
 
 .loop-marker {
   position: absolute;
-  top: -4px;
-  width: 14px;
-  height: 14px;
+  top: 18px;
+  /* Positioned below the 4px bar */
+  width: 10px;
+  height: 8px;
   background: var(--accent-color);
-  color: #000;
-  border-radius: 50% 50% 50% 0;
-  transform: translateX(-50%) rotate(-45deg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 9px;
-  font-weight: 800;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-  transition: left 0.2s ease, opacity 0.3s ease;
+  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+  transform: translateX(-50%);
+  transition: left 0.1s ease, opacity 0.3s ease;
   z-index: 10;
   display: none;
-  /* Hidden by default until set */
 }
 
 .loop-marker.visible {
-  display: flex;
+  display: block;
+}
+
+.loop-marker.marker-a {
+  background: var(--success-color);
+  /* Green for Start */
 }
 
 .loop-marker.marker-b {
   background: var(--warning-color);
+  /* Yellow for End */
 }
 
 .progress-bar {
@@ -408,8 +392,35 @@ h1#app-title .version-badge {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   margin-top: 4px;
+}
+
+.mini-loop-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+}
+
+.mini-loop-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+}
+
+.mini-loop-btn.active {
+  color: var(--success-color);
+  background: rgba(76, 199, 19, 0.1);
+  border-radius: 50%;
+}
+
+.mini-loop-btn svg {
+  width: 16px;
+  height: 16px;
 }
 
 .large-play-btn {
@@ -441,6 +452,56 @@ h1#app-title .version-badge {
   border-radius: var(--border-radius);
   padding: 10px;
   border: 1px solid #333;
+}
+
+.time-display.compact-layout {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 4px;
+  margin-bottom: 2px;
+}
+
+.main-time {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-family: monospace;
+}
+
+.loop-inputs-merged {
+  display: flex;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.mini-loop-box {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mini-label {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--accent-color);
+}
+
+.mini-loop-box input {
+  width: 48px;
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 11px;
+  font-family: monospace;
+  text-align: center;
+  padding: 0;
+}
+
+.mini-loop-box input:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .section-header {
@@ -683,7 +744,8 @@ input:checked+.slider:before {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 2px;
+  /* Minimum gap */
 }
 
 .bookmark-item {
@@ -691,11 +753,15 @@ input:checked+.slider:before {
   align-items: center;
   justify-content: space-between;
   background-color: #2a2a2a;
-  /* Use background-color instead of background shorthand */
-  padding: 8px 12px;
-  border-radius: 8px;
+  padding: 2px 8px;
+  /* Compact padding */
+  border-radius: 4px;
+  /* Tighter radius */
   border: 1px solid transparent;
-  gap: 8px;
+  gap: 4px;
+  /* Tighter gap */
+  min-height: 26px;
+  /* Absolute minimal height */
 }
 
 .bookmark-item:hover {
@@ -705,16 +771,16 @@ input:checked+.slider:before {
 
 .bookmark-controls {
   display: flex;
-  gap: 4px;
+  gap: 2px;
   align-items: center;
 }
 
 .loop-set-btn {
   background: #333;
   color: var(--text-secondary);
-  font-size: 10px;
-  padding: 2px 6px;
-  border-radius: 4px;
+  font-size: 9px;
+  padding: 1px 4px;
+  border-radius: 3px;
 }
 
 .loop-set-btn:hover {
@@ -726,8 +792,8 @@ input:checked+.slider:before {
   background: var(--accent-color);
   color: #000;
   border-radius: 50%;
-  width: 24px;
-  height: 24px;
+  width: 18px;
+  height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -744,9 +810,10 @@ input:checked+.slider:before {
   background: transparent;
   border: 1px solid transparent;
   border-radius: 4px;
-  width: 60px;
-  font-size: 13px;
+  width: 50px;
+  font-size: 11px;
   text-align: center;
+  padding: 0;
 }
 
 .bookmark-time-input:hover,
@@ -759,13 +826,13 @@ input:checked+.slider:before {
 .bookmark-desc {
   flex: 1;
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 11px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   border: 1px solid transparent;
   border-radius: 4px;
-  padding: 2px 4px;
+  padding: 0 4px;
 }
 
 .bookmark-desc:hover,
@@ -818,6 +885,8 @@ input:checked+.slider:before {
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
+  height: 100%;
+  /* Ensure it tries to take space */
 }
 
 .sub-panel.active {
