@@ -25,6 +25,7 @@ try {
     let connectedTabId = null; // Track connected tab for Popout
     let pendingHighlightTime = null; // Persistent highlight state
     let isSyncing = false; // Prevent concurrent profile loads
+    let lastKnownCurrentTime = 0; // Cache for active marker tracking
 
     function createEmptyData(id = null, title = "Unknown") {
         return {
