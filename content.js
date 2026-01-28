@@ -4,6 +4,7 @@ let loopStart = null;
 let loopEnd = null;
 let loopEnabled = false;
 let initAttempts = 0;
+let lastInitedVideoId = null;
 
 function init() {
     video = document.querySelector('video.html5-main-video') || document.querySelector('video');
@@ -28,7 +29,13 @@ function init() {
     video.addEventListener('loadedmetadata', () => notifyStatus());
 
     console.log('[YT Studio] Video element found, content script ready');
+
+    // Track what we inited on
+    const params = new URLSearchParams(window.location.search);
+    lastInitedVideoId = params.get('v');
+
     notifyStatus(); // Initial sync
+    notifyLoop();   // Initial sync
 }
 
 // Use MutationObserver for faster detection when video element appears
@@ -166,4 +173,14 @@ function notifyLoop() {
 }
 
 init();
-setInterval(init, 2000); // Periodic check for video element changes (navigation)
+setInterval(() => {
+    const params = new URLSearchParams(window.location.search);
+    const currentV = params.get('v');
+    // If we are on a watch page and the video ID changed since we last inited
+    if (currentV && currentV !== lastInitedVideoId) {
+        console.log('[YT Studio] SPA Navigation detected, re-initializing');
+        init();
+    } else if (!video) {
+        init();
+    }
+}, 1000); // Periodic check for video element changes (navigation)

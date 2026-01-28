@@ -1180,9 +1180,9 @@ try {
                     await sendMessage('GET_STATUS');
                     console.log('[YT Studio] Connected to tab', connectedTabId);
                 } catch (e) {
-                    if (attempt < 5) {
-                        // Retry with exponential backoff: 100ms, 200ms, 400ms, 800ms, 1600ms
-                        const delay = 100 * Math.pow(2, attempt);
+                    if (attempt < 8) {
+                        // Faster initial retry (50ms) for first 3 attempts, then backoff
+                        const delay = attempt < 3 ? 50 : 100 * Math.pow(2, attempt - 3);
                         setTimeout(() => tryConnect(attempt + 1), delay);
                     } else {
                         console.log('[YT Studio] Connection timeout, content script may not be ready');

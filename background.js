@@ -22,6 +22,25 @@ chrome.tabs.onUpdated.addListener((tabId, info, tab) => {
 });
 
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
-    const tab = await chrome.tabs.get(activeInfo.tabId);
-    checkAndSetSidebar(activeInfo.tabId, tab.url);
+    const tab = await chrome.tabs.get(activeInfo.tabId).catch(() => null);
+    if (tab) checkAndSetSidebar(activeInfo.tabId, tab.url);
+});
+
+// Proactive Injection for Existing Tabs
+const injectToExistingTabs = async () => {
+    const tabs = await chrome.tabs.query({ url: "*://*.youtube.com/*" });
+    for (const tab of tabs) {
+        chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            files: ['content.js']
+        }).catch(err => console.log('Script already injected or error:', err));
+    }
+};
+
+chrome.runtime.onInstalled.addListener(() => {
+    injectToExistingTabs();
+});
+
+chrome.runtime.onStartup.addListener(() => {
+    injectToExistingTabs();
 });
