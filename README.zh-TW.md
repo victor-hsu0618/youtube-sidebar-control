@@ -1,6 +1,6 @@
 [English](README.md) | [繁體中文](README.zh-TW.md)
 
-# YouTube Studio Sidebar
+# YouTube Studio Sidebar v2.0
 
 專業的 YouTube 播放控制與學習工具。將您的 YouTube 體驗轉變為強大的學習和筆記工作站。
 
