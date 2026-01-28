@@ -885,12 +885,18 @@ try {
                 </div>
             `;
             li.querySelector('.bookmark-play-btn').addEventListener('click', () => sendMessage('SEEK_TO', { time: bm.time }));
-            li.querySelector('.renew-btn').addEventListener('click', () => {
-                bm.time = lastKnownCurrentTime;
-                saveData();
-                renderBookmarks();
-                log(`Marker renewed to ${formatTime(bm.time)}`, 'success');
-            });
+            li.querySelector('.renew-btn').addEventListener('click', ((index) => {
+                return () => {
+                    const groupName = currentVideoData.activeGroup || "Default";
+                    const groupTags = currentVideoData.tagGroups ? currentVideoData.tagGroups[groupName] : [];
+                    if (groupTags[index]) {
+                        groupTags[index].time = lastKnownCurrentTime;
+                        saveData();
+                        renderBookmarks();
+                        log(`Marker renewed to ${formatTime(lastKnownCurrentTime)}`, 'success');
+                    }
+                };
+            })(i));
             li.querySelector('.bookmark-time-input').addEventListener('change', (e) => {
                 const t = parseTime(e.target.value);
                 if (t !== null) { bm.time = t; saveData(); renderBookmarks(); }
