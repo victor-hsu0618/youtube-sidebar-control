@@ -185,9 +185,8 @@ h1#app-title {
 h1#app-title .version-badge {
   font-size: 10px;
   font-weight: 400;
-  opacity: 0.6;
-  color: var(--text-secondary);
-  /* Always grey/subtle */
+  opacity: 1;
+  color: #ffffff;
 }
 
 .status-indicator {
