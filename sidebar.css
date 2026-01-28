@@ -175,27 +175,32 @@ h2 {
   letter-spacing: 0.5px;
 }
 
-h1#app-title.connected {
+h1#app-title {
+  color: #666;
+  /* Disconnected state: Grey */
+  transition: color 0.3s ease;
+}
+
+h1#app-title .version-badge {
+  font-size: 10px;
+  font-weight: 400;
+  opacity: 0.6;
+  color: var(--text-secondary);
+  /* Always grey/subtle */
+}
+
+h1#app-title.connected .title-text {
   background: linear-gradient(90deg,
-      #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8b00ff, #ff0000);
-  background-size: 200% auto;
+      #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8b00ff);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   color: transparent;
-  animation: shimmer 5s linear infinite;
-  text-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
-  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.2));
+  filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.1));
 }
 
-@keyframes shimmer {
-  0% {
-    background-position: 0% center;
-  }
-
-  100% {
-    background-position: 200% center;
-  }
+h1#app-title.connected {
+  color: var(--text-primary);
 }
 
 /* Video Meta Bar */
