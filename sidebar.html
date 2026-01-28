@@ -147,25 +147,23 @@
         <section class="control-group bookmarks-section">
           <!-- Sticky Header for Bookmarks -->
           <div class="bookmarks-sticky-header">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-              <h3 style="margin: 0; font-size: 14px; color: var(--text-primary);">Markers</h3>
-              <div class="follow-playback-container" title="Auto-scroll to current marker"
-                style="display: flex; align-items: center; gap: 6px;">
-                <span
-                  style="font-size: 10px; color: var(--text-secondary); text-transform: uppercase; font-weight: 600;">Follow</span>
-                <label class="toggle-switch small-toggle">
-                  <input type="checkbox" id="follow-playback-toggle" checked>
-                  <span class="slider"></span>
-                </label>
-              </div>
-            </div>
-            <div class="bookmarks-toolbar">
-              <select id="group-selector" class="group-select">
+            <div
+              style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; gap: 8px;">
+              <select id="group-selector" class="group-select compact-select">
                 <option value="Default">Default</option>
                 <option value="Study">Study</option>
                 <option value="Cust. A">Cust. A</option>
                 <option value="Cust. B">Cust. B</option>
               </select>
+              <div class="follow-playback-container" title="Auto-scroll to current marker"
+                style="display: flex; align-items: center; gap: 4px;">
+                <span
+                  style="font-size: 9px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Follow</span>
+                <label class="toggle-switch small-toggle">
+                  <input type="checkbox" id="follow-playback-toggle" checked>
+                  <span class="slider"></span>
+                </label>
+              </div>
             </div>
           </div>
 

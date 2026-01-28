@@ -723,11 +723,10 @@ input:checked+.slider:before {
   transform: translateX(16px);
 }
 
-/* Bookmark Toolbar (Multi-Group) */
-.bookmarks-toolbar {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 8px;
+.bookmarks-sticky-header {
+  padding: 8px 12px;
+  background: #252525;
+  border-bottom: 1px solid #333;
 }
 
 .group-select {
@@ -735,9 +734,14 @@ input:checked+.slider:before {
   background: #333;
   color: white;
   border: 1px solid #444;
-  padding: 6px;
-  border-radius: 6px;
-  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.compact-select {
+  max-width: 140px;
+  /* Prevent it from pushing the toggle too far */
 }
 
 .group-select:focus {
