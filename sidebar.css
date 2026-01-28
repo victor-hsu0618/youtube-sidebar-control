@@ -739,6 +739,12 @@ input:checked+.slider:before {
   border-color: var(--accent-color);
 }
 
+.bookmark-item.active-playing {
+  background-color: #383838;
+  border-left: 3px solid var(--accent-color);
+  transition: background-color 0.3s ease, border-left 0.3s ease;
+}
+
 /* Generalized Collapsible Section (Accordion) */
 .accordion-content {
   overflow: hidden;

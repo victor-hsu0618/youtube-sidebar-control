@@ -762,6 +762,7 @@ try {
         groupTags.forEach((bm, i) => {
             const li = document.createElement('li');
             li.className = 'bookmark-item';
+            li.dataset.time = bm.time; // Add data-time for easier tracking
 
             // Highlight Check
             if (checkTime !== null && Math.abs(bm.time - checkTime) < 0.05) {
@@ -812,6 +813,46 @@ try {
             });
             list.appendChild(li);
         });
+    }
+
+    function updateActiveMarker(currentTime) {
+        const listItems = document.querySelectorAll('#bookmarks-list .bookmark-item');
+        let activeLi = null;
+
+        // The active marker is the one with the largest time <= currentTime
+        listItems.forEach(li => {
+            const itemTime = parseFloat(li.dataset.time);
+            if (itemTime <= currentTime) {
+                if (!activeLi || itemTime > parseFloat(activeLi.dataset.time)) {
+                    activeLi = li;
+                }
+            }
+            li.classList.remove('active-playing');
+        });
+
+        if (activeLi) {
+            activeLi.classList.add('active-playing');
+
+            // Auto-scroll if enabled
+            const followToggle = document.getElementById('follow-playback-toggle');
+            if (followToggle && followToggle.checked) {
+                const container = document.querySelector('.bookmarks-list-container');
+                if (container) {
+                    const topPos = activeLi.offsetTop;
+                    const containerHeight = container.clientHeight;
+                    const itemHeight = activeLi.clientHeight;
+                    const targetScroll = topPos - (containerHeight / 2) + (itemHeight / 2);
+
+                    // Only scroll if significantly different to avoid jitter
+                    if (Math.abs(container.scrollTop - targetScroll) > 10) {
+                        container.scrollTo({
+                            top: targetScroll,
+                            behavior: 'smooth'
+                        });
+                    }
+                }
+            }
+        }
     }
 
     // --- Library Logic ---
@@ -1070,6 +1111,7 @@ try {
                 timeCurrent.textContent = formatTime(d.currentTime);
                 timeTotal.textContent = formatTime(d.duration);
                 updateAddMarkerBtn(d.currentTime);
+                updateActiveMarker(d.currentTime);
             }
         }
         else if (msg.action === 'UPDATE_LOOP_TIMES') {
