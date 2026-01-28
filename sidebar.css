@@ -48,8 +48,7 @@ body {
   flex-direction: column;
   gap: 16px;
   height: 100%;
-  overflow: hidden;
-  /* CRITICAL: Prevent viewport displacement */
+  /* Removed restrictive overflow: hidden to allow internal scrollbars to show */
 }
 
 /* Views Layout */
@@ -61,8 +60,7 @@ body {
   flex: 1;
   min-height: 0;
   gap: 12px;
-  overflow: hidden;
-  /* CRITICAL: Prevent children from scrolling this view */
+  /* Removed restrictive overflow: hidden to allow internal scrollbars to show */
 }
 
 /* Player View Specific */
