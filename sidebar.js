@@ -63,6 +63,7 @@ try {
     const ICON_PLAY = '<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
     const ICON_PAUSE = '<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
     const ICON_SMALL_PLAY = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+    const ICON_RENEW = '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" style="opacity:0.7;"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>';
 
     // Loop Markers
     const markerA = document.getElementById('marker-a');
@@ -875,6 +876,7 @@ try {
                     <button class="bookmark-play-btn" title="Play">${ICON_SMALL_PLAY}</button>
                 </div>
                 <input type="text" class="bookmark-time-input" value="${formatTime(bm.time)}">
+                <button class="renew-btn" title="Renew to current time">${ICON_RENEW}</button>
                 <input type="text" class="bookmark-desc" value="${bm.label || ''}" placeholder="marker description">
                 <div class="bookmark-controls">
                     <button class="loop-set-btn set-a">A</button>
@@ -883,6 +885,12 @@ try {
                 </div>
             `;
             li.querySelector('.bookmark-play-btn').addEventListener('click', () => sendMessage('SEEK_TO', { time: bm.time }));
+            li.querySelector('.renew-btn').addEventListener('click', () => {
+                bm.time = lastKnownCurrentTime;
+                saveData();
+                renderBookmarks();
+                log(`Marker renewed to ${formatTime(bm.time)}`, 'success');
+            });
             li.querySelector('.bookmark-time-input').addEventListener('change', (e) => {
                 const t = parseTime(e.target.value);
                 if (t !== null) { bm.time = t; saveData(); renderBookmarks(); }

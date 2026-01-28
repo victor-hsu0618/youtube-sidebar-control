@@ -852,6 +852,30 @@ input:checked+.slider:before {
   outline: none;
 }
 
+.renew-btn {
+  background: transparent;
+  color: var(--text-secondary);
+  border: none;
+  border-radius: 4px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0;
+}
+
+.renew-btn:hover {
+  background: #444;
+  color: var(--accent-color);
+}
+
+.renew-btn:active {
+  transform: scale(0.9);
+}
+
 .bookmark-desc {
   flex: 1;
   color: var(--text-secondary);
