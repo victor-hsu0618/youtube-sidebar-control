@@ -109,6 +109,8 @@ body {
   flex: 1;
   min-height: 0;
   /* CRITICAL: Allows flex child to shrink below content size */
+  position: relative;
+  /* CRITICAL: Acts as the offsetParent for markers */
 }
 
 /* Since we moved padding to inner container, remove conflict if any */

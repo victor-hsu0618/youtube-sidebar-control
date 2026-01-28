@@ -771,8 +771,9 @@ try {
                     if (container) {
                         const topPos = li.offsetTop;
                         const containerHeight = container.clientHeight;
+                        const itemHeight = li.clientHeight;
                         container.scrollTo({
-                            top: topPos - containerHeight / 2,
+                            top: topPos - (containerHeight / 2) + (itemHeight / 2),
                             behavior: 'smooth'
                         });
                     }
