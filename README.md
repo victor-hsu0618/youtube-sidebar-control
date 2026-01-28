@@ -38,8 +38,9 @@ This project is a browser extension, currently supporting Chrome and Edge browse
 ## 🌟 Main Features
 
 ### 1. 🎛️ Advanced Playback Control
-- **Precise Speed Control**: Slider adjustment from 0.25x to 3.0x, with quick presets (0.5x, 1.0x, 1.5x, 2.0x)
-- **A-B Loop**: Set specific start (A) and end (B) points to repeat difficult segments
+- **Collapsible Controls**: Clean UI with collapsible sections for Speed and Loops
+- **Precise Speed Control**: Accordion-style adjustment from 0.25x to 3.0x, with quick presets (0.5x, 1.0x, 1.5x, 2.0x)
+- **A-B Loop**: Collapsible loop controls with set start (A) and end (B) points
 - **Fine Navigation**: Rewind/Fast Forward 10 seconds, or jump to specific timestamp
 - **Draggable Progress Bar**: Visual progress bar for quick positioning
 
@@ -47,6 +48,7 @@ This project is a browser extension, currently supporting Chrome and Edge browse
 - **Timestamp Notes**: Add markers at any moment in the video
 - **Instant Jump**: Click any marker to jump precisely to that timestamp
 - **Loop Ready**: Set A-B loop points based on marker time with one click
+- **Marker Follow**: Optional auto-scroll to keep the current marker in view, now with **persistent memory** across sessions
 - **Group Management**: Organize markers into "Default", "Study", or custom groups
 
 ### 3. 💾 Video Library & Multi-Profile System
@@ -63,9 +65,10 @@ This project is a browser extension, currently supporting Chrome and Edge browse
 - **Toggle Mode**: Pop-out button easily toggles external window on/off
 
 ### 5. 🧠 Smart Connection
+- **Status Indicator**: Real-time connection feedback (Green dot = Connected, Grey = Standby)
 - **Standby Mode**: Automatically detects when you leave YouTube
-    - *Non-YouTube Tabs*: Displays "Standby" screen to save resources
-    - *Return to YouTube**: Wakes up immediately and reconnects control
+- **Home Page Guidance**: Helpful dashboard tips when on the YouTube homepage
+- **Return to YouTube**: Wakes up immediately and reconnects control
 - **Intent-Driven Loading**: When you click a specific profile in the library, the extension ensures that specific version loads, even if you navigate away
 
 ## 🛠️ Usage

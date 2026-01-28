@@ -9,8 +9,8 @@
   --warning-color: #f1c40f;
   --success-color: #4cc713;
   --border-radius: 12px;
-  --spacing-sm: 8px;
-  --spacing-md: 16px;
+  --spacing-sm: 6px;
+  --spacing-md: 12px;
   --font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
@@ -25,7 +25,7 @@ body {
   color: var(--text-primary);
   font-family: var(--font-family);
   font-size: 14px;
-  padding: var(--spacing-md);
+  padding: 10px;
   height: 100vh;
   overflow: hidden;
   /* Hide main body scroll */
@@ -48,7 +48,7 @@ body {
 .container {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
   height: 100%;
   overflow: hidden;
   /* CRITICAL: Confines all views to the viewport height */
@@ -77,7 +77,7 @@ body {
 .player-top-panel {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   flex-shrink: 0;
   /* Prevent shrinking */
   /* Optional: if you want the top panel to be scrollable if screen is TINY */
@@ -102,7 +102,7 @@ body {
 }
 
 .bookmarks-sticky-header {
-  padding: 12px 12px 0 12px;
+  padding: 8px 12px 0 12px;
   background: var(--card-bg);
   /* Ensure opaque background */
   flex-shrink: 0;
@@ -130,7 +130,7 @@ header {
   align-items: center;
   margin-bottom: 4px;
   background: #252525;
-  padding: 12px;
+  padding: 8px 12px;
   border-radius: 12px;
 }
 
@@ -210,7 +210,7 @@ h1#app-title .version-badge {
   justify-content: space-between;
   align-items: center;
   background: #1a1a1a;
-  padding: 8px 12px;
+  padding: 6px 10px;
   border-radius: 8px;
   border: 1px solid #333;
 }
@@ -254,11 +254,11 @@ h1#app-title .version-badge {
 .playback-bar {
   background-color: var(--card-bg);
   border-radius: var(--border-radius);
-  padding: 16px;
+  padding: 12px;
   border: 1px solid #333;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .time-display {
@@ -312,7 +312,7 @@ input[type="range"].progress-bar {
 .control-group {
   background-color: var(--card-bg);
   border-radius: var(--border-radius);
-  padding: 12px;
+  padding: 10px;
   border: 1px solid #333;
 }
 
@@ -655,6 +655,65 @@ input:checked+.slider:before {
   line-height: 1;
 }
 
+/* Vertical Compact Mode for FHD/Small Screens */
+@media (max-height: 1000px) {
+  :root {
+    --spacing-md: 8px;
+  }
+
+  body {
+    padding: 8px;
+  }
+
+  .container {
+    gap: 8px;
+  }
+
+  header {
+    padding: 6px 10px;
+  }
+
+  h1 {
+    font-size: 16px;
+  }
+
+  .player-top-panel {
+    gap: 6px;
+    /* Optional: limit top panel to ensure markers have space */
+    max-height: 45vh;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+
+  .playback-bar {
+    padding: 8px 12px;
+  }
+
+  .large-play-btn {
+    width: 40px;
+    height: 40px;
+  }
+
+  .large-play-btn svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .control-group {
+    padding: 8px;
+  }
+
+  .bookmarks-sticky-header {
+    padding: 6px 10px 0 10px;
+  }
+
+  .full-width-btn {
+    padding: 6px;
+    font-size: 11px;
+    margin-bottom: 8px;
+  }
+}
+
 .delete-btn:hover {
   color: var(--danger-color);
 }
@@ -720,7 +779,7 @@ input:checked+.slider:before {
   margin-top: auto;
   display: flex;
   justify-content: center;
-  padding: 8px 0;
+  padding: 4px 0;
   flex-shrink: 0;
   border-top: 1px solid #333;
   background-color: var(--bg-color);
@@ -734,10 +793,10 @@ input:checked+.slider:before {
   color: #000000;
   font-family: 'Inter', sans-serif;
   font-weight: 600;
-  padding: 4px 12px;
+  padding: 2px 10px;
   border-radius: 6px;
   text-decoration: none;
-  font-size: 11px;
+  font-size: 10px;
   transition: transform 0.2s;
 }
 

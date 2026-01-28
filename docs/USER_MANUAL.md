@@ -30,7 +30,12 @@ After launching the Extension, you will see the main screen. The sidebar is desi
 ![Interface Overview Screenshot](images/interface_overview.png)
 *(Suggested Screenshot: Full screen after opening Sidebar)*
 
-On the right side of the top title bar is a **↗️ Arrow Button**. Click to detach the window (Pop-out).
+On the right side of the top title bar is a **↗️ Arrow Button**. Click to detach the window (Pop-out). 
+
+### 🟢 Status Indicator
+Next to the **v2.0** badge, you will see a small circular indicator:
+- **Green**: Extension is actively connected to the YouTube video.
+- **Grey**: extension is in Standby mode (saving resources).
 
 ---
 
@@ -51,6 +56,7 @@ At the top of the Player tab, you have full control over video playback.
     *   **-10s / +10s**: Fast rewind or fast forward 10 seconds.
     *   **Play/Pause**: Large central Play/Pause button.
 *   **Playback Speed**:
+    *   **Collapsible Area**: Click the "Playback Speed" header or chevron to expand/collapse.
     *   **Slider**: Drag slider to finely adjust speed from 0.25x to 3.0x.
     *   **Presets**: Quick buttons (0.5x, 1.0x, 1.5x, 2.0x).
 
@@ -63,9 +69,10 @@ Designed for language learning or instrument practice, allowing you to repeat sp
 ![Loop Controls Screenshot](images/loop_controls.png)
 *(Suggested Screenshot: A-B Loop area)*
 
-1.  **Set Start (A)**: Play to where you want to start, click the `📍` button.
-2.  **Set End (B)**: Play to where you want to end, click the `🏁` button.
-3.  **Enable Loop**: Turn on the toggle switch in the top right (Toggle Use Loop), video will repeat infinitely between A and B.
+1.  **Expand Section**: Click the "A-B Loop" header to see the controls.
+2.  **Set Start (A)**: Play to where you want to start, click the `S` button.
+3.  **Set End (B)**: Play to where you want to end, click the `E` button.
+4.  **Enable Loop**: Turn on the toggle switch in the header, video will repeat infinitely between A and B.
 4.  **Fine Tune**: You can directly modify the time in the input box (format mm:ss).
 
 ---
@@ -78,6 +85,7 @@ Marker function allows you to take notes on the video timeline and jump back at 
 *(Suggested Screenshot: Markers area, including several created markers)*
 
 *   **Add Marker**: Click `+ Add "Now" to Current Marker Group` to create a marker at the current time.
+*   **Follow Playback**: Toggle the "Follow" switch to auto-scroll the list to the current marker. This setting is **permanently saved** to your profile.
 *   **Group Management (Groups)**:
     *   Select group via dropdown menu (e.g., `Default`, `Study`).
     *   Notes of different natures can be stored separately.
