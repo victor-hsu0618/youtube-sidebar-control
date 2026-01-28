@@ -23,7 +23,9 @@ Welcome to YouTube Studio Sidebar! This guide will help you familiarize yourself
 
 After launching the Extension, you will see the main screen. The sidebar is designed simply, mainly divided into three tabs:
 
-*   **Player**: The main operation area, containing playback controls, speed adjustment, loops, and markers.
+*   **Player**: The main operation area. It now features two internal sub-tabs:
+    *   **Markers**: Your primary workspace for taking and browsing notes.
+    *   **Controls**: Adjustment area for Speed and A-B Loop.
 *   **Library**: View the history of all videos for which you have saved profiles.
 *   **Favorites**: Quick access to your frequently used profiles marked as "Star/Default".
 

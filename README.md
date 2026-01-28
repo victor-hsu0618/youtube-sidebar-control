@@ -38,9 +38,10 @@ This project is a browser extension, currently supporting Chrome and Edge browse
 ## 🌟 Main Features
 
 ### 1. 🎛️ Advanced Playback Control
-- **Collapsible Controls**: Clean UI with collapsible sections for Speed and Loops
-- **Precise Speed Control**: Accordion-style adjustment from 0.25x to 3.0x, with quick presets (0.5x, 1.0x, 1.5x, 2.0x)
-- **A-B Loop**: Collapsible loop controls with set start (A) and end (B) points
+- **Dual-Panel Workspace**: Dedicated sub-tabs for **Markers** and **Controls** to maximize vertical space
+- **Collapsible Controls**: Clean UI with collapsible sections for Speed and Loops within the Controls panel
+- **Precise Speed Control**: Accordion-style adjustment from 0.25x to 3.0x
+- **A-B Loop**: Set start (A) and end (B) points precisely
 - **Fine Navigation**: Rewind/Fast Forward 10 seconds, or jump to specific timestamp
 - **Draggable Progress Bar**: Visual progress bar for quick positioning
 

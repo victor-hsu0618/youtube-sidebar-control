@@ -84,6 +84,32 @@ try {
     // Show Player view by default on startup
     switchView('player');
 
+    // --- Player Sub-Panels ---
+    const subPanels = {
+        markers: document.getElementById('panel-markers'),
+        controls: document.getElementById('panel-controls')
+    };
+    const subTabs = {
+        markers: document.getElementById('tab-markers'),
+        controls: document.getElementById('tab-controls')
+    };
+
+    function switchSubPanel(panelName) {
+        Object.keys(subPanels).forEach(k => {
+            if (subPanels[k]) {
+                subPanels[k].classList.toggle('active', k === panelName);
+            }
+        });
+        Object.keys(subTabs).forEach(k => {
+            if (subTabs[k]) {
+                subTabs[k].classList.toggle('active', k === panelName);
+            }
+        });
+    }
+
+    if (subTabs.markers) subTabs.markers.addEventListener('click', () => switchSubPanel('markers'));
+    if (subTabs.controls) subTabs.controls.addEventListener('click', () => switchSubPanel('controls'));
+
     // --- Pop Out Logic ---
     const popOutBtn = document.getElementById('nav-popout');
     if (popOutBtn) {

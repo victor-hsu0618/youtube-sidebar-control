@@ -62,7 +62,8 @@ body {
   flex: 1;
   flex-direction: column;
   min-height: 0;
-  gap: 12px;
+  gap: 8px;
+  /* Slightly tighter gap */
   overflow: hidden;
 }
 
@@ -653,6 +654,62 @@ input:checked+.slider:before {
   padding: 4px;
   font-size: 16px;
   line-height: 1;
+}
+
+/* Player Sub-Panels Styling */
+.player-tabs {
+  display: flex;
+  background: #252525;
+  padding: 4px;
+  border-radius: 8px;
+  gap: 4px;
+  margin-bottom: 4px;
+  flex-shrink: 0;
+}
+
+.tab-btn {
+  flex: 1;
+  background: transparent;
+  color: var(--text-secondary);
+  border: none;
+  padding: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tab-btn.active {
+  background: #444;
+  color: var(--text-primary);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.sub-panel {
+  display: none;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.sub-panel.active {
+  display: flex;
+}
+
+.sub-panel-scroll {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-right: 4px;
+}
+
+/* Ensure bookmarks-section takes full height in its panel */
+#panel-markers .bookmarks-section {
+  flex: 1;
 }
 
 /* Vertical Compact Mode for FHD/Small Screens */

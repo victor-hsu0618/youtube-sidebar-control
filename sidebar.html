@@ -102,118 +102,132 @@
             </button>
           </div>
         </section>
-
-        <!-- Playback Speed -->
-        <section class="control-group">
-          <div id="speed-header" class="section-header accordion-header">
-            <div style="display:flex; align-items:center; gap:8px;">
-              <span id="speed-chevron" class="chevron" style="display:inline-block; transition:transform 0.2s;">▶</span>
-              <h2>Playback Speed</h2>
-            </div>
-            <span id="speed-display" class="value-display">1.0x</span>
-          </div>
-          <div id="speed-content" class="accordion-content collapsed">
-            <div class="slider-container">
-              <input type="range" id="speed-slider" min="0.25" max="3.0" step="0.05" value="1.0">
-            </div>
-            <div class="presets">
-              <button class="preset-btn" data-speed="0.5">0.5x</button>
-              <button class="preset-btn" data-speed="1.0">1.0x</button>
-              <button class="preset-btn" data-speed="1.5">1.5x</button>
-              <button class="preset-btn" data-speed="2.0">2.0x</button>
-            </div>
-          </div>
-        </section>
-
-        <!-- A-B Loop -->
-        <section class="control-group">
-          <div id="loop-header" class="section-header accordion-header">
-            <div style="display:flex; align-items:center; gap:8px;">
-              <span id="loop-chevron" class="chevron" style="display:inline-block; transition:transform 0.2s;">▶</span>
-              <h2>A-B Loop</h2>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="loop-toggle">
-              <span class="slider"></span>
-            </label>
-          </div>
-
-          <div id="loop-content" class="accordion-content collapsed">
-            <div class="loop-controls">
-              <div class="loop-point">
-                <span class="label">START</span>
-                <div class="input-group">
-                  <input type="text" id="loop-start" value="0:00" placeholder="0:00">
-                  <button id="set-start" class="icon-btn small-btn" title="Set current time">S</button>
-                </div>
-              </div>
-              <div class="loop-point">
-                <span class="label">END</span>
-                <div class="input-group">
-                  <input type="text" id="loop-end" value="0:00" placeholder="0:00">
-                  <button id="set-end" class="icon-btn small-btn" title="Set current time">E</button>
-                </div>
-              </div>
-            </div>
-
-            <div style="display:flex; gap:8px; margin-top:12px;">
-              <button id="jump-loop" class="secondary-btn" style="margin-top: 0; flex: 1;">Jump</button>
-              <button id="clear-loop" class="secondary-btn" style="margin-top: 0; flex: 1;">Clear</button>
-            </div>
-          </div>
-        </section>
       </div> <!-- End player-top-panel -->
 
-      <!-- Bookmarks Section (Multi-Group) -->
-      <section class="control-group bookmarks-section">
-        <!-- Sticky Header for Bookmarks -->
-        <div class="bookmarks-sticky-header">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <h3 style="margin: 0; font-size: 14px; color: var(--text-primary);">Markers</h3>
-            <div class="follow-playback-container" title="Auto-scroll to current marker"
-              style="display: flex; align-items: center; gap: 6px;">
-              <span
-                style="font-size: 10px; color: var(--text-secondary); text-transform: uppercase; font-weight: 600;">Follow</span>
-              <label class="toggle-switch small-toggle">
-                <input type="checkbox" id="follow-playback-toggle" checked>
+      <!-- Player Sub-Tabs -->
+      <div class="player-tabs">
+        <button id="tab-markers" class="tab-btn active">Markers</button>
+        <button id="tab-controls" class="tab-btn">Controls</button>
+      </div>
+
+      <div id="panel-markers" class="sub-panel active">
+        <!-- Bookmarks Section (Multi-Group) -->
+        <section class="control-group bookmarks-section">
+          <!-- Sticky Header for Bookmarks -->
+          <div class="bookmarks-sticky-header">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <h3 style="margin: 0; font-size: 14px; color: var(--text-primary);">Markers</h3>
+              <div class="follow-playback-container" title="Auto-scroll to current marker"
+                style="display: flex; align-items: center; gap: 6px;">
+                <span
+                  style="font-size: 10px; color: var(--text-secondary); text-transform: uppercase; font-weight: 600;">Follow</span>
+                <label class="toggle-switch small-toggle">
+                  <input type="checkbox" id="follow-playback-toggle" checked>
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+            <div class="bookmarks-toolbar">
+              <select id="group-selector" class="group-select">
+                <option value="Default">Default</option>
+                <option value="Study">Study</option>
+                <option value="Cust. A">Cust. A</option>
+                <option value="Cust. B">Cust. B</option>
+              </select>
+              <div class="toolbar-actions">
+                <button id="btn-import" class="icon-btn small-action" title="Import JSON">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                    <path d="M11 16h2V7h3l-4-5-4 5h3z" />
+                    <path d="M5 18h14v2H5z" />
+                  </svg>
+                </button>
+                <button id="btn-export" class="icon-btn small-action" title="Export JSON">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                    <path d="M11 7h2v9h3l-4 5-4-5h3z" />
+                    <path d="M5 4h14v2H5z" />
+                  </svg>
+                </button>
+                <input type="file" id="file-import" accept=".json" hidden />
+              </div>
+            </div>
+
+            <button id="add-bookmark" class="action-btn full-width-btn">+ Add Marker</button>
+          </div>
+
+          <!-- Scrollable List -->
+          <div class="bookmarks-list-container">
+            <ul id="bookmarks-list" class="bookmarks-list">
+              <!-- items injected here -->
+            </ul>
+          </div>
+        </section>
+      </div>
+
+      <div id="panel-controls" class="sub-panel">
+        <div class="sub-panel-scroll">
+          <!-- Playback Speed -->
+          <section class="control-group">
+            <div id="speed-header" class="section-header accordion-header">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span id="speed-chevron" class="chevron"
+                  style="display:inline-block; transition:transform 0.2s;">▶</span>
+                <h2>Playback Speed</h2>
+              </div>
+              <span id="speed-display" class="value-display">1.0x</span>
+            </div>
+            <div id="speed-content" class="accordion-content collapsed">
+              <div class="slider-container">
+                <input type="range" id="speed-slider" min="0.25" max="3.0" step="0.05" value="1.0">
+              </div>
+              <div class="presets">
+                <button class="preset-btn" data-speed="0.5">0.5x</button>
+                <button class="preset-btn" data-speed="1.0">1.0x</button>
+                <button class="preset-btn" data-speed="1.5">1.5x</button>
+                <button class="preset-btn" data-speed="2.0">2.0x</button>
+              </div>
+            </div>
+          </section>
+
+          <!-- A-B Loop -->
+          <section class="control-group">
+            <div id="loop-header" class="section-header accordion-header">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span id="loop-chevron" class="chevron"
+                  style="display:inline-block; transition:transform 0.2s;">▶</span>
+                <h2>A-B Loop</h2>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="loop-toggle">
                 <span class="slider"></span>
               </label>
             </div>
-          </div>
-          <div class="bookmarks-toolbar">
-            <select id="group-selector" class="group-select">
-              <option value="Default">Default</option>
-              <option value="Study">Study</option>
-              <option value="Cust. A">Cust. A</option>
-              <option value="Cust. B">Cust. B</option>
-            </select>
-            <div class="toolbar-actions">
-              <button id="btn-import" class="icon-btn small-action" title="Import JSON">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-                  <path d="M11 16h2V7h3l-4-5-4 5h3z" />
-                  <path d="M5 18h14v2H5z" />
-                </svg>
-              </button>
-              <button id="btn-export" class="icon-btn small-action" title="Export JSON">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-                  <path d="M11 7h2v9h3l-4 5-4-5h3z" />
-                  <path d="M5 4h14v2H5z" />
-                </svg>
-              </button>
-              <input type="file" id="file-import" accept=".json" hidden />
+
+            <div id="loop-content" class="accordion-content collapsed">
+              <div class="loop-controls">
+                <div class="loop-point">
+                  <span class="label">START</span>
+                  <div class="input-group">
+                    <input type="text" id="loop-start" value="0:00" placeholder="0:00">
+                    <button id="set-start" class="icon-btn small-btn" title="Set current time">S</button>
+                  </div>
+                </div>
+                <div class="loop-point">
+                  <span class="label">END</span>
+                  <div class="input-group">
+                    <input type="text" id="loop-end" value="0:00" placeholder="0:00">
+                    <button id="set-end" class="icon-btn small-btn" title="Set current time">E</button>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display:flex; gap:8px; margin-top:12px;">
+                <button id="jump-loop" class="secondary-btn" style="margin-top: 0; flex: 1;">Jump</button>
+                <button id="clear-loop" class="secondary-btn" style="margin-top: 0; flex: 1;">Clear</button>
+              </div>
             </div>
-          </div>
-
-          <button id="add-bookmark" class="action-btn full-width-btn">+ Add "Now" to Current Marker Group</button>
+          </section>
         </div>
-
-        <!-- Scrollable List -->
-        <div class="bookmarks-list-container">
-          <ul id="bookmarks-list" class="bookmarks-list">
-            <!-- items injected here -->
-          </ul>
-        </div>
-      </section>
+      </div>
     </div>
 
     <!-- Library View -->
