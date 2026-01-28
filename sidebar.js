@@ -23,6 +23,7 @@ try {
     let currentVideoData = createEmptyData();
     let isDraggingProgress = false;
     let connectedTabId = null; // Track connected tab for Popout
+    let pendingHighlightTime = null; // Persistent highlight state
 
     function createEmptyData(id = null, title = "Unknown") {
         return {
@@ -684,6 +685,9 @@ try {
 
     // --- Render Bookmarks ---
     function renderBookmarks(highlightTime = null) {
+        if (highlightTime !== null) pendingHighlightTime = highlightTime;
+
+        const checkTime = pendingHighlightTime;
         const groupName = currentVideoData.activeGroup || "Default";
         const groupTags = currentVideoData.tagGroups ? currentVideoData.tagGroups[groupName] : [];
         if (groupTags) groupTags.sort((a, b) => a.time - b.time);
@@ -696,10 +700,12 @@ try {
             li.className = 'bookmark-item';
 
             // Highlight Check
-            if (highlightTime !== null && Math.abs(bm.time - highlightTime) < 0.001) {
+            if (checkTime !== null && Math.abs(bm.time - checkTime) < 0.001) {
                 li.classList.add('highlight-new');
                 setTimeout(() => {
                     li.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    // Clear only after successful application
+                    if (pendingHighlightTime === checkTime) pendingHighlightTime = null;
                 }, 100);
             }
 
