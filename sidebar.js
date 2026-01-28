@@ -640,6 +640,54 @@ try {
         reader.readAsText(file);
     }
 
+    // --- Global Backup/Restore ---
+    const btnGlobalExport = document.getElementById('btn-global-export');
+    const btnGlobalImport = document.getElementById('btn-global-import');
+    const fileGlobalImport = document.getElementById('file-global-import');
+
+    if (btnGlobalExport) {
+        btnGlobalExport.addEventListener('click', async () => {
+            const allData = await chrome.storage.sync.get(null);
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(allData, null, 2));
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+            triggerDownload(dataStr, `yt_studio_backup_${timestamp}.json`);
+            log("Backup Created", "success");
+        });
+    }
+
+    if (btnGlobalImport) {
+        btnGlobalImport.addEventListener('click', () => fileGlobalImport.click());
+    }
+
+    if (fileGlobalImport) {
+        fileGlobalImport.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                try {
+                    const data = JSON.parse(event.target.result);
+                    if (typeof data !== 'object' || data === null) throw new Error("Invalid Data Format");
+
+                    if (confirm("Restore All Data? This will merge with your current data and overwrite duplicates.")) {
+                        await chrome.storage.sync.set(data);
+                        log("All Data Restored!", "success");
+                        loadLibrary();
+                        loadFavorites();
+                        // If current video is in backup, refresh UI
+                        if (currentStorageKey && data[currentStorageKey]) {
+                            currentVideoData = data[currentStorageKey];
+                            updateHeader();
+                            renderBookmarks();
+                        }
+                    }
+                } catch (err) { alert("Import Failed: " + err.message); }
+                e.target.value = '';
+            };
+            reader.readAsText(file);
+        });
+    }
     function exportVideoFull(vData) {
         const exportObj = { ...vData };
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj, null, 2));
