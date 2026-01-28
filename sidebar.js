@@ -81,6 +81,9 @@ try {
     if (navs.library) navs.library.addEventListener('click', () => switchView('library'));
     if (navs.favorites) navs.favorites.addEventListener('click', () => switchView('favorites'));
 
+    // Show Player view by default on startup
+    switchView('player');
+
     // --- Pop Out Logic ---
     const popOutBtn = document.getElementById('nav-popout');
     if (popOutBtn) {
