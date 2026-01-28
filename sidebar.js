@@ -257,23 +257,43 @@ try {
     const loopStart = document.getElementById('loop-start');
     const loopEnd = document.getElementById('loop-end');
 
-    document.getElementById('set-start').addEventListener('click', () => sendMessage('SET_LOOP_START'));
-    document.getElementById('set-end').addEventListener('click', () => sendMessage('SET_LOOP_END'));
+    document.getElementById('set-start').addEventListener('click', () => { sendMessage('SET_LOOP_START'); setLoopAccordionState(true); });
+    document.getElementById('set-end').addEventListener('click', () => { sendMessage('SET_LOOP_END'); setLoopAccordionState(true); });
 
     loopStart.addEventListener('change', () => {
         const t = parseTime(loopStart.value);
         if (t !== null) sendMessage('SET_LOOP_START', { time: t });
+        setLoopAccordionState(true);
     });
     loopEnd.addEventListener('change', () => {
         const t = parseTime(loopEnd.value);
         if (t !== null) sendMessage('SET_LOOP_END', { time: t });
+        setLoopAccordionState(true);
     });
 
     document.getElementById('clear-loop')?.addEventListener('click', () => {
         loopStart.value = ''; loopEnd.value = ''; sendMessage('CLEAR_LOOP');
     });
     document.getElementById('jump-loop')?.addEventListener('click', () => sendMessage('JUMP_LOOP_START'));
-    loopToggle.addEventListener('change', (e) => sendMessage('TOGGLE_LOOP', { enabled: e.target.checked }));
+    // Loop Visibility Helper
+    function setLoopAccordionState(expand) {
+        const content = document.getElementById('loop-content');
+        const chevron = document.getElementById('loop-chevron');
+        if (content && chevron) {
+            if (expand) {
+                content.classList.remove('collapsed');
+                chevron.style.transform = 'rotate(90deg)';
+            } else {
+                content.classList.add('collapsed');
+                chevron.style.transform = 'rotate(0deg)';
+            }
+        }
+    }
+
+    loopToggle.addEventListener('change', (e) => {
+        sendMessage('TOGGLE_LOOP', { enabled: e.target.checked });
+        setLoopAccordionState(e.target.checked);
+    });
 
     // Loop Accordion
     const loopHeader = document.getElementById('loop-header');
@@ -704,8 +724,8 @@ try {
             li.querySelector('.bookmark-desc').addEventListener('change', (e) => {
                 bm.label = e.target.value; saveData();
             });
-            li.querySelector('.set-a').addEventListener('click', () => sendMessage('SET_LOOP_START', { time: bm.time }));
-            li.querySelector('.set-b').addEventListener('click', () => sendMessage('SET_LOOP_END', { time: bm.time }));
+            li.querySelector('.set-a').addEventListener('click', () => { sendMessage('SET_LOOP_START', { time: bm.time }); setLoopAccordionState(true); });
+            li.querySelector('.set-b').addEventListener('click', () => { sendMessage('SET_LOOP_END', { time: bm.time }); setLoopAccordionState(true); });
             li.querySelector('.delete-btn').addEventListener('click', () => {
                 groupTags.splice(i, 1);
                 saveData();
@@ -974,7 +994,11 @@ try {
         {
             if (msg.start !== null) loopStart.value = formatTime(msg.start);
             if (msg.end !== null) loopEnd.value = formatTime(msg.end);
-            if (typeof msg.enabled === 'boolean') loopToggle.checked = msg.enabled;
+            if (typeof msg.enabled === 'boolean') {
+                loopToggle.checked = msg.enabled;
+                // Sync UI state with backend state
+                setLoopAccordionState(msg.enabled);
+            }
         }
         else if (msg.action === 'PLAYBACK_STATUS') { updatePlayPauseIcon(msg.playing); }
         else if (msg.action === 'BOOKMARK_ADDED') {
