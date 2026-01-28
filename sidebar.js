@@ -153,7 +153,7 @@ try {
     }
 
     // --- Communication ---
-    const statusIndicator = document.getElementById('connection-status');
+    const statusIndicator = document.getElementById('app-title');
 
     // Check URL for passed tabId
     const urlParams = new URLSearchParams(window.location.search);
@@ -190,6 +190,7 @@ try {
 
             if (!targetTabId) {
                 statusIndicator.classList.remove('connected');
+                statusIndicator.title = "Disconnected (No YT Video)";
                 return;
             }
 
@@ -198,11 +199,12 @@ try {
 
             // Soft validation / ID tracking
             connectedTabId = targetTabId;
-
-            await chrome.tabs.sendMessage(targetTabId, { action, ...payload });
             statusIndicator.classList.add('connected');
+            statusIndicator.title = `Connected to Tab: ${targetTabId}`;
+            const response = await chrome.tabs.sendMessage(targetTabId, { action, payload });
         } catch (error) {
             statusIndicator.classList.remove('connected');
+            statusIndicator.title = "Disconnected (Error)";
             // Reset if error (tab closed etc)
             // But if it was passed via param, maybe we shouldn't reset immediately unless sure?
             // For now, reset is safer to allow auto-finding other tabs.
