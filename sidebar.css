@@ -48,7 +48,8 @@ body {
   flex-direction: column;
   gap: 16px;
   height: 100%;
-  /* Removed restrictive overflow: hidden to allow internal scrollbars to show */
+  overflow: hidden;
+  /* CRITICAL: Confines all views to the viewport height */
 }
 
 /* Views Layout */
@@ -60,7 +61,8 @@ body {
   flex: 1;
   min-height: 0;
   gap: 12px;
-  /* Removed restrictive overflow: hidden to allow internal scrollbars to show */
+  overflow: hidden;
+  /* CRITICAL: Forces internal containers to scroll */
 }
 
 /* Player View Specific */
@@ -679,28 +681,27 @@ input:checked+.slider:before {
 /* Sponsor / Footer */
 .app-footer {
   margin-top: auto;
-  /* Push to bottom if space allows, though flex gap handles most */
   display: flex;
   justify-content: center;
-  padding-bottom: 8px;
+  padding: 8px 0;
   flex-shrink: 0;
-  /* Don't shrink */
+  border-top: 1px solid #333;
+  background-color: var(--bg-color);
 }
 
 .bmc-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   background-color: #FFDD00;
   color: #000000;
   font-family: 'Inter', sans-serif;
   font-weight: 600;
-  padding: 8px 16px;
-  border-radius: 8px;
+  padding: 4px 12px;
+  border-radius: 6px;
   text-decoration: none;
-  font-size: 14px;
-  transition: transform 0.2s, box-shadow 0.2s;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  font-size: 11px;
+  transition: transform 0.2s;
 }
 
 .bmc-btn:hover {
