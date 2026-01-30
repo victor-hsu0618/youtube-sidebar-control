@@ -983,8 +983,12 @@ try {
             if (hasChanged || forceScroll) {
                 lastActiveLiTime = activeTime;
 
+                // CRITICAL: We ONLY scroll if Follow is ON,
+                // OR if it's a forced scroll (like clicking/adding a marker).
                 const followToggle = document.getElementById('follow-playback-toggle');
-                if (followToggle && followToggle.checked) {
+                const isFollowEnabled = followToggle && followToggle.checked;
+
+                if (isFollowEnabled || forceScroll) {
                     const container = document.querySelector('.bookmarks-list-container');
                     if (container) {
                         const topPos = activeLi.offsetTop;
@@ -992,6 +996,7 @@ try {
                         const itemHeight = activeLi.clientHeight;
                         const targetScroll = topPos - (containerHeight / 2) + (itemHeight / 2);
 
+                        // Prevent jitter: Only scroll if significantly different or forced
                         if (forceScroll || Math.abs(container.scrollTop - targetScroll) > 5) {
                             container.scrollTo({
                                 top: targetScroll,
