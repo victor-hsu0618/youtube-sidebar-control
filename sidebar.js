@@ -351,11 +351,28 @@ try {
 
     progressBar.addEventListener('mousedown', () => isDraggingProgress = true);
     progressBar.addEventListener('mouseup', () => isDraggingProgress = false);
-    progressBar.addEventListener('input', (e) => timeCurrent.textContent = formatTime(parseFloat(e.target.value)));
+    progressBar.addEventListener('input', (e) => {
+        const t = parseFloat(e.target.value);
+        if (timeCurrent) timeCurrent.textContent = formatTime(t);
+        updateAddMarkerBtn(t);
+    });
     progressBar.addEventListener('change', (e) => {
         sendMessage('SEEK_TO', { time: parseFloat(e.target.value) });
         isDraggingProgress = false;
     });
+
+    function updateUIWithTime(currentTime) {
+        if (!isDraggingProgress) {
+            if (progressBar) progressBar.value = currentTime;
+            if (timeCurrent) timeCurrent.textContent = formatTime(currentTime);
+        }
+        updateAddMarkerBtn(currentTime);
+    }
+
+    function updateTotalTime(duration) {
+        if (progressBar) progressBar.max = duration;
+        if (timeTotal) timeTotal.textContent = formatTime(duration);
+    }
 
     // Loop & Manual Input
     const loopToggleBtn = document.getElementById('loop-toggle-btn');
