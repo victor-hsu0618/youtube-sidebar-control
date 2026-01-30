@@ -1466,6 +1466,17 @@ try {
 
             updateLoopVisuals();
         }
+        else if (msg.action === 'TIME_UPDATE') {
+            const isGuarded = (Date.now() - lastCommandSentTime < 400);
+            if (!isGuarded) {
+                lastKnownCurrentTime = msg.currentTime;
+                if (!isDraggingProgress) {
+                    updateUIWithTime(msg.currentTime);
+                }
+                // syncMarkersUI will respect Follow toggle internally
+                syncMarkersUI();
+            }
+        }
         else if (msg.action === 'PLAYBACK_STATUS') {
             updatePlayPauseIcon(msg.playing);
         }
