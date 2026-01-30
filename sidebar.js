@@ -15,6 +15,19 @@ function log(msg, type = 'info') {
     console.log(msg);
 }
 
+// Global Click Debugger: Logs EVERY click to verify browser event firing
+document.addEventListener('mousedown', (e) => {
+    const target = e.target.closest('button, input, select, .bookmark-item');
+    if (target) {
+        let label = target.id || target.className || target.tagName;
+        if (target.classList.contains('bookmark-item')) label = `Marker:${target.dataset.time}`;
+        console.log(`[Click Debug] Mousedown on:`, label);
+        // Only log to UI if it's a known interactive element or if we suspect it's being "swallowed"
+    } else {
+        console.log(`[Click Debug] Mousedown on BACKGROUND:`, e.target.tagName);
+    }
+}, true); // Use capture phase to catch even if stopped
+
 try {
     // --- State ---
     let currentVideoId = null;
@@ -25,6 +38,7 @@ try {
     let pendingHighlightTime = null; // Persistent highlight state
     let isSyncing = false; // Prevent concurrent profile loads
     let lastKnownCurrentTime = 0; // Cache for active marker tracking
+    let lastKnownDuration = 0; // Global duration sync for hotkeys
     let lastActiveLiTime = -1; // Track which marker is currently active to avoid redundant scroll/updates
     let lastCommandSentTime = 0; // Guard for speculative UI updates
 
@@ -39,7 +53,8 @@ try {
             updatedAt: 0,
             profileName: "New Session",
             activeGroup: "Default",
-            tagGroups: { "Default": [], "Study": [], "Cust. A": [], "Cust. B": [] }
+            tagGroups: { "Default": [], "Study": [], "Cust. A": [], "Cust. B": [] },
+            duration: 0
         };
     }
 
@@ -64,6 +79,7 @@ try {
     const ICON_PAUSE = '<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
     const ICON_SMALL_PLAY = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
     const ICON_SMALL_PAUSE = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+    const ICON_SMALL_RESTART = '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>';
     const ICON_RENEW = '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" style="opacity:0.7;"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>';
 
     // Loop Markers
@@ -202,16 +218,15 @@ try {
         console.log("Locked to Tab ID:", connectedTabId);
     }
 
-    async function sendMessage(action, payload = {}) {
+    async function sendMessage(action, payload = {}, retryCount = 0) {
+        log(`Command: ${action}`);
         try {
             let targetTabId = null;
 
-            // Strategy 1: Use Established/Passed ID
             if (connectedTabId) {
                 targetTabId = connectedTabId;
             }
 
-            // Strategy 2: If no connection, find standard active tab (Side Panel Mode)
             if (!targetTabId) {
                 const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
                 if (tab && tab.url.includes('youtube.com/watch')) {
@@ -219,10 +234,8 @@ try {
                 }
             }
 
-            // Strategy 3: (Popout Mode Fallback) Scan for ANY YouTube tab
             if (!targetTabId) {
                 const tabs = await chrome.tabs.query({ url: "*://*.youtube.com/watch*" });
-                // Prioritize audible or focused
                 const active = tabs.find(t => t.active) || tabs[0];
                 if (active) targetTabId = active.id;
             }
@@ -230,31 +243,43 @@ try {
             if (!targetTabId) {
                 statusIndicator.classList.remove('connected');
                 statusIndicator.title = "Disconnected (No YT Video)";
-                return;
+                return { success: false, error: 'No target tab' };
             }
 
-            // Validate existence logic can be tricky if permissions are tight, 
-            // but assuming host permissions, we can just send.
-
-            // Soft validation / ID tracking
             connectedTabId = targetTabId;
             statusIndicator.classList.add('connected');
             statusIndicator.title = `Connected to Tab: ${targetTabId}`;
+
+            // Send message and AWAIT response (Confirmation)
             const response = await chrome.tabs.sendMessage(targetTabId, { action, ...payload });
+
+            if (response && response.success) {
+                log(`Confirmed: ${action}`, 'success');
+                return response;
+            } else {
+                throw new Error(response ? response.error : 'No response');
+            }
+
         } catch (error) {
+            log(`Retry ${retryCount + 1}: ${action} (${error.message})`, 'error');
+
+            if (retryCount < 2) { // 3 tries total
+                const delay = 50 * (retryCount + 1);
+                await new Promise(r => setTimeout(r, delay));
+                return sendMessage(action, payload, retryCount + 1);
+            }
+
+            log(`FATAL: ${action} failed after retries`, 'error');
             statusIndicator.classList.remove('connected');
-            statusIndicator.title = "Disconnected (Error)";
-            // Reset if error (tab closed etc)
-            // But if it was passed via param, maybe we shouldn't reset immediately unless sure?
-            // For now, reset is safer to allow auto-finding other tabs.
             connectedTabId = null;
+            throw error;
         }
     }
 
     // --- Logic ---
     function updatePlayPauseIcon(playing) {
-        // Command Guard: Ignore status updates for 1500ms after user action to prevent flickering
-        if (Date.now() - lastCommandSentTime < 1500) return;
+        // Command Guard: Ignore status updates for 400ms after user action to prevent flickering
+        if (Date.now() - lastCommandSentTime < 400) return;
 
         isCurrentlyPlaying = playing;
         if (playPauseBtn) {
@@ -264,13 +289,25 @@ try {
     }
 
     if (playPauseBtn) {
-        playPauseBtn.addEventListener('click', () => {
+        playPauseBtn.addEventListener('click', async () => {
             lastCommandSentTime = Date.now();
-            // Speculative update
-            isCurrentlyPlaying = !isCurrentlyPlaying;
+            const originalState = isCurrentlyPlaying;
+            const nextPlayingState = !isCurrentlyPlaying;
+            const action = nextPlayingState ? 'PLAY_VIDEO' : 'PAUSE_VIDEO';
+
+            // Speculative update for immediate feedback
+            isCurrentlyPlaying = nextPlayingState;
             playPauseBtn.innerHTML = isCurrentlyPlaying ? ICON_PAUSE : ICON_PLAY;
             syncMarkersUI(true);
-            sendMessage('TOGGLE_PLAYBACK');
+
+            try {
+                await sendMessage(action);
+            } catch (err) {
+                // Revert if it fails
+                isCurrentlyPlaying = originalState;
+                playPauseBtn.innerHTML = isCurrentlyPlaying ? ICON_PAUSE : ICON_PLAY;
+                syncMarkersUI(true);
+            }
         });
     }
 
@@ -372,6 +409,8 @@ try {
     function updateTotalTime(duration) {
         if (progressBar) progressBar.max = duration;
         if (timeTotal) timeTotal.textContent = formatTime(duration);
+        lastKnownDuration = duration;
+        if (currentVideoData) currentVideoData.duration = duration;
     }
 
     // Loop & Manual Input
@@ -523,8 +562,8 @@ try {
             if (tVal) timeStr = tVal;
         }
 
-        // 3. Format Label: Add "Now(12:34)" to "Study"
-        addMarkerBtn.textContent = `Add "Now(${timeStr})" to "${groupName}"`;
+        // 3. Format Label: Add "Now(12:34)" to "Study" (A)
+        addMarkerBtn.textContent = `+ Add Now(${timeStr}) to "${groupName}" (A)`;
     }
 
     document.getElementById('add-bookmark')?.addEventListener('click', () => sendMessage('ADD_BOOKMARK_REQUEST'));
@@ -929,7 +968,7 @@ try {
 
             li.innerHTML = `
                 <div class="bookmark-controls">
-                    <button class="bookmark-play-btn" title="Play">${ICON_SMALL_PLAY}</button>
+                    <button class="bookmark-restart-btn" title="Play from here">${ICON_SMALL_RESTART}</button>
                 </div>
                 <input type="text" class="bookmark-time-input" value="${formatTime(bm.time)}">
                 <button class="renew-btn" title="Renew to current time">${ICON_RENEW}</button>
@@ -940,44 +979,6 @@ try {
                     <button class="delete-btn">×</button>
                 </div>
             `;
-            li.querySelector('.bookmark-play-btn').addEventListener('click', () => {
-                lastCommandSentTime = Date.now();
-                // If we are at this marker and playing, pause. Otherwise, seek and play.
-                const isActiveMarker = Math.abs(bm.time - lastKnownCurrentTime) < 0.5;
-                if (isActiveMarker && isCurrentlyPlaying) {
-                    sendMessage('PAUSE_VIDEO');
-                    isCurrentlyPlaying = false;
-                } else {
-                    sendMessage('SEEK_TO', { time: bm.time });
-                    sendMessage('PLAY_VIDEO');
-                    lastKnownCurrentTime = bm.time;
-                    isCurrentlyPlaying = true;
-                }
-                syncMarkersUI(true); // Update UI immediately and force scroll for manual action
-            });
-            li.querySelector('.renew-btn').addEventListener('click', ((marker) => {
-                return () => {
-                    marker.time = lastKnownCurrentTime;
-                    saveData();
-                    renderBookmarks();
-                    log(`Marker renewed to ${formatTime(lastKnownCurrentTime)}`, 'success');
-                };
-            })(bm));
-            li.querySelector('.bookmark-time-input').addEventListener('change', (e) => {
-                const t = parseTime(e.target.value);
-                if (t !== null) { bm.time = t; saveData(); renderBookmarks(); }
-                else { e.target.value = formatTime(bm.time); }
-            });
-            li.querySelector('.bookmark-desc').addEventListener('change', (e) => {
-                bm.label = e.target.value; saveData();
-            });
-            li.querySelector('.set-a').addEventListener('click', () => { sendMessage('SET_LOOP_START', { time: bm.time }); setLoopAccordionState(true); });
-            li.querySelector('.set-b').addEventListener('click', () => { sendMessage('SET_LOOP_END', { time: bm.time }); setLoopAccordionState(true); });
-            li.querySelector('.delete-btn').addEventListener('click', () => {
-                groupTags.splice(i, 1);
-                saveData();
-                renderBookmarks();
-            });
             list.appendChild(li);
         });
 
@@ -985,6 +986,88 @@ try {
         // Do NOT force scroll here, let syncMarkersUI decide based on toggle or manual trigger
         requestAnimationFrame(() => {
             syncMarkersUI(false);
+        });
+    }
+
+    // --- EVENT DELEGATION FOR BOOKMARKS ---
+    // This solves the issue of losing clicks during re-renders because the listener
+    // is attached to the static PARENT, not the dynamic children.
+    const bookmarksList = document.getElementById('bookmarks-list');
+    if (bookmarksList) {
+        bookmarksList.addEventListener('click', async (e) => {
+            const li = e.target.closest('.bookmark-item');
+            if (!li) return;
+
+            const time = parseFloat(li.dataset.time);
+            const groupName = currentVideoData.activeGroup || "Default";
+            const groupTags = currentVideoData.tagGroups ? currentVideoData.tagGroups[groupName] : [];
+            const index = Array.from(li.parentNode.children).indexOf(li);
+            const bm = groupTags[index];
+
+            // 1. Restart / Play Button
+            if (e.target.closest('.bookmark-restart-btn')) {
+                lastCommandSentTime = Date.now();
+                const originalPlaying = isCurrentlyPlaying;
+                const originalTime = lastKnownCurrentTime;
+
+                isCurrentlyPlaying = true;
+                lastKnownCurrentTime = time;
+                syncMarkersUI(true);
+
+                try {
+                    await sendMessage('SEEK_AND_PLAY', { time: time });
+                } catch (err) {
+                    isCurrentlyPlaying = originalPlaying;
+                    lastKnownCurrentTime = originalTime;
+                    syncMarkersUI(true);
+                }
+            }
+            // 2. Renew Button
+            else if (e.target.closest('.renew-btn')) {
+                if (bm) {
+                    bm.time = lastKnownCurrentTime;
+                    saveData();
+                    renderBookmarks();
+                    log(`Marker renewed to ${formatTime(lastKnownCurrentTime)}`, 'success');
+                }
+            }
+            // 3. Set A Button
+            else if (e.target.closest('.set-a')) {
+                sendMessage('SET_LOOP_START', { time: time });
+                setLoopAccordionState(true);
+            }
+            // 4. Set B Button
+            else if (e.target.closest('.set-b')) {
+                sendMessage('SET_LOOP_END', { time: time });
+                setLoopAccordionState(true);
+            }
+            // 5. Delete Button
+            else if (e.target.closest('.delete-btn')) {
+                groupTags.splice(index, 1);
+                saveData();
+                renderBookmarks();
+            }
+        });
+
+        // Delegate 'change' events for inputs too
+        bookmarksList.addEventListener('change', (e) => {
+            const li = e.target.closest('.bookmark-item');
+            if (!li) return;
+
+            const groupName = currentVideoData.activeGroup || "Default";
+            const groupTags = currentVideoData.tagGroups ? currentVideoData.tagGroups[groupName] : [];
+            const index = Array.from(li.parentNode.children).indexOf(li);
+            const bm = groupTags[index];
+            if (!bm) return;
+
+            if (e.target.classList.contains('bookmark-time-input')) {
+                const t = parseTime(e.target.value);
+                if (t !== null) { bm.time = t; saveData(); renderBookmarks(); }
+                else { e.target.value = formatTime(bm.time); }
+            } else if (e.target.classList.contains('bookmark-desc')) {
+                bm.label = e.target.value;
+                saveData();
+            }
         });
     }
 
@@ -1021,18 +1104,6 @@ try {
                 li.classList.add('active-playing');
             } else {
                 li.classList.remove('active-playing');
-            }
-
-            // Play/Pause Icon
-            const playBtn = li.querySelector('.bookmark-play-btn');
-            if (playBtn) {
-                if (isActive && isCurrentlyPlaying) {
-                    playBtn.innerHTML = ICON_SMALL_PAUSE;
-                    playBtn.title = 'Pause';
-                } else {
-                    playBtn.innerHTML = ICON_SMALL_PLAY;
-                    playBtn.title = 'Play';
-                }
             }
         });
 
@@ -1212,22 +1283,27 @@ try {
         if (videoKeysChanged.length > 0) {
             // Check if any change was an ADD or REMOVE or IS_DEFAULT toggle
             // If it's just a timestamp update, we might not need to re-render the whole list
+            // Significant Change Check: Only re-render if markers actually changed
             const significantChange = videoKeysChanged.some(k => {
                 const val = changes[k].newValue;
                 const old = changes[k].oldValue;
-
-                // Added or Removed
                 if (!val || !old) return true;
-
-                // Title changed, Default changed, Saved status changed
                 if (val.title !== old.title) return true;
                 if (val.isDefault !== old.isDefault) return true;
                 if (val.isSaved !== old.isSaved) return true;
 
-                // If Tag count changed, we should probably update list metadata
-                const newCount = val.tagGroups ? Object.values(val.tagGroups).reduce((acc, g) => acc + g.length, 0) : 0;
-                const oldCount = old.tagGroups ? Object.values(old.tagGroups).reduce((acc, g) => acc + g.length, 0) : 0;
+                // Check tag groups count and first item time/label for quick difference
+                const newGroups = val.tagGroups || {};
+                const oldGroups = old.tagGroups || {};
+                const newCount = Object.values(newGroups).reduce((acc, g) => acc + g.length, 0);
+                const oldCount = Object.values(oldGroups).reduce((acc, g) => acc + g.length, 0);
                 if (newCount !== oldCount) return true;
+
+                // If count is same, check if the current active group tags changed
+                const group = val.activeGroup || "Default";
+                const newTags = newGroups[group] || [];
+                const oldTags = oldGroups[group] || [];
+                if (JSON.stringify(newTags) !== JSON.stringify(oldTags)) return true;
 
                 return false;
             });
@@ -1240,10 +1316,17 @@ try {
             // Specific case: Current video updated externally (e.g. from popup to sidebar)
             if (videoKeysChanged.includes(currentStorageKey)) {
                 if (changes[currentStorageKey].newValue) {
-                    // Silent update of data, don't necessarily re-render the whole list
-                    currentVideoData = changes[currentStorageKey].newValue;
+                    const newVal = changes[currentStorageKey].newValue;
+                    const oldVal = changes[currentStorageKey].oldValue || {};
+
+                    currentVideoData = newVal;
                     updateHeader();
-                    renderBookmarks();
+
+                    // ONLY re-render bookmarks if the tag groups for the ACTIVE group changed
+                    const group = newVal.activeGroup || "Default";
+                    if (JSON.stringify(newVal.tagGroups?.[group]) !== JSON.stringify(oldVal.tagGroups?.[group])) {
+                        renderBookmarks();
+                    }
                 }
             }
         }
@@ -1333,7 +1416,7 @@ try {
 
             // Command Guard: Ignore status updates for a window after user action (seek/play)
             // This prevents "pulse rollback" where the UI jumps back to old time before seek completes
-            const isGuarded = (Date.now() - lastCommandSentTime < 1500);
+            const isGuarded = (Date.now() - lastCommandSentTime < 400);
 
             // Update UI based on incoming metadata
             if (d.currentTime !== undefined) {
@@ -1353,6 +1436,17 @@ try {
             }
             if (d.duration !== undefined) {
                 updateTotalTime(d.duration);
+            }
+
+            if (d.playbackRate !== undefined) {
+                const speedVal = d.playbackRate.toFixed(2) + 'x';
+                const speedDisplay = document.getElementById('speed-display');
+                const mainSpeedBadge = document.getElementById('main-speed-badge');
+                const speedSlider = document.getElementById('speed-slider');
+
+                if (speedDisplay) speedDisplay.textContent = speedVal;
+                if (mainSpeedBadge) mainSpeedBadge.textContent = speedVal;
+                if (speedSlider) speedSlider.value = d.playbackRate;
             }
 
             // Sync all UI components
@@ -1384,13 +1478,183 @@ try {
             if (!isDuplicate) {
                 groupTags.push({ time: msg.time, label: '' });
                 saveData();
+                renderBookmarks(msg.time);
             } else {
                 console.log(`[YT Studio] Duplicate marker at ${msg.time} ignored.`);
+                renderBookmarks(msg.time);
             }
-
-            renderBookmarks(msg.time); // Always render/highlight to show feedback
         }
     });
+
+    // Handle Restart from Content Script (Global Hotkey)
+    chrome.runtime.onMessage.addListener((msg) => {
+        if (msg.action === 'HOTKEY_RESTART') {
+            const activeLi = document.querySelector('.bookmark-item.active-playing');
+            if (activeLi) {
+                const restartBtn = activeLi.querySelector('.bookmark-restart-btn');
+                if (restartBtn) restartBtn.click();
+            }
+        }
+    });
+
+    // --- Sidebar Hotkeys ---
+    document.addEventListener('keydown', (e) => {
+        // Ignore if user is typing in an input/textarea
+        if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+
+        const key = e.key.toLowerCase();
+
+        // Mirror YouTube Native
+        if (key === ' ' || key === 'k') {
+            e.preventDefault();
+            if (playPauseBtn) playPauseBtn.click();
+        } else if (key === 'j') {
+            e.preventDefault();
+            sendMessage('SEEK_BY', { offset: -10 });
+        } else if (key === 'l') {
+            e.preventDefault();
+            sendMessage('SEEK_BY', { offset: 10 });
+        } else if (key === 'r') {
+            e.preventDefault();
+            // Restart current highlighted marker
+            const activeLi = document.querySelector('.bookmark-item.active-playing');
+            if (activeLi) {
+                const restartBtn = activeLi.querySelector('.bookmark-restart-btn');
+                if (restartBtn) restartBtn.click();
+            }
+        } else if (key === 's') {
+            e.preventDefault();
+            const followToggle = document.getElementById('follow-playback-toggle');
+            if (followToggle) {
+                followToggle.checked = !followToggle.checked;
+                // Manually trigger change event if needed, but sidebar usually listens to change
+                followToggle.dispatchEvent(new Event('change'));
+                log(`Follow Playback: ${followToggle.checked ? 'ENABLED' : 'DISABLED'}`, 'info');
+            }
+        } else if (key === '[' || key === '{') {
+            e.preventDefault();
+            if (e.shiftKey || key === '{') {
+                sendMessage('JUMP_LOOP_START');
+            } else {
+                sendMessage('SET_LOOP_START');
+            }
+        } else if (key === ']' || key === '}') {
+            e.preventDefault();
+            if (e.shiftKey || key === '}') {
+                currentLoopEnabled = !currentLoopEnabled;
+                sendMessage('TOGGLE_LOOP', { enabled: currentLoopEnabled });
+                updateLoopVisuals();
+            } else {
+                sendMessage('SET_LOOP_END');
+            }
+        } else if (key === 'a') {
+            e.preventDefault();
+            sendMessage('ADD_BOOKMARK_REQUEST');
+        } else if (key === ',' || key === '<') {
+            // YouTube: < decreases speed, , seeks back 1 frame (approx)
+            e.preventDefault();
+            if (e.shiftKey) {
+                // Decrease Speed
+                const currentSpeed = parseFloat(document.getElementById('speed-slider')?.value || "1.0");
+                const newSpeed = Math.max(0.25, currentSpeed - 0.25);
+                sendMessage('SET_SPEED', { speed: newSpeed });
+            } else {
+                // Micro Seek Back (0.05s ~ 1 frame @ 20fps)
+                sendMessage('SEEK_BY', { offset: -0.05 });
+            }
+        } else if (key === '.' || key === '>') {
+            // YouTube: > increases speed, . seeks forward 1 frame
+            e.preventDefault();
+            if (e.shiftKey) {
+                // Increase Speed
+                const currentSpeed = parseFloat(document.getElementById('speed-slider')?.value || "1.0");
+                const newSpeed = Math.min(3.0, currentSpeed + 0.25);
+                sendMessage('SET_SPEED', { speed: newSpeed });
+            } else {
+                // Micro Seek Forward
+                sendMessage('SEEK_BY', { offset: 0.05 });
+            }
+        } else if (key === 'arrowup' || key === 'arrowdown') {
+            e.preventDefault();
+            const listItems = Array.from(document.querySelectorAll('#bookmarks-list .bookmark-item'));
+            if (listItems.length === 0) return;
+
+            // 1. Find currently active marker index (the one with 'active-playing' class)
+            // If none, find the one most recently passed by time
+            let currentIndex = listItems.findIndex(li => li.classList.contains('active-playing'));
+            if (currentIndex === -1) {
+                const currentTime = lastKnownCurrentTime;
+                currentIndex = listItems.findLastIndex(li => parseFloat(li.dataset.time) <= currentTime + 0.1);
+            }
+
+            // 2. Determine target index
+            let targetIndex = currentIndex;
+            if (key === 'arrowup') {
+                targetIndex = (currentIndex === -1) ? listItems.length - 1 : Math.max(0, currentIndex - 1);
+            } else {
+                targetIndex = Math.min(listItems.length - 1, currentIndex + 1);
+            }
+
+            const targetLi = listItems[targetIndex];
+            if (targetLi) {
+                const targetTime = parseFloat(targetLi.dataset.time);
+                if (!isNaN(targetTime)) {
+                    // 3. Disable Follow Playback
+                    const followToggle = document.getElementById('follow-playback-toggle');
+                    if (followToggle && followToggle.checked) {
+                        followToggle.checked = false;
+                        followToggle.dispatchEvent(new Event('change'));
+                        log("Follow Playback DISABLED for manual navigation", "info");
+                    }
+
+                    // 4. Seek Only
+                    sendMessage('SEEK_TO', { time: targetTime });
+
+                    // 5. Force UI update/scroll
+                    lastKnownCurrentTime = targetTime;
+                    syncMarkersUI(true);
+                }
+            }
+        } else if (/^[0-9]$/.test(key)) {
+            // 0-9 for 0% to 90%
+            e.preventDefault();
+            const percent = parseInt(key) * 10;
+            if (lastKnownDuration > 0) {
+                sendMessage('SEEK_TO', { time: lastKnownDuration * (percent / 100) });
+            }
+        }
+    });
+
+    // --- Focus Management ---
+    // Prevent buttons/checkboxes from staying focused after click, 
+    // ensuring 'Space' hotkey always defaults to playback control.
+    document.addEventListener('click', (e) => {
+        const target = e.target.closest('button, input[type="checkbox"], input[type="radio"]');
+        if (target && document.activeElement === target) {
+            target.blur();
+        }
+    }, true);
+
+    // --- Shortcut Guide Logic ---
+    const shortcutGuideBtn = document.getElementById('btn-shortcut-guide');
+    const shortcutOverlay = document.getElementById('shortcut-overlay');
+    const closeShortcutBtn = document.getElementById('close-shortcut-guide');
+
+    if (shortcutGuideBtn && shortcutOverlay) {
+        shortcutGuideBtn.addEventListener('click', () => {
+            shortcutOverlay.style.display = 'flex';
+        });
+    }
+
+    if (closeShortcutBtn && shortcutOverlay) {
+        closeShortcutBtn.addEventListener('click', () => {
+            shortcutOverlay.style.display = 'none';
+        });
+        // Close on background click
+        shortcutOverlay.addEventListener('click', (e) => {
+            if (e.target === shortcutOverlay) shortcutOverlay.style.display = 'none';
+        });
+    }
 
     // Helpers
     function formatTime(s) {
@@ -1418,6 +1682,7 @@ try {
                 overlay.style.cssText = "position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);color:#fff;display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:9999;text-align:center;padding:20px;transition:opacity 0.2s;";
                 document.body.appendChild(overlay);
             }
+            overlay.classList.remove('hidden');
             overlay.style.display = 'flex';
 
             if (mode === 'HOME') {
@@ -1439,7 +1704,10 @@ try {
                 `;
             }
         } else {
-            if (overlay) overlay.style.display = 'none';
+            if (overlay) {
+                overlay.classList.add('hidden');
+                overlay.style.display = 'none';
+            }
         }
     };
 

@@ -16,6 +16,7 @@ Welcome to YouTube Studio Sidebar! This guide will help you familiarize yourself
 4.  [Smart Markers](#4-smart-markers)
 5.  [Library & Profiles](#5-library--profiles)
 6.  [Pop-out Window](#6-pop-out-window)
+7.  [Keyboard Shortcuts](#7-keyboard-shortcuts)
 
 ---
 
@@ -116,13 +117,28 @@ When you click the heart icon `❤️` in the title bar, you are actually saving
 
 ---
 
-## 6. Pop-out Window
+## 7. Keyboard Shortcuts
 
-If you use dual monitors or wish the control panel to be independent of the browser, use this feature.
+YouTube Studio Sidebar supports a wide range of keyboard shortcuts. Click the **Keyboard Icon (⌨️)** in the title bar to toggle the on-screen guide.
 
-1.  Click the **Pop-out Icon (↗️)** on the right of the title bar.
-2.  The sidebar will transform into an independent small window.
-3.  **Real-time Sync**: Your operations in the floating window will be completely synchronized with the original sidebar.
+### Basic Controls
+*   **Space / K**: Play / Pause.
+*   **J / L**: Rewind / Forward (10s).
+*   **, / .**: Frame back / forward (When paused).
+*   **0-9**: Jump to percentage of video (0%–90%).
+*   **M**: Mute / Unmute.
+*   **F**: Fullscreen.
+
+### Advanced Looping
+*   **`[`**: Set Point A.
+*   **`]`**: Set Point B.
+*   **`{` (Shift+[)**: Jump to Start A.
+*   **`}` (Shift+])**: Toggle A-B Loop.
+
+### Markers & Navigation
+*   **A**: Add a new marker at current time.
+*   **S**: Toggle "Follow Playback" mode.
+*   **↑ / ↓**: Navigate sequentially through markers (automatically seeks and disables Follow mode for manual browsing).
 
 ---
 

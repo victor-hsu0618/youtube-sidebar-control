@@ -521,6 +521,13 @@ header {
   color: var(--accent-color);
 }
 
+.mini-label small {
+  font-size: 9px;
+  margin-left: 2px;
+  font-weight: 400;
+  opacity: 0.8;
+}
+
 .mini-loop-box input {
   width: 48px;
   background: transparent;
@@ -603,6 +610,12 @@ button {
 
 .action-btn:hover {
   background: var(--accent-hover);
+}
+
+/* Instant feedback for all buttons */
+button:active {
+  transform: scale(0.96);
+  filter: brightness(0.9);
 }
 
 .full-width-btn {
@@ -833,7 +846,7 @@ input:checked+.slider:before {
   color: #000;
 }
 
-.bookmark-play-btn {
+.bookmark-restart-btn {
   background: var(--accent-color);
   color: #000;
   border-radius: 50%;
@@ -842,10 +855,18 @@ input:checked+.slider:before {
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0;
 }
 
-.bookmark-play-btn:hover {
+.bookmark-restart-btn:hover {
   background: var(--accent-hover);
+  transform: scale(1.1);
+}
+
+.bookmark-restart-btn:active {
+  transform: scale(0.9);
 }
 
 .bookmark-time-input {
@@ -916,6 +937,127 @@ input:checked+.slider:before {
   padding: 4px;
   font-size: 16px;
   line-height: 1;
+}
+
+.mini-speed-badge {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--accent-color);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(62, 166, 255, 0.3);
+  margin-left: 8px;
+  min-width: 38px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mini-speed-badge:hover {
+  background: rgba(62, 166, 255, 0.2);
+  border-color: var(--accent-color);
+}
+
+/* Shortcut Guide Modal */
+.overlay-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  animation: fadeIn 0.15s ease-out;
+}
+
+.modal-content {
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 300px;
+  padding: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+  position: relative;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #333;
+  padding-bottom: 8px;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-primary);
+  letter-spacing: 0.5px;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 24px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 4px;
+}
+
+.close-btn:hover {
+  color: #fff;
+}
+
+.shortcut-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.shortcut-table td {
+  padding: 6px 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.shortcut-table kbd {
+  background: #333;
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-family: inherit;
+  color: #fff;
+  font-size: 10px;
+  box-shadow: 0 1.5px 0 #000;
+  margin: 0 1px;
+}
+
+.global-hint {
+  text-align: center;
+  font-size: 10px !important;
+  color: #666 !important;
+  padding-top: 12px !important;
+  border-bottom: none !important;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Player Sub-Panels Styling */
@@ -1191,6 +1333,26 @@ input:checked+.slider:before {
   flex-direction: column;
   gap: 4px;
   width: 90px;
+}
+
+#debug-console {
+  pointer-events: none;
+  /* Let clicks pass through the container */
+}
+
+#debug-logs {
+  pointer-events: auto;
+  /* Allow scrolling and clicking in the log itself */
+}
+
+#standby-overlay {
+  pointer-events: auto;
+  /* Block everything when visible */
+}
+
+#standby-overlay.hidden {
+  display: none !important;
+  pointer-events: none !important;
 }
 
 .storage-bar-bg {

@@ -26,6 +26,12 @@
               d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z" />
           </svg>
         </button>
+        <button id="btn-shortcut-guide" class="nav-btn icon-only" title="Keyboard Shortcuts" style="margin-left: auto;">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+            <path
+              d="M20,5H4C2.89,5,2,5.89,2,7v10c0,1.1,0.89,2,2,2h16c1.11,0,2-0.9,2-2V7C22,5.89,21.11,5,20,5z M20,17H4V7h16V17z M5,8h2v2H5V8z M5,11h2v2H5V11z M8,8h2v2H8V8z M8,11h2v2H8V11z M11,8h2v2h-2V8z M11,11h2v2h-2V11z M14,8h2v2h-2V8z M14,11h2v2h-2V11z M17,8h2v2h-2V8z M17,11h2v2h-2V11z M8,14h8v2H8V14z" />
+          </svg>
+        </button>
       </div>
     </header>
 
@@ -74,12 +80,12 @@
             <div class="loop-inputs-merged">
               <div class="mini-loop-box">
                 <span id="label-set-a" class="mini-label" style="cursor: pointer;"
-                  title="Set Start (A) to Current Time">A</span>
+                  title="Set Start Point A ([)">A<small>[</small></span>
                 <input type="text" id="loop-start" value="0:00" placeholder="0:00">
               </div>
               <div class="mini-loop-box">
                 <span id="label-set-b" class="mini-label" style="cursor: pointer;"
-                  title="Set End (B) to Current Time">B</span>
+                  title="Set End Point B (])">B<small>]</small></span>
                 <input type="text" id="loop-end" value="0:00" placeholder="0:00">
               </div>
             </div>
@@ -95,39 +101,39 @@
 
           <!-- Transport Controls -->
           <div class="transport-controls">
-            <button id="restart-btn" class="icon-btn" title="Back to Start">
+            <button id="restart-btn" class="icon-btn" title="Back to Start (Home)">
               <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
                 <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" />
               </svg>
             </button>
-            <button id="rwd-btn" class="icon-btn" title="Rewind 10s">
+            <button id="rwd-btn" class="icon-btn" title="Rewind 10s (J)">
               <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
                 <path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z" />
               </svg>
             </button>
-            <button id="play-pause" class="icon-btn large-play-btn" title="Play/Pause">
+            <button id="play-pause" class="icon-btn large-play-btn" title="Play/Pause (Space / K)">
               <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor">
                 <path d="M8 5v14l11-7z" />
               </svg>
             </button>
-            <button id="fwd-btn" class="icon-btn" title="Forward 10s">
+            <button id="fwd-btn" class="icon-btn" title="Forward 10s (L)">
               <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
                 <path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z" />
               </svg>
             </button>
-            <button id="loop-toggle-btn" class="icon-btn loop-main-btn mini-loop-btn" title="Toggle A-B Loop">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-                <path
-                  d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z" />
-              </svg>
-              <span class="btn-badge">AB</span>
-            </button>
-            <button id="jump-loop" class="icon-btn mini-loop-btn" title="Jump to A">
+            <button id="jump-loop" class="icon-btn mini-loop-btn" title="Jump to Start A ({)">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
                 <path
                   d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z" />
               </svg>
               <span class="btn-badge">A</span>
+            </button>
+            <button id="loop-toggle-btn" class="icon-btn loop-main-btn mini-loop-btn" title="Toggle A-B Loop (})">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                <path
+                  d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z" />
+              </svg>
+              <span class="btn-badge">AB</span>
             </button>
             <button id="clear-loop" class="icon-btn mini-loop-btn" title="Clear Loop">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
@@ -136,6 +142,8 @@
               </svg>
               <span class="btn-badge">CLR</span>
             </button>
+            <!-- Speed Badge -->
+            <div id="main-speed-badge" class="mini-speed-badge" title="Speed Control (< / >)">1.0x</div>
           </div>
         </section>
       </div> <!-- End player-top-panel -->
@@ -162,7 +170,7 @@
                   <option value="Cust. B">Cust. B</option>
                 </select>
               </div>
-              <div class="follow-playback-container" title="Auto-scroll to current marker"
+              <div class="follow-playback-container" title="Auto-scroll (S)"
                 style="display: flex; align-items: center; gap: 4px;">
                 <span class="toolbar-label">Follow</span>
                 <label class="toggle-switch small-toggle">
@@ -171,7 +179,8 @@
                 </label>
               </div>
             </div>
-            <button id="add-bookmark" class="action-btn full-width-btn" style="margin-top: 4px;">+ Add Marker</button>
+            <button id="add-bookmark" class="action-btn full-width-btn" style="margin-top: 4px;">+ Add Marker
+              (A)</button>
           </div>
 
           <!-- Scrollable List -->
@@ -187,7 +196,7 @@
         <div class="sub-panel-scroll">
           <!-- Playback Speed -->
           <section class="control-group">
-            <div id="speed-header" class="section-header accordion-header">
+            <div id="speed-header" class="section-header accordion-header" title="Speed Control (< / >)">
               <div style="display:flex; align-items:center; gap:8px;">
                 <span id="speed-chevron" class="chevron"
                   style="display:inline-block; transition:transform 0.2s;">▶</span>
@@ -280,7 +289,71 @@
 
     <!-- Debug Console -->
     <div id="debug-console"
-      style="margin-top: 20px; border-top: 1px solid #333; padding-top: 10px; font-family: monospace; font-size: 10px; color: #ff4e45; display: none;">
+      style="margin-top: 20px; border-top: 1px solid #333; padding-top: 10px; font-family: monospace; font-size: 10px; color: #ff4e45; display: none; max-height: 150px; overflow-y: auto;">
+      <div id="debug-logs"></div>
+    </div>
+  </div>
+
+  <!-- Shortcut Guide Overlay -->
+  <div id="shortcut-overlay" class="overlay-modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Keyboard Shortcuts</h3>
+        <button id="close-shortcut-guide" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <table class="shortcut-table">
+          <tr>
+            <td><kbd>Space</kbd> / <kbd>K</kbd></td>
+            <td>Play / Pause</td>
+          </tr>
+          <tr>
+            <td><kbd>J</kbd> / <kbd>L</kbd></td>
+            <td>Rewind / Forward 10s</td>
+          </tr>
+          <tr>
+            <td><kbd>,</kbd> / <kbd>.</kbd></td>
+            <td>Frame Back / Forward</td>
+          </tr>
+          <tr>
+            <td><kbd>Shift</kbd>+<kbd>,</kbd> / <kbd>.</kbd></td>
+            <td>Speed Down / Up</td>
+          </tr>
+          <tr>
+            <td><kbd>[</kbd> / <kbd>]</kbd></td>
+            <td>Set Point A / B</td>
+          </tr>
+          <tr>
+            <td><kbd>Shift</kbd>+<kbd>[</kbd> / <kbd>]</kbd></td>
+            <td>Jump A / Toggle Loop</td>
+          </tr>
+          <tr>
+            <td><kbd>↑</kbd> / <kbd>↓</kbd></td>
+            <td>Prev / Next Marker (Manual)</td>
+          </tr>
+          <tr>
+            <td><kbd>A</kbd></td>
+            <td><strong>Add Marker</strong></td>
+          </tr>
+          <tr>
+            <td><kbd>S</kbd></td>
+            <td>Toggle Follow Playback</td>
+          </tr>
+          <tr>
+            <td><kbd>R</kbd></td>
+            <td>Restart Active Marker</td>
+          </tr>
+          <tr>
+            <td><kbd>0</kbd> - <kbd>9</kbd></td>
+            <td>Jump to 0% - 90%</td>
+          </tr>
+          <tr>
+            <td colspan="2" class="global-hint">Global: <kbd>Alt</kbd>+<kbd>Shift</kbd> +
+              <kbd>P</kbd>/<kbd>A</kbd>/<kbd>R</kbd>
+            </td>
+          </tr>
+        </table>
+      </div>
     </div>
   </div>
 

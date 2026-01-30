@@ -71,6 +71,7 @@ This project is a browser extension, currently supporting Chrome and Edge browse
 - **Home Page Guidance**: Helpful dashboard tips when on the YouTube homepage
 - **Return to YouTube**: Wakes up immediately and reconnects control
 - **Intent-Driven Loading**: When you click a specific profile in the library, the extension ensures that specific version loads, even if you navigate away
+- **Keyboard Power User**: Comprehensive keyboard shortcuts for playback, looping, and marker navigation (see Shortcut Guide in UI)
 
 ## 🛠️ Usage
 
@@ -82,4 +83,4 @@ This project is a browser extension, currently supporting Chrome and Edge browse
 
 ## 📝 Notes
 
-This extension operates via UI buttons and does not provide keyboard shortcuts. All controls can be done through the sidebar or pop-out window interface.
+This extension supports comprehensive keyboard shortcuts. Click the **Keyboard Icon** in the title bar to view the full **Shortcut Guide**. Most shortcuts mirror native YouTube behavior (Space/K, J/L, 0-9), while others are unique to this tool ([, ], {, }, Arrow Up/Down).

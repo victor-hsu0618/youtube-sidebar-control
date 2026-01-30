@@ -44,3 +44,21 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.runtime.onStartup.addListener(() => {
     injectToExistingTabs();
 });
+
+// Hotkey Relay
+chrome.commands.onCommand.addListener(async (command) => {
+    const tabs = await chrome.tabs.query({ url: "*://*.youtube.com/watch*", active: true, currentWindow: true });
+    const targetTab = tabs[0] || (await chrome.tabs.query({ url: "*://*.youtube.com/watch*" }))[0];
+
+    if (targetTab) {
+        let action = '';
+        if (command === 'toggle-playback') action = 'TOGGLE_PLAYBACK';
+        else if (command === 'restart-marker') action = 'RESTART_ACTIVE_MARKER';
+        else if (command === 'add-marker') action = 'ADD_BOOKMARK_REQUEST';
+
+        if (action) {
+            chrome.tabs.sendMessage(targetTab.id, { action, ... (typeof payload !== 'undefined' ? payload : {}) })
+                .catch(err => console.log('Hotkey relay failed:', err));
+        }
+    }
+});
