@@ -74,7 +74,8 @@ function notifyStatus() {
                     title: document.title.replace(' - YouTube', ''),
                     thumbnail: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
                     duration: video.duration || 0,
-                    currentTime: video.currentTime || 0
+                    currentTime: video.currentTime || 0,
+                    isPlaying: !video.paused
                 }
             }).catch(() => { });
         }
@@ -113,6 +114,12 @@ chrome.runtime.onMessage.addListener((msg) => {
     switch (msg.action) {
         case 'TOGGLE_PLAYBACK':
             video.paused ? video.play() : video.pause();
+            break;
+        case 'PLAY_VIDEO':
+            video.play();
+            break;
+        case 'PAUSE_VIDEO':
+            video.pause();
             break;
         case 'SET_SPEED':
             video.playbackRate = msg.speed;

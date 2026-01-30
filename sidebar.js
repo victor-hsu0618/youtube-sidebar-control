@@ -63,6 +63,7 @@ try {
     const ICON_PLAY = '<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
     const ICON_PAUSE = '<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
     const ICON_SMALL_PLAY = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+    const ICON_SMALL_PAUSE = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
     const ICON_RENEW = '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" style="opacity:0.7;"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>';
 
     // Loop Markers
@@ -71,6 +72,7 @@ try {
     let currentLoopStart = null;
     let currentLoopEnd = null;
     let currentLoopEnabled = false;
+    let isCurrentlyPlaying = false;
 
     // --- Navigation ---
     function switchView(viewName) {
@@ -884,7 +886,16 @@ try {
                     <button class="delete-btn">×</button>
                 </div>
             `;
-            li.querySelector('.bookmark-play-btn').addEventListener('click', () => sendMessage('SEEK_TO', { time: bm.time }));
+            li.querySelector('.bookmark-play-btn').addEventListener('click', () => {
+                // If we are at this marker and playing, pause. Otherwise, seek and play.
+                const isActiveMarker = Math.abs(bm.time - lastKnownCurrentTime) < 0.5;
+                if (isActiveMarker && isCurrentlyPlaying) {
+                    sendMessage('PAUSE_VIDEO');
+                } else {
+                    sendMessage('SEEK_TO', { time: bm.time });
+                    sendMessage('PLAY_VIDEO');
+                }
+            });
             li.querySelector('.renew-btn').addEventListener('click', ((marker) => {
                 return () => {
                     marker.time = lastKnownCurrentTime;
@@ -915,6 +926,31 @@ try {
         // Use requestAnimationFrame to ensure DOM is ready for scroll calculations
         requestAnimationFrame(() => {
             updateActiveMarker(lastKnownCurrentTime, true);
+            updateMarkerPlayIcons();
+        });
+    }
+
+    function updateMarkerPlayIcons() {
+        const listItems = document.querySelectorAll('#bookmarks-list .bookmark-item');
+        const currentTime = lastKnownCurrentTime;
+
+        listItems.forEach(li => {
+            const itemTime = parseFloat(li.dataset.time);
+            const playBtn = li.querySelector('.bookmark-play-btn');
+            if (!playBtn) return;
+
+            // Check if this marker is the active one (current time is at this marker)
+            const isActiveMarker = Math.abs(itemTime - currentTime) < 0.5; // 0.5 second tolerance
+
+            if (isActiveMarker && isCurrentlyPlaying) {
+                // At this marker and playing → show pause icon
+                playBtn.innerHTML = ICON_SMALL_PAUSE;
+                playBtn.title = 'Pause';
+            } else {
+                // Not at this marker or paused → show play icon
+                playBtn.innerHTML = ICON_SMALL_PLAY;
+                playBtn.title = 'Play';
+            }
         });
     }
 
@@ -1227,17 +1263,25 @@ try {
                 }
             }
 
-            lastKnownCurrentTime = d.currentTime; // Sync cache
-
-            if (!isDraggingProgress) {
-                progressBar.max = d.duration;
-                progressBar.value = d.currentTime;
-                timeCurrent.textContent = formatTime(d.currentTime);
-                timeTotal.textContent = formatTime(d.duration);
-                updateAddMarkerBtn(d.currentTime);
+            // Update UI based on incoming metadata
+            if (d.currentTime !== undefined) {
+                lastKnownCurrentTime = d.currentTime;
+                if (!isDraggingProgress) { // Only update progress bar if not dragging
+                    updateUIWithTime(d.currentTime);
+                }
                 updateActiveMarker(d.currentTime);
-                updateLoopVisuals(); // Keep markers aligned if duration changes
             }
+            if (d.isPlaying !== undefined) {
+                const wasPlaying = isCurrentlyPlaying;
+                isCurrentlyPlaying = d.isPlaying;
+                if (wasPlaying !== isCurrentlyPlaying) {
+                    updateMarkerPlayIcons();
+                }
+            }
+            if (d.duration !== undefined) {
+                updateTotalTime(d.duration);
+            }
+            updateLoopVisuals(); // Keep markers aligned if duration changes
         }
         else if (msg.action === 'UPDATE_LOOP_TIMES') {
             currentLoopStart = msg.start;
