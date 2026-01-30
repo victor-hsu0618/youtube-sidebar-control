@@ -269,7 +269,7 @@ try {
             // Speculative update
             isCurrentlyPlaying = !isCurrentlyPlaying;
             playPauseBtn.innerHTML = isCurrentlyPlaying ? ICON_PAUSE : ICON_PLAY;
-            syncMarkersUI();
+            syncMarkersUI(true);
             sendMessage('TOGGLE_PLAYBACK');
         });
     }
@@ -888,6 +888,7 @@ try {
                 </div>
             `;
             li.querySelector('.bookmark-play-btn').addEventListener('click', () => {
+                lastCommandSentTime = Date.now();
                 // If we are at this marker and playing, pause. Otherwise, seek and play.
                 const isActiveMarker = Math.abs(bm.time - lastKnownCurrentTime) < 0.5;
                 if (isActiveMarker && isCurrentlyPlaying) {
@@ -899,7 +900,7 @@ try {
                     lastKnownCurrentTime = bm.time;
                     isCurrentlyPlaying = true;
                 }
-                syncMarkersUI(); // Update UI immediately
+                syncMarkersUI(true); // Update UI immediately and force scroll for manual action
             });
             li.querySelector('.renew-btn').addEventListener('click', ((marker) => {
                 return () => {
@@ -934,7 +935,14 @@ try {
         });
     }
 
-    function syncMarkersUI(forceScroll = false) {
+    function syncMarkersUI(force = false) {
+        const followToggle = document.getElementById('follow-playback-toggle');
+        const isFollowEnabled = followToggle && followToggle.checked;
+
+        // CRITICAL: If follow is disabled and this is an automatic update (not forced),
+        // skip finding active marker and updating UI highlights.
+        if (!isFollowEnabled && !force) return;
+
         const listItems = document.querySelectorAll('#bookmarks-list .bookmark-item');
         if (listItems.length === 0) return;
 
@@ -980,7 +988,7 @@ try {
             const activeTime = parseFloat(activeLi.dataset.time);
             const hasChanged = activeTime !== lastActiveLiTime;
 
-            if (hasChanged || forceScroll) {
+            if (hasChanged || force) {
                 lastActiveLiTime = activeTime;
 
                 // CRITICAL: We ONLY scroll if Follow is ON,
@@ -988,7 +996,7 @@ try {
                 const followToggle = document.getElementById('follow-playback-toggle');
                 const isFollowEnabled = followToggle && followToggle.checked;
 
-                if (isFollowEnabled || forceScroll) {
+                if (isFollowEnabled || force) {
                     const container = document.querySelector('.bookmarks-list-container');
                     if (container) {
                         const topPos = activeLi.offsetTop;
@@ -997,10 +1005,10 @@ try {
                         const targetScroll = topPos - (containerHeight / 2) + (itemHeight / 2);
 
                         // Prevent jitter: Only scroll if significantly different or forced
-                        if (forceScroll || Math.abs(container.scrollTop - targetScroll) > 5) {
+                        if (force || Math.abs(container.scrollTop - targetScroll) > 5) {
                             container.scrollTo({
                                 top: targetScroll,
-                                behavior: (forceScroll || hasChanged) ? 'smooth' : 'auto'
+                                behavior: (force || hasChanged) ? 'smooth' : 'auto'
                             });
                         }
                     }
