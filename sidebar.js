@@ -891,10 +891,14 @@ try {
                 const isActiveMarker = Math.abs(bm.time - lastKnownCurrentTime) < 0.5;
                 if (isActiveMarker && isCurrentlyPlaying) {
                     sendMessage('PAUSE_VIDEO');
+                    isCurrentlyPlaying = false;
                 } else {
                     sendMessage('SEEK_TO', { time: bm.time });
                     sendMessage('PLAY_VIDEO');
+                    lastKnownCurrentTime = bm.time;
+                    isCurrentlyPlaying = true;
                 }
+                updateMarkerPlayIcons(); // Snappy UI update
             });
             li.querySelector('.renew-btn').addEventListener('click', ((marker) => {
                 return () => {
@@ -1272,15 +1276,14 @@ try {
                 updateActiveMarker(d.currentTime);
             }
             if (d.isPlaying !== undefined) {
-                const wasPlaying = isCurrentlyPlaying;
                 isCurrentlyPlaying = d.isPlaying;
-                if (wasPlaying !== isCurrentlyPlaying) {
-                    updateMarkerPlayIcons();
-                }
             }
             if (d.duration !== undefined) {
                 updateTotalTime(d.duration);
             }
+
+            // Always update icons to reflect current position and state
+            updateMarkerPlayIcons();
             updateLoopVisuals(); // Keep markers aligned if duration changes
         }
         else if (msg.action === 'UPDATE_LOOP_TIMES') {
