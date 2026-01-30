@@ -253,8 +253,8 @@ try {
 
     // --- Logic ---
     function updatePlayPauseIcon(playing) {
-        // Command Guard: Ignore status updates for 500ms after user action to prevent flickering
-        if (Date.now() - lastCommandSentTime < 500) return;
+        // Command Guard: Ignore status updates for 1500ms after user action to prevent flickering
+        if (Date.now() - lastCommandSentTime < 1500) return;
 
         isCurrentlyPlaying = playing;
         if (playPauseBtn) {
@@ -1295,11 +1295,21 @@ try {
                 }
             }
 
+            // Command Guard: Ignore status updates for a window after user action (seek/play)
+            // This prevents "pulse rollback" where the UI jumps back to old time before seek completes
+            const isGuarded = (Date.now() - lastCommandSentTime < 1500);
+
             // Update UI based on incoming metadata
             if (d.currentTime !== undefined) {
-                lastKnownCurrentTime = d.currentTime;
-                if (!isDraggingProgress) { // Only update progress bar if not dragging
-                    updateUIWithTime(d.currentTime);
+                if (!isGuarded) {
+                    lastKnownCurrentTime = d.currentTime;
+                }
+
+                if (!isDraggingProgress) {
+                    // Update main progress bar and timer only if not dragging and not guarded
+                    if (!isGuarded) {
+                        updateUIWithTime(lastKnownCurrentTime);
+                    }
                 }
             }
             if (d.isPlaying !== undefined) {
@@ -1310,6 +1320,7 @@ try {
             }
 
             // Sync all UI components
+            // Note: syncMarkersUI will respect Follow toggle internally
             syncMarkersUI();
             updateLoopVisuals();
         }
