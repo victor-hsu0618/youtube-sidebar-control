@@ -418,6 +418,42 @@ try {
         }
     });
 
+    // A-B Interactivity
+    markerA?.addEventListener('click', () => {
+        if (currentLoopStart !== null) sendMessage('SEEK_TO', { time: currentLoopStart });
+    });
+    markerB?.addEventListener('click', () => {
+        if (currentLoopEnd !== null) sendMessage('SEEK_TO', { time: currentLoopEnd });
+    });
+
+    document.getElementById('label-set-a')?.addEventListener('click', () => {
+        const t = lastKnownCurrentTime;
+        // B > A enforcement: if setting A at/after B, clear B
+        if (currentLoopEnd !== null && t >= currentLoopEnd) {
+            currentLoopEnd = null;
+            if (loopEnd) loopEnd.value = "0:00";
+            sendMessage('SET_LOOP_END', { time: null });
+        }
+        currentLoopStart = t;
+        if (loopStart) loopStart.value = formatTime(t);
+        sendMessage('SET_LOOP_START', { time: t });
+        updateLoopVisuals();
+    });
+
+    document.getElementById('label-set-b')?.addEventListener('click', () => {
+        const t = lastKnownCurrentTime;
+        // B > A enforcement: if setting B at/before A, clear A
+        if (currentLoopStart !== null && t <= currentLoopStart) {
+            currentLoopStart = null;
+            if (loopStart) loopStart.value = "0:00";
+            sendMessage('SET_LOOP_START', { time: null });
+        }
+        currentLoopEnd = t;
+        if (loopEnd) loopEnd.value = formatTime(t);
+        sendMessage('SET_LOOP_END', { time: t });
+        updateLoopVisuals();
+    });
+
     document.getElementById('clear-loop')?.addEventListener('click', () => {
         if (loopStart) loopStart.value = '0:00';
         if (loopEnd) loopEnd.value = '0:00';

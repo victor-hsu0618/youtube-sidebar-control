@@ -307,6 +307,16 @@ header {
   /* Yellow for End */
 }
 
+.loop-marker:hover {
+  filter: brightness(1.2);
+  transform: translateX(-50%) scale(1.2);
+}
+
+.mini-label:hover {
+  color: var(--accent-light) !important;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+}
+
 .progress-bar {
   width: 100%;
   accent-color: var(--danger-color);

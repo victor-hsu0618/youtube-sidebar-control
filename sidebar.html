@@ -73,11 +73,13 @@
             <span id="time-current" class="main-time">0:00</span>
             <div class="loop-inputs-merged">
               <div class="mini-loop-box">
-                <span class="mini-label">A</span>
+                <span id="label-set-a" class="mini-label" style="cursor: pointer;"
+                  title="Set Start (A) to Current Time">A</span>
                 <input type="text" id="loop-start" value="0:00" placeholder="0:00">
               </div>
               <div class="mini-loop-box">
-                <span class="mini-label">B</span>
+                <span id="label-set-b" class="mini-label" style="cursor: pointer;"
+                  title="Set End (B) to Current Time">B</span>
                 <input type="text" id="loop-end" value="0:00" placeholder="0:00">
               </div>
             </div>
@@ -85,8 +87,8 @@
           </div>
           <div class="progress-wrapper">
             <div class="progress-markers">
-              <div id="marker-a" class="loop-marker marker-a" title="Start Point (A)"></div>
-              <div id="marker-b" class="loop-marker marker-b" title="End Point (B)"></div>
+              <div id="marker-a" class="loop-marker marker-a" title="Start Point" style="cursor: pointer;"></div>
+              <div id="marker-b" class="loop-marker marker-b" title="End Point" style="cursor: pointer;"></div>
             </div>
             <input type="range" id="progress-bar" class="progress-bar" value="0" min="0" max="100" step="0.1">
           </div>
