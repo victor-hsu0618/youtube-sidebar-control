@@ -97,7 +97,7 @@ function handleTimeUpdate() {
 
     // Throttle UI updates (Progress Bar)
     const now = Date.now();
-    if (now - lastTick > 500) {
+    if (now - lastTick > 250) {
         notifyStatus();
         lastTick = now;
     }

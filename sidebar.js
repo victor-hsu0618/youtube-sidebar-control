@@ -19,7 +19,6 @@ try {
     // --- State ---
     let currentVideoId = null;
     let currentStorageKey = null; // null = Temporary Session (Unsaved)
-    let isPlaying = false;
     let currentVideoData = createEmptyData();
     let isDraggingProgress = false;
     let connectedTabId = null; // Track connected tab for Popout
@@ -27,6 +26,7 @@ try {
     let isSyncing = false; // Prevent concurrent profile loads
     let lastKnownCurrentTime = 0; // Cache for active marker tracking
     let lastActiveLiTime = -1; // Track which marker is currently active to avoid redundant scroll/updates
+    let lastCommandSentTime = 0; // Guard for speculative UI updates
 
     function createEmptyData(id = null, title = "Unknown") {
         return {
@@ -253,14 +253,25 @@ try {
 
     // --- Logic ---
     function updatePlayPauseIcon(playing) {
-        isPlaying = playing;
+        // Command Guard: Ignore status updates for 500ms after user action to prevent flickering
+        if (Date.now() - lastCommandSentTime < 500) return;
+
+        isCurrentlyPlaying = playing;
         if (playPauseBtn) {
-            playPauseBtn.innerHTML = isPlaying ? ICON_PAUSE : ICON_PLAY;
+            playPauseBtn.innerHTML = isCurrentlyPlaying ? ICON_PAUSE : ICON_PLAY;
         }
+        syncMarkersUI();
     }
 
     if (playPauseBtn) {
-        playPauseBtn.addEventListener('click', () => sendMessage('TOGGLE_PLAYBACK'));
+        playPauseBtn.addEventListener('click', () => {
+            lastCommandSentTime = Date.now();
+            // Speculative update
+            isCurrentlyPlaying = !isCurrentlyPlaying;
+            playPauseBtn.innerHTML = isCurrentlyPlaying ? ICON_PAUSE : ICON_PLAY;
+            syncMarkersUI();
+            sendMessage('TOGGLE_PLAYBACK');
+        });
     }
 
     // Transport
@@ -857,20 +868,10 @@ try {
             // Highlight Check
             if (checkTime !== null && Math.abs(bm.time - checkTime) < 0.05) {
                 li.classList.add('highlight-new');
-                setTimeout(() => {
-                    const container = document.querySelector('.bookmarks-list-container');
-                    if (container) {
-                        const topPos = li.offsetTop;
-                        const containerHeight = container.clientHeight;
-                        const itemHeight = li.clientHeight;
-                        container.scrollTo({
-                            top: topPos - (containerHeight / 2) + (itemHeight / 2),
-                            behavior: 'smooth'
-                        });
-                    }
-                    // Clear after application
-                    if (pendingHighlightTime === checkTime) pendingHighlightTime = null;
-                }, 100);
+                // Clear after application
+                if (pendingHighlightTime === checkTime) pendingHighlightTime = null;
+                // Only scroll if follow is enabled (handled by syncMarkersUI later or forced here)
+                requestAnimationFrame(() => syncMarkersUI(true));
             }
 
             li.innerHTML = `
@@ -898,7 +899,7 @@ try {
                     lastKnownCurrentTime = bm.time;
                     isCurrentlyPlaying = true;
                 }
-                updateMarkerPlayIcons(); // Snappy UI update
+                syncMarkersUI(); // Update UI immediately
             });
             li.querySelector('.renew-btn').addEventListener('click', ((marker) => {
                 return () => {
@@ -927,63 +928,61 @@ try {
         });
 
         // Always re-apply active highlight after render to prevent flickering
-        // Use requestAnimationFrame to ensure DOM is ready for scroll calculations
+        // Do NOT force scroll here, let syncMarkersUI decide based on toggle or manual trigger
         requestAnimationFrame(() => {
-            updateActiveMarker(lastKnownCurrentTime, true);
-            updateMarkerPlayIcons();
+            syncMarkersUI(false);
         });
     }
 
-    function updateMarkerPlayIcons() {
+    function syncMarkersUI(forceScroll = false) {
         const listItems = document.querySelectorAll('#bookmarks-list .bookmark-item');
+        if (listItems.length === 0) return;
+
         const currentTime = lastKnownCurrentTime;
-
-        listItems.forEach(li => {
-            const itemTime = parseFloat(li.dataset.time);
-            const playBtn = li.querySelector('.bookmark-play-btn');
-            if (!playBtn) return;
-
-            // Check if this marker is the active one (current time is at this marker)
-            const isActiveMarker = Math.abs(itemTime - currentTime) < 0.5; // 0.5 second tolerance
-
-            if (isActiveMarker && isCurrentlyPlaying) {
-                // At this marker and playing → show pause icon
-                playBtn.innerHTML = ICON_SMALL_PAUSE;
-                playBtn.title = 'Pause';
-            } else {
-                // Not at this marker or paused → show play icon
-                playBtn.innerHTML = ICON_SMALL_PLAY;
-                playBtn.title = 'Play';
-            }
-        });
-    }
-
-    function updateActiveMarker(currentTime, forceUpdate = false) {
-        const listItems = document.querySelectorAll('#bookmarks-list .bookmark-item');
         let activeLi = null;
 
-        // The active marker is the one with the largest time <= (currentTime + epsilon)
-        // Epsilon (0.1) handles small floating point differences at the end of the video
+        // 1. Find the active marker (the one most recently passed)
         listItems.forEach(li => {
             const itemTime = parseFloat(li.dataset.time);
-            if (itemTime <= (currentTime + 0.1)) {
-                if (!activeLi || itemTime > parseFloat(activeLi.dataset.time)) {
+            if (!isNaN(itemTime) && itemTime <= (currentTime + 0.1)) {
+                if (!activeLi || itemTime >= parseFloat(activeLi.dataset.time)) {
                     activeLi = li;
                 }
             }
-            li.classList.remove('active-playing');
         });
 
-        if (activeLi) {
-            activeLi.classList.add('active-playing');
-            const activeTime = parseFloat(activeLi.dataset.time);
+        // 2. Update Classes and Icons for all markers
+        listItems.forEach(li => {
+            const isActive = (li === activeLi);
 
-            // Change Detection: Only scroll if the active marker has changed OR if forced
+            // Highlight background/bar
+            if (isActive) {
+                li.classList.add('active-playing');
+            } else {
+                li.classList.remove('active-playing');
+            }
+
+            // Play/Pause Icon
+            const playBtn = li.querySelector('.bookmark-play-btn');
+            if (playBtn) {
+                if (isActive && isCurrentlyPlaying) {
+                    playBtn.innerHTML = ICON_SMALL_PAUSE;
+                    playBtn.title = 'Pause';
+                } else {
+                    playBtn.innerHTML = ICON_SMALL_PLAY;
+                    playBtn.title = 'Play';
+                }
+            }
+        });
+
+        // 3. Auto-scroll to active marker
+        if (activeLi) {
+            const activeTime = parseFloat(activeLi.dataset.time);
             const hasChanged = activeTime !== lastActiveLiTime;
-            if (hasChanged || forceUpdate) {
+
+            if (hasChanged || forceScroll) {
                 lastActiveLiTime = activeTime;
 
-                // Auto-scroll if enabled
                 const followToggle = document.getElementById('follow-playback-toggle');
                 if (followToggle && followToggle.checked) {
                     const container = document.querySelector('.bookmarks-list-container');
@@ -993,11 +992,10 @@ try {
                         const itemHeight = activeLi.clientHeight;
                         const targetScroll = topPos - (containerHeight / 2) + (itemHeight / 2);
 
-                        // Only scroll if significantly different to avoid jitter or if forced
-                        if (forceUpdate || Math.abs(container.scrollTop - targetScroll) > 5) {
+                        if (forceScroll || Math.abs(container.scrollTop - targetScroll) > 5) {
                             container.scrollTo({
                                 top: targetScroll,
-                                behavior: forceUpdate ? 'auto' : 'smooth'
+                                behavior: (forceScroll || hasChanged) ? 'smooth' : 'auto'
                             });
                         }
                     }
@@ -1273,18 +1271,17 @@ try {
                 if (!isDraggingProgress) { // Only update progress bar if not dragging
                     updateUIWithTime(d.currentTime);
                 }
-                updateActiveMarker(d.currentTime);
             }
             if (d.isPlaying !== undefined) {
-                isCurrentlyPlaying = d.isPlaying;
+                updatePlayPauseIcon(d.isPlaying);
             }
             if (d.duration !== undefined) {
                 updateTotalTime(d.duration);
             }
 
-            // Always update icons to reflect current position and state
-            updateMarkerPlayIcons();
-            updateLoopVisuals(); // Keep markers aligned if duration changes
+            // Sync all UI components
+            syncMarkersUI();
+            updateLoopVisuals();
         }
         else if (msg.action === 'UPDATE_LOOP_TIMES') {
             currentLoopStart = msg.start;
