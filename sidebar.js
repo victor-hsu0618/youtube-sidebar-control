@@ -4,7 +4,7 @@ const debugConsole = document.getElementById('debug-console');
 const debugLogs = document.getElementById('debug-logs');
 
 function log(msg, type = 'info') {
-    if (debugConsole) debugConsole.style.display = 'block';
+    // if (debugConsole) debugConsole.style.display = 'block'; // Hidden for release
     if (!debugLogs) return;
     const line = document.createElement('div');
     line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
@@ -15,6 +15,7 @@ function log(msg, type = 'info') {
     console.log(msg);
 }
 
+/*
 // Global Click Debugger: Logs EVERY click to verify browser event firing
 document.addEventListener('mousedown', (e) => {
     const target = e.target.closest('button, input, select, .bookmark-item');
@@ -27,6 +28,7 @@ document.addEventListener('mousedown', (e) => {
         console.log(`[Click Debug] Mousedown on BACKGROUND:`, e.target.tagName);
     }
 }, true); // Use capture phase to catch even if stopped
+*/
 
 try {
     // --- State ---
