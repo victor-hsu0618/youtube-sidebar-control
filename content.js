@@ -76,6 +76,7 @@ function handleTimeUpdate() {
     }
 }
 
+let lastMetadataSentTime = 0;
 function notifyStatus(isPeriodic = false) {
     if (!video) return;
     try {
@@ -89,10 +90,12 @@ function notifyStatus(isPeriodic = false) {
         const idSearchParams = new URLSearchParams(window.location.search);
         const videoId = idSearchParams.get('v');
         if (videoId) {
+            const now = Date.now();
             // Only send full metadata every 5 seconds if periodic, OR if specifically requested
-            const shouldSendFullMetadata = !isPeriodic || (Math.floor(Date.now() / 1000) % 5 === 0);
+            const shouldSendFullMetadata = !isPeriodic || (now - lastMetadataSentTime > 5000);
 
             if (shouldSendFullMetadata) {
+                lastMetadataSentTime = now;
                 chrome.runtime.sendMessage({
                     action: 'VIDEO_METADATA',
                     data: {

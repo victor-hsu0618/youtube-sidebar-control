@@ -280,8 +280,8 @@ try {
 
     // --- Logic ---
     function updatePlayPauseIcon(playing) {
-        // Command Guard: Ignore status updates for 400ms after user action to prevent flickering
-        if (Date.now() - lastCommandSentTime < 400) return;
+        // Command Guard: Ignore status updates for 200ms after user action to prevent flickering
+        if (Date.now() - lastCommandSentTime < 200) return;
 
         isCurrentlyPlaying = playing;
         if (playPauseBtn) {
@@ -1097,6 +1097,14 @@ try {
             }
         });
 
+        const activeTime = activeLi ? parseFloat(activeLi.dataset.time) : -1;
+
+        // PERFORMANCE OPTIMIZATION: Only update DOM if the active marker truly changed
+        // This avoids expensive classList toggles and scrolling on every 150ms tick.
+        if (activeTime === lastActiveLiTime && !force) return;
+
+        lastActiveLiTime = activeTime;
+
         // 2. Update Classes and Icons for all markers
         listItems.forEach(li => {
             const isActive = (li === activeLi);
@@ -1111,36 +1119,30 @@ try {
 
         // 3. Auto-scroll to active marker
         if (activeLi) {
-            const activeTime = parseFloat(activeLi.dataset.time);
-            const hasChanged = activeTime !== lastActiveLiTime;
+            // CRITICAL: We ONLY scroll if Follow is ON,
+            // OR if it's a forced scroll (like clicking/adding a marker).
+            const followToggle = document.getElementById('follow-playback-toggle');
+            const isFollowEnabled = followToggle && followToggle.checked;
 
-            if (hasChanged || force) {
-                lastActiveLiTime = activeTime;
+            if (isFollowEnabled || force) {
+                const container = document.querySelector('.bookmarks-list-container');
+                if (container) {
+                    const topPos = activeLi.offsetTop;
+                    const containerHeight = container.clientHeight;
+                    const itemHeight = activeLi.clientHeight;
+                    const targetScroll = topPos - (containerHeight / 2) + (itemHeight / 2);
 
-                // CRITICAL: We ONLY scroll if Follow is ON,
-                // OR if it's a forced scroll (like clicking/adding a marker).
-                const followToggle = document.getElementById('follow-playback-toggle');
-                const isFollowEnabled = followToggle && followToggle.checked;
-
-                if (isFollowEnabled || force) {
-                    const container = document.querySelector('.bookmarks-list-container');
-                    if (container) {
-                        const topPos = activeLi.offsetTop;
-                        const containerHeight = container.clientHeight;
-                        const itemHeight = activeLi.clientHeight;
-                        const targetScroll = topPos - (containerHeight / 2) + (itemHeight / 2);
-
-                        // Prevent jitter: Only scroll if significantly different or forced
-                        if (force || Math.abs(container.scrollTop - targetScroll) > 5) {
-                            container.scrollTo({
-                                top: targetScroll,
-                                behavior: (force || hasChanged) ? 'smooth' : 'auto'
-                            });
-                        }
+                    // Prevent jitter: Only scroll if significantly different or forced
+                    if (force || Math.abs(container.scrollTop - targetScroll) > 5) {
+                        container.scrollTo({
+                            top: targetScroll,
+                            behavior: force ? 'smooth' : 'auto'
+                        });
                     }
                 }
             }
-        } else {
+        }
+        else {
             lastActiveLiTime = -1;
         }
     }
@@ -1418,7 +1420,7 @@ try {
 
             // Command Guard: Ignore status updates for a window after user action (seek/play)
             // This prevents "pulse rollback" where the UI jumps back to old time before seek completes
-            const isGuarded = (Date.now() - lastCommandSentTime < 400);
+            const isGuarded = (Date.now() - lastCommandSentTime < 200);
 
             // Update UI based on incoming metadata
             if (d.currentTime !== undefined) {
@@ -1467,7 +1469,7 @@ try {
             updateLoopVisuals();
         }
         else if (msg.action === 'TIME_UPDATE') {
-            const isGuarded = (Date.now() - lastCommandSentTime < 400);
+            const isGuarded = (Date.now() - lastCommandSentTime < 200);
             if (!isGuarded) {
                 lastKnownCurrentTime = msg.currentTime;
                 if (!isDraggingProgress) {
