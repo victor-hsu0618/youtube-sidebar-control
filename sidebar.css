@@ -424,6 +424,10 @@ header {
   position: relative;
 }
 
+.bookmark-input::placeholder {
+  color: #888;
+}
+
 .mini-loop-btn:hover {
   color: #fff;
   background: rgba(255, 255, 255, 0.1);

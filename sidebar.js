@@ -1648,7 +1648,7 @@ try {
         if (target && document.activeElement === target) {
             target.blur();
         }
-    }, true);
+    });
 
     // --- Shortcut Guide Logic ---
     const shortcutGuideBtn = document.getElementById('btn-shortcut-guide');
