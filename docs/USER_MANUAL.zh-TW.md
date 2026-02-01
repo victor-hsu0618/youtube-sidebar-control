@@ -14,7 +14,7 @@
 2.  [播放控制 (Player Controls)](#2-播放控制-player-controls)
 3.  [A-B 循環 (A-B Loop)](#3-a-b-循環-a-b-loop)
 4.  [智慧標籤 (Smart Bookmarks)](#4-智慧標籤-smart-bookmarks)
-5.  [影片庫與多設定檔 (Library & Profiles)](#5-影片庫與多設定檔-library--profiles)
+5.  [影片庫與多重收藏 (Library & Profiles)](#5-影片庫與多重收藏-library--profiles)
 6.  [浮動視窗 (Pop-out Window)](#6-浮動視窗-pop-out-window)
 7.  [鍵盤快捷鍵 (Keyboard Shortcuts)](#7-鍵盤快捷鍵-keyboard-shortcuts)
 8.  [跨裝置同步 (Cross-Device Sync)](#8-跨裝置同步-cross-device-sync)
@@ -28,8 +28,8 @@
 *   **Player (播放器)**：主要的操作區域。現在包含兩個內部子分頁：
     *   **Markers (標記)**：做筆記與瀏覽時間戳記的主要空間。
     *   **Controls (控制)**：調整播放速度與 A-B 循環的地方。
-*   **Library (影片庫)**：檢視所有您儲存過設定檔的影片歷史紀錄。
-*   **Favorites (我的最愛)**：快速存取您標記為「星號/預設」的常用設定檔。
+*   **Library (影片庫)**：檢視所有您儲存過收藏的影片歷史紀錄。
+*   **Favorites (我的最愛)**：快速存取您標記為「星號/預設」的常用收藏。
 
 ![介面總覽截圖](images/interface_overview.png)
 *(建議截圖：開啟 Sidebar 後的完整畫面)*
@@ -98,23 +98,23 @@
 
 ---
 
-## 5. 影片庫與多設定檔 (Library & Profiles)
+## 5. 影片庫與多重收藏 (Library & Profiles)
 
 這是一個強大的功能，允許您為**同一部影片**儲存多個不同的「學習情境」。
 
 ![影片庫截圖](images/library.png)
 *(建議截圖：Library 分頁)*
 
-### 什麼是「影片設定檔 (Profile)」？
-當您點擊標題列的愛心圖示 `❤️` 時，您實際上是儲存了一個「設定檔」。您可以為同一部影片儲存多次，例如：
+### 什麼是「影片收藏 (Favorite)」？
+當您點擊標題列的愛心圖示 `❤️` 時，您實際上是儲存了一個「收藏」。您可以為同一部影片儲存多次，例如：
 *   第一次儲存：專注於「單字筆記」。
 *   第二次儲存：專注於「文法分析」。
 
 ### 操作方式：
 *   **Library 分頁**：列出所有儲存過的影片。
-*   **Favorites 分頁**：只顯示您標記為「星號」的設定檔。
-*   **Clone Session**: 在 Player 頁面，點擊 `Clone` 按鈕可以複製當前的設定檔，建立一個新版本。
-*   **Set as Default**: 將某個設定檔設為該影片的「預設值」，下次打開該影片時會自動載入此設定。
+*   **Favorites 分頁**：只顯示您標記為「星號」的收藏。
+*   **Clone Session**: 在 Player 頁面，點擊 `Clone` 按鈕可以複製當前的收藏，建立一個新版本。
+*   **Set as Default**: 將某個收藏設為該影片的「預設值」，下次打開該影片時會自動載入此設定。
 
 ---
 

@@ -1377,9 +1377,9 @@ try {
                     const localData = await chrome.storage.local.get(pendingKey);
 
                     if (localData[pendingKey]) {
-                        console.log("Loading Pending Profile:", localData[pendingKey]);
+                        console.log("Loading Pending Favorite:", localData[pendingKey]);
                         isSyncing = true;
-                        await loadStorageProfile(localData[pendingKey]);
+                        await loadStorageFavorite(localData[pendingKey]);
                         chrome.storage.local.remove(pendingKey); // Clear
                         isSyncing = false;
                     } else {
@@ -1399,10 +1399,10 @@ try {
                                 if (!a.isDefault && b.isDefault) return 1;
                                 return (b.updatedAt || 0) - (a.updatedAt || 0);
                             });
-                            console.log("Auto-Detected Profile:", related[0]._key);
+                            console.log("Auto-Detected Favorite:", related[0]._key);
                             log(`Auto-detected: ${related[0].title || 'video'}`, 'success');
                             isSyncing = true;
-                            await loadStorageProfile(related[0]._key);
+                            await loadStorageFavorite(related[0]._key);
                             isSyncing = false;
                         } else {
                             // 3. New Session

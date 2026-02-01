@@ -14,7 +14,7 @@ Welcome to YouTube Study Companion! This guide will help you familiarize yoursel
 2.  [Player Controls](#2-player-controls)
 3.  [A-B Loop](#3-a-b-loop)
 4.  [Smart Markers](#4-smart-markers)
-5.  [Library & Profiles](#5-library--profiles)
+5.  [Library & Favorites](#5-library--favorites)
 6.  [Pop-out Window](#6-pop-out-window)
 7.  [Keyboard Shortcuts](#7-keyboard-shortcuts)
 8.  [Cross-Device Synchronization](#8-cross-device-synchronization)
@@ -28,8 +28,8 @@ After launching the Extension, you will see the main screen. The sidebar is desi
 *   **Player**: The main operation area. It now features two internal sub-tabs:
     *   **Markers**: Your primary workspace for taking and browsing notes.
     *   **Controls**: Adjustment area for Speed and A-B Loop.
-*   **Library**: View the history of all videos for which you have saved profiles.
-*   **Favorites**: Quick access to your frequently used profiles marked as "Star/Default".
+*   **Library**: View the history of all videos for which you have saved favorites.
+*   **Favorites**: Quick access to your frequently used favorites marked as "Star/Default".
 
 ![Interface Overview Screenshot](images/interface_overview.png)
 *(Suggested Screenshot: Full screen after opening Sidebar)*
@@ -89,7 +89,7 @@ Marker function allows you to take notes on the video timeline and jump back at 
 *(Suggested Screenshot: Markers area, including several created markers)*
 
 *   **Add Marker**: Click `+ Add "Now" to Current Marker Group` to create a marker at the current time.
-*   **Follow Playback**: Toggle the "Follow" switch to auto-scroll the list to the current marker. This setting is **permanently saved** to your profile.
+*   **Follow Playback**: Toggle the "Follow" switch to auto-scroll the list to the current marker. This setting is **permanently saved** to your favorite.
 *   **Group Management (Groups)**:
     *   Select group via dropdown menu (e.g., `Default`, `Study`).
     *   Notes of different natures can be stored separately.
@@ -98,23 +98,23 @@ Marker function allows you to take notes on the video timeline and jump back at 
 
 ---
 
-## 5. Library & Profiles
+## 5. Library & Favorites
 
 This is a powerful feature allowing you to save multiple different "learning contexts" for the **same video**.
 
 ![Library Screenshot](images/library.png)
 *(Suggested Screenshot: Library tab)*
 
-### What is a "Video Profile"?
-When you click the heart icon `❤️` in the title bar, you are actually saving a "Profile". You can save multiple times for the same video, for example:
+### What is a "Video Favorite"?
+When you click the heart icon `❤️` in the title bar, you are actually saving a "Favorite". You can save multiple times for the same video, for example:
 *   First save: Focus on "Vocabulary Notes".
 *   Second save: Focus on "Grammar Analysis".
 
 ### Operation:
 *   **Library Tab**: Lists all saved videos.
-*   **Favorites Tab**: Shows only profiles you have marked with a "Star".
-*   **Clone Session**: In the Player page, click `Clone` button to copy the current profile and create a new version.
-*   **Set as Default**: Set a profile as the "Default" for that video; this setting loads automatically next time you open the video.
+*   **Favorites Tab**: Shows only favorites you have marked with a "Star".
+*   **Clone Session**: In the Player page, click `Clone` button to copy the current favorite and create a new version.
+*   **Set as Default**: Set a favorite as the "Default" for that video; this setting loads automatically next time you open the video.
 
 ---
 

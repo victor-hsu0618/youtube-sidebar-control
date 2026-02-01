@@ -52,12 +52,12 @@ This project is a browser extension, currently supporting Chrome and Edge browse
 - **Marker Follow**: Optional auto-scroll to keep the current marker in view, now with **persistent memory** across sessions
 - **Group Management**: Organize markers into "Default", "Study", or custom groups
 
-### 3. 💾 Video Library & Multi-Profile System
-- **Video Profiles**: Save multiple "sessions" for a single YouTube video
-    - *Example: One profile for "Vocabulary", another for "Grammar Analysis"*
-- **My Defaults (★)**: Mark your favorite profiles as default
-- **Auto Detect 🪄**: Smart one-click load of "Default" or "Recently Edited" profile for current video
-- **Favorites Tab**: Specifically view all starred/default profiles
+### 3. 💾 Video Library & Multi-Favorite System
+- **Video Favorites**: Save multiple "sessions" for a single YouTube video
+    - *Example: One favorite for "Vocabulary", another for "Grammar Analysis"*
+- **My Defaults (★)**: Mark your favorite favorites as default
+- **Auto Detect 🪄**: Smart one-click load of "Default" or "Recently Edited" favorite for current video
+- **Favorites Tab**: Specifically view all starred/default favorites
 
 ### 4. 🪟 Floating Window (Pop-out)
 - **Multi-Screen Support**: Pop out the sidebar as a floating window to place on a second screen
@@ -70,7 +70,7 @@ This project is a browser extension, currently supporting Chrome and Edge browse
 - **Standby Mode**: Automatically detects when you leave YouTube
 - **Home Page Guidance**: Helpful dashboard tips when on the YouTube homepage
 - **Return to YouTube**: Wakes up immediately and reconnects control
-- **Intent-Driven Loading**: When you click a specific profile in the library, the extension ensures that specific version loads, even if you navigate away
+- **Intent-Driven Loading**: When you click a specific favorite in the library, the extension ensures that specific version loads, even if you navigate away
 - **Keyboard Power User**: Comprehensive keyboard shortcuts for playback, looping, and marker navigation (see Shortcut Guide in UI)
 
 ## 🛠️ Usage
