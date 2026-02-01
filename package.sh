@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Configuration
-ZIP_NAME="YouTubeStudioSideBar.zip"
+ZIP_NAME="YouTubeStudyCompanion.zip"
 FILES_TO_ZIP=(
   "manifest.json"
   "background.js"

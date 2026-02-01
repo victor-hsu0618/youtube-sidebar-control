@@ -424,8 +424,29 @@ header {
   position: relative;
 }
 
-.bookmark-input::placeholder {
+/* Marker Text Input (Refined in Phase 25) */
+.bookmark-desc {
+  background-color: transparent;
+  /* Remove white background */
+  color: #ffffff;
+  /* Bright white for max contrast */
+  font-size: 14px;
+  /* Larger font size (+2px) */
+  opacity: 1.0;
+  border: 1px solid transparent;
+  /* Keep layout stable */
+}
+
+/* Add focus state for better UX */
+.bookmark-desc:focus {
+  background-color: #222;
+  border-bottom: 1px solid #555;
+  outline: none;
+}
+
+.bookmark-desc::placeholder {
   color: #888;
+  opacity: 0.7;
 }
 
 .mini-loop-btn:hover {
