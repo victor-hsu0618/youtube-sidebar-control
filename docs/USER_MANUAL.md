@@ -1,8 +1,8 @@
 [English](USER_MANUAL.md) | [繁體中文](USER_MANUAL.zh-TW.md)
 
-# User Manual: YouTube Studio Sidebar
+# User Manual: YouTube Study Companion
 
-Welcome to YouTube Studio Sidebar! This guide will help you familiarize yourself with all features of this extension, giving you a more powerful learning and control experience on YouTube.
+Welcome to YouTube Study Companion! This guide will help you familiarize yourself with all features of this extension, giving you a more powerful learning and control experience on YouTube.
 
 **Tip**: For the best reading experience, it is recommended to take screenshots of the actual operation interface and replace the image placeholders in this text.
 
@@ -120,7 +120,7 @@ When you click the heart icon `❤️` in the title bar, you are actually saving
 
 ## 7. Keyboard Shortcuts
 
-YouTube Studio Sidebar supports a wide range of keyboard shortcuts. Click the **Keyboard Icon (⌨️)** in the title bar to toggle the on-screen guide.
+YouTube Study Companion supports a wide range of keyboard shortcuts. Click the **Keyboard Icon (⌨️)** in the title bar to toggle the on-screen guide.
 
 ### Basic Controls
 *   **Space / K**: Play / Pause.

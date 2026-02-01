@@ -1,8 +1,8 @@
 [English](USER_MANUAL.md) | [繁體中文](USER_MANUAL.zh-TW.md)
 
-# User Manual: YouTube Studio Sidebar
+# User Manual: YouTube Study Companion
 
-歡迎使用 YouTube Studio Sidebar！本指南將協助您熟悉這個擴充功能的所有功能，讓您在 YouTube 上擁有更強大的學習與控制體驗。
+歡迎使用 YouTube Study Companion！本指南將協助您熟悉這個擴充功能的所有功能，讓您在 YouTube 上擁有更強大的學習與控制體驗。
 
 **提示**：為了達到最佳閱讀體驗，建議您可以將實際操作畫面截圖後，替換本文中的圖片佔位符。
 
@@ -130,7 +130,7 @@
 
 ## 7. 鍵盤快捷鍵 (Keyboard Shortcuts)
 
-YouTube Studio Sidebar 支援豐富的鍵盤快捷鍵，讓您操作更流暢。點擊標題列的 **鍵盤圖示 (⌨️)** 即可開啟/關閉畫面上的快捷鍵對照表。
+YouTube Study Companion 支援豐富的鍵盤快捷鍵，讓您操作更流暢。點擊標題列的 **鍵盤圖示 (⌨️)** 即可開啟/關閉畫面上的快捷鍵對照表。
 
 ### 基礎播放控制
 *   **Space / K**: 播放 / 暫停。

@@ -30,7 +30,7 @@ function init() {
     video.addEventListener('ratechange', () => notifyStatus()); // Added
     video.addEventListener('loadedmetadata', () => notifyStatus());
 
-    console.log('[YT Studio] Video element found, content script ready');
+    console.log('[YT Study] Video element found, content script ready');
 
     // Track what we inited on
     const params = new URLSearchParams(window.location.search);
@@ -144,7 +144,7 @@ function executeCommand(action, value) {
                 break;
         }
     } catch (e) {
-        console.warn('[YT Studio] API execution failed, falling back to video element:', e);
+        console.warn('[YT Study] API execution failed, falling back to video element:', e);
         if (video) {
             if (action === 'PLAY') video.play();
             if (action === 'PAUSE') video.pause();
@@ -160,7 +160,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (!video) {
         video = document.querySelector('video.html5-main-video') || document.querySelector('video');
         if (video) {
-            console.log('[YT Studio] Emergency video detection successful');
+            console.log('[YT Study] Emergency video detection successful');
             init(); // Re-attach listeners
         }
     }
@@ -267,7 +267,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
                 sendResponse({ success: false, error: 'Unknown action' });
         }
     } catch (err) {
-        console.error('[YT Studio] Message handling error:', err);
+        console.error('[YT Study] Message handling error:', err);
         sendResponse({ success: false, error: err.message });
     }
     return true; // Keep channel open for async if needed
@@ -288,7 +288,7 @@ setInterval(() => {
     const currentV = params.get('v');
     // If we are on a watch page and the video ID changed since we last inited
     if (currentV && currentV !== lastInitedVideoId) {
-        console.log('[YT Studio] SPA Navigation detected, re-initializing');
+        console.log('[YT Study] SPA Navigation detected, re-initializing');
         init();
     } else if (!video && document.querySelector('video')) {
         // More aggressive retry if element exists but we haven't hooked it

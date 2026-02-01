@@ -1495,7 +1495,7 @@ try {
                 saveData();
                 renderBookmarks(msg.time);
             } else {
-                console.log(`[YT Studio] Duplicate marker at ${msg.time} ignored.`);
+                console.log(`[YT Study] Duplicate marker at ${msg.time} ignored.`);
                 renderBookmarks(msg.time);
             }
         }
@@ -1832,14 +1832,14 @@ try {
             const tryConnect = async (attempt = 0) => {
                 try {
                     await sendMessage('GET_STATUS');
-                    console.log('[YT Studio] Connected to tab', connectedTabId);
+                    console.log('[YT Study] Connected to tab', connectedTabId);
                 } catch (e) {
                     if (attempt < 8) {
                         // Faster initial retry (50ms) for first 3 attempts, then backoff
                         const delay = attempt < 3 ? 50 : 100 * Math.pow(2, attempt - 3);
                         setTimeout(() => tryConnect(attempt + 1), delay);
                     } else {
-                        console.log('[YT Studio] Connection timeout, content script may not be ready');
+                        console.log('[YT Study] Connection timeout, content script may not be ready');
                     }
                 }
             };
