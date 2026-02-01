@@ -14,7 +14,7 @@
 2.  [播放控制 (Player Controls)](#2-播放控制-player-controls)
 3.  [A-B 循環 (A-B Loop)](#3-a-b-循環-a-b-loop)
 4.  [智慧標籤 (Smart Bookmarks)](#4-智慧標籤-smart-bookmarks)
-5.  [影片庫與多重收藏 (Library & Favorites)](#5-影片庫與多重收藏-library--favorites)
+5.  [影片庫與我的最愛 (Library & Favorites)](#5-影片庫與我的最愛-library--favorites)
 6.  [浮動視窗 (Pop-out Window)](#6-浮動視窗-pop-out-window)
 7.  [鍵盤快捷鍵 (Keyboard Shortcuts)](#7-鍵盤快捷鍵-keyboard-shortcuts)
 8.  [跨裝置同步 (Cross-Device Sync)](#8-跨裝置同步-cross-device-sync)
@@ -98,7 +98,7 @@
 
 ---
 
-## 5. 影片庫與多重收藏 (Library & Favorites)
+## 5. 影片庫與我的最愛 (Library & Favorites)
 
 這是一個強大的功能，允許您為**同一部影片**儲存多個不同的「學習情境」。
 
