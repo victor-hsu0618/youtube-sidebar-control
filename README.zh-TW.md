@@ -4,7 +4,7 @@
 
 專業的 YouTube 播放控制與學習工具。將您的 YouTube 體驗轉變為強大的學習和筆記工作站。
 
-📖 **[閱讀使用手冊](docs/USER_MANUAL.zh-TW.md)** 以獲得完整指南。
+📖 **[閱讀使用手冊](docs/USER_MANUAL.zh-TW.md)** 以獲得完整指南。 | 📺 **[觀看產品簡報](https://youtube-study-companion-2azj231.gamma.site/)**
 
 ## 📥 安裝說明
 
