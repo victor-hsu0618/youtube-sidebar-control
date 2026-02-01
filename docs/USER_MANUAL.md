@@ -17,6 +17,7 @@ Welcome to YouTube Studio Sidebar! This guide will help you familiarize yourself
 5.  [Library & Profiles](#5-library--profiles)
 6.  [Pop-out Window](#6-pop-out-window)
 7.  [Keyboard Shortcuts](#7-keyboard-shortcuts)
+8.  [Cross-Device Synchronization](#8-cross-device-synchronization)
 
 ---
 
@@ -142,4 +143,15 @@ YouTube Studio Sidebar supports a wide range of keyboard shortcuts. Click the **
 
 ---
 
-> **Note**: All data for this extension is stored in your browser's local storage (Local Storage). Please regularly use the export function to back up important data.
+## 8. Cross-Device Synchronization
+Your settings, bookmarks, and notes are automatically synchronized across all your computers where you use Google Chrome.
+
+**How to enable:**
+1.  Sign in to Chrome with the same Google Account on both devices.
+2.  Go to `chrome://settings/syncSetup`.
+3.  Ensure that **Extensions** is enabled in the "Manage what you sync" section.
+4.  The extension will automatically sync your data in the background.
+
+---
+
+> **Note**: While syncing is automatic, it is recommended to use the export function regularly to back up critical data (JSON).

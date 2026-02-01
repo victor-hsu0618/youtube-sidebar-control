@@ -17,6 +17,7 @@
 5.  [影片庫與多設定檔 (Library & Profiles)](#5-影片庫與多設定檔-library--profiles)
 6.  [浮動視窗 (Pop-out Window)](#6-浮動視窗-pop-out-window)
 7.  [鍵盤快捷鍵 (Keyboard Shortcuts)](#7-鍵盤快捷鍵-keyboard-shortcuts)
+8.  [跨裝置同步 (Cross-Device Sync)](#8-跨裝置同步-cross-device-sync)
 
 ---
 
@@ -152,4 +153,15 @@ YouTube Studio Sidebar 支援豐富的鍵盤快捷鍵，讓您操作更流暢。
 
 ---
 
-> **Note**: 本擴充功能所有資料皆儲存在您的瀏覽器本地端 (Local Storage)，請定期使用匯出功能備份重要資料。
+## 8. 跨裝置同步 (Cross-Device Sync)
+您的設定、書籤與筆記會自動在所有登入相同 Google 帳號的電腦間同步。
+
+**如何啟用：**
+1.  在不同裝置上登入同一個 Google Chrome 帳號。
+2.  前往 Chrome 設定 (`chrome://settings/syncSetup`)。
+3.  在「管理您同步處理的項目」中，確保已勾選 **擴充功能 (Extensions)**。
+4.  本擴充功能將會在背景自動同步您的所有資料。
+
+---
+
+> **Note**: 雖然擴充功能支援自動同步，但仍建議您定期使用「匯出」功能將重要資料備份為 JSON 檔案，以策安全。
