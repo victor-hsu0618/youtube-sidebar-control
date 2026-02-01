@@ -1,5 +1,7 @@
 # Changelog
 
+**English** | [繁體中文](CHANGELOG.zh-TW.md)
+
 All notable changes to the **YouTube Study Companion** project will be documented in this file.
 
 ## [2.5.0] - 2026-02-01
