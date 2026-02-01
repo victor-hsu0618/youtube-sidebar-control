@@ -1264,37 +1264,51 @@ input:checked+.slider:before {
 
 /* View-specific footer for sponsorship */
 .view-footer {
-  margin-top: 12px;
+  margin-top: auto;
+  /* Push to bottom if container allows */
   display: flex;
   justify-content: center;
-  padding: 8px 0;
-  border-top: 1px solid #333;
+  padding: 16px 0 20px 0;
+  /* More spacing */
+  background: linear-gradient(to bottom, rgba(30, 30, 30, 0), rgba(20, 20, 20, 0.8));
+  /* Subtle fade */
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .bmc-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  background-color: #FFDD00;
-  color: #000000;
+  gap: 8px;
+  background: linear-gradient(135deg, #FFDD00 0%, #FFC000 100%);
+  /* Richer yellow */
+  color: #3e2b00;
+  /* Darker text for contrast */
   font-family: 'Inter', sans-serif;
-  font-weight: 600;
-  padding: 2px 10px;
-  border-radius: 6px;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 50px;
+  /* Pill shape */
   text-decoration: none;
-  font-size: 10px;
-  transition: transform 0.2s;
+  font-size: 13px;
+  transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 200, 0, 0.3) inset;
+  letter-spacing: 0.3px;
 }
 
 .bmc-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 12px rgba(255, 221, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.2) inset;
   color: #000;
+  filter: brightness(1.05);
 }
 
 .bmc-btn:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.2);
+}
+
+.bmc-btn svg {
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.4));
 }
 
 /* Highlight Animation for New Markers */
