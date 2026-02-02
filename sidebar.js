@@ -1355,7 +1355,13 @@ try {
     });
 
     // Messages
-    chrome.runtime.onMessage.addListener(async (msg) => {
+    chrome.runtime.onMessage.addListener(async (msg, sender) => {
+        // Tab Isolation: Only accept messages from the connected tab (if known)
+        // If connectedTabId is null, we might be in initial discovery, so we let it pass to allow 'VIDEO_METADATA' to trigger ID setting.
+        if (connectedTabId && sender.tab && sender.tab.id !== connectedTabId) {
+            // console.log(`[YT Study] Ignored message from background tab ${sender.tab.id} (Locked to ${connectedTabId})`);
+            return;
+        }
         // Connection Check
         if (statusIndicator) statusIndicator.classList.add('connected');
 
