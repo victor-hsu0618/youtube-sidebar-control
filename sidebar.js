@@ -1198,13 +1198,23 @@ try {
 
             el.addEventListener('click', async (e) => {
                 if (e.target.tagName !== 'BUTTON') {
-                    // Set Intention
-                    await chrome.storage.local.set({ [`pending_nav_${v.id}`]: v._key });
+                    // Visual Feedback & Immediate State Clean
+                    showStandby(false);
+                    document.getElementById('current-video-title').textContent = "Opening YouTube...";
 
-                    // Optimistic Load (Wait for it)
+                    const vid = v.id || v.videoId; // Fallback for safety
+                    if (!vid) {
+                        log("Error: Missing Video ID for library item", "error");
+                        return;
+                    }
+
+                    // Set Intention
+                    await chrome.storage.local.set({ [`pending_nav_${vid}`]: v._key });
+
+                    // Optimistic Load (Wait for data lookup)
                     await loadStorageFavorite(v._key);
 
-                    // Switch Video Logic (Unified for Sidebar & Popup)
+                    // Switch Video Logic
                     let targetId = connectedTabId;
                     if (!targetId) {
                         const [t] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -1218,20 +1228,20 @@ try {
                         const t = await chrome.tabs.get(targetId).catch(() => null);
                         if (t) {
                             connectedTabId = targetId; // Bind immediately
-                            if (!t.url.includes(v.id)) {
-                                chrome.tabs.update(targetId, { url: `https://youtube.com/watch?v=${v.id}`, active: true });
+                            if (!t.url.includes(vid)) {
+                                chrome.tabs.update(targetId, { url: `https://youtube.com/watch?v=${vid}`, active: true });
                             } else {
                                 await loadStorageFavorite(v._key);
-                                chrome.storage.local.remove(`pending_nav_${v.id}`);
+                                chrome.storage.local.remove(`pending_nav_${vid}`);
                             }
                         } else {
                             // Target closed, create new
-                            const newTab = await chrome.tabs.create({ url: `https://youtube.com/watch?v=${v.id}` });
+                            const newTab = await chrome.tabs.create({ url: `https://youtube.com/watch?v=${vid}` });
                             connectedTabId = newTab.id; // Bind immediately
                         }
                     } else {
                         // No suitable tab to replace, create new
-                        const newTab = await chrome.tabs.create({ url: `https://youtube.com/watch?v=${v.id}` });
+                        const newTab = await chrome.tabs.create({ url: `https://youtube.com/watch?v=${vid}` });
                         connectedTabId = newTab.id; // Bind immediately
                     }
 
@@ -1896,7 +1906,7 @@ try {
                     await sendMessage('GET_STATUS');
                     console.log('[YT Study] Connected to tab', connectedTabId);
                 } catch (e) {
-                    if (attempt < 8) {
+                    if (attempt < 15) {
                         // Faster initial retry (50ms) for first 3 attempts, then backoff
                         const delay = attempt < 3 ? 50 : 100 * Math.pow(2, attempt - 3);
 
