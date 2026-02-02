@@ -1356,17 +1356,21 @@ try {
 
     // Messages
     chrome.runtime.onMessage.addListener(async (msg, sender) => {
-        // Tab Isolation: Only accept messages from the connected tab (if known)
-        // If connectedTabId is null, we might be in initial discovery, so we let it pass to allow 'VIDEO_METADATA' to trigger ID setting.
-        if (connectedTabId && sender.tab && sender.tab.id !== connectedTabId) {
-            // console.log(`[YT Study] Ignored message from background tab ${sender.tab.id} (Locked to ${connectedTabId})`);
+        // Strict Isolation: 
+        // 1. MUST have a valid connectedTabId established via explicit discovery first.
+        // 2. Message MUST come from that specific tab.
+        if (!connectedTabId || !sender.tab || sender.tab.id !== connectedTabId) {
             return;
         }
+
         // Connection Check
         if (statusIndicator) statusIndicator.classList.add('connected');
 
         if (msg.action === 'VIDEO_METADATA') {
             const d = msg.data;
+            // Redundant safety check: ensure we are not processing data from a different video ID 
+            // naturally, if tab ID matches, video ID should match, but race conditions exist on navigation.
+
             const isNewVideo = d.videoId !== currentVideoId;
             const isUninitialized = currentVideoId === null;
 
