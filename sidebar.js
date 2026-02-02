@@ -585,10 +585,8 @@ try {
 
         // Force Hard Re-connection to Active Tab
         console.log("[YT Study] Manual Auto-Detect triggered: Forcing re-connection...");
-        connectedTabId = null;
         currentVideoId = null; // This ensures the incoming metadata triggers 'isNewVideo' logic
-        statusIndicator.classList.remove('connected');
-        establishConnection();
+        establishConnection(true);
     });
 
     // --- Clone Button ---
@@ -1219,6 +1217,7 @@ try {
                     if (targetId) {
                         const t = await chrome.tabs.get(targetId).catch(() => null);
                         if (t) {
+                            connectedTabId = targetId; // Bind immediately
                             if (!t.url.includes(v.id)) {
                                 chrome.tabs.update(targetId, { url: `https://youtube.com/watch?v=${v.id}`, active: true });
                             } else {
@@ -1227,12 +1226,18 @@ try {
                             }
                         } else {
                             // Target closed, create new
-                            chrome.tabs.create({ url: `https://youtube.com/watch?v=${v.id}` });
+                            const newTab = await chrome.tabs.create({ url: `https://youtube.com/watch?v=${v.id}` });
+                            connectedTabId = newTab.id; // Bind immediately
                         }
                     } else {
                         // No suitable tab to replace, create new
-                        chrome.tabs.create({ url: `https://youtube.com/watch?v=${v.id}` });
+                        const newTab = await chrome.tabs.create({ url: `https://youtube.com/watch?v=${v.id}` });
+                        connectedTabId = newTab.id; // Bind immediately
                     }
+
+                    // Start the discovery process for the new tab
+                    establishConnection();
+
                     switchView('player');
                 }
             });
@@ -1342,11 +1347,22 @@ try {
 
     // Messages
     chrome.runtime.onMessage.addListener(async (msg, sender) => {
-        // Strict Isolation: 
-        // 1. MUST have a valid connectedTabId established via explicit discovery first.
-        // 2. Message MUST come from that specific tab.
-        if (!connectedTabId || !sender.tab || sender.tab.id !== connectedTabId) {
-            return;
+        // Strict Isolation with Discovery Latch:
+        // Normally only accept from connectedTabId.
+        // But if we are in "Connecting..." state, allow auto-binding to any ACTIVE YouTube tab.
+        let isMatch = connectedTabId && sender.tab && sender.tab.id === connectedTabId;
+
+        if (!isMatch) {
+            const isConnecting = currentVideoData && currentVideoData.title === "Connecting...";
+            const isTabActive = sender.tab && sender.tab.active;
+            const isYT = sender.tab && (sender.tab.url.includes('youtube.com/watch') || sender.tab.url.includes('/shorts/') || sender.tab.url.includes('/v/'));
+
+            if (isConnecting && isTabActive && isYT) {
+                console.log("[YT Study] Discovery Latch: Auto-binding to", sender.tab.id);
+                connectedTabId = sender.tab.id;
+            } else {
+                return;
+            }
         }
 
         // Connection Check
@@ -1687,15 +1703,19 @@ try {
     // --- Standby / Connection Monitor ---
     const showStandby = (mode) => {
         let overlay = document.getElementById('standby-overlay');
+        const container = document.getElementById('view-player');
         if (mode) {
-            if (!overlay) {
+            if (!overlay && container) {
                 overlay = document.createElement('div');
                 overlay.id = 'standby-overlay';
-                overlay.style.cssText = "position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);color:#fff;display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:9999;text-align:center;padding:20px;transition:opacity 0.2s;";
-                document.body.appendChild(overlay);
+                overlay.style.cssText = "position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);color:#fff;display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:9000;text-align:center;padding:20px;transition:opacity 0.2s;";
+                container.style.position = 'relative'; // Ensure absolute child works
+                container.appendChild(overlay);
             }
-            overlay.classList.remove('hidden');
-            overlay.style.display = 'flex';
+            if (overlay) {
+                overlay.classList.remove('hidden');
+                overlay.style.display = 'flex';
+            }
 
             if (mode === 'HOME') {
                 overlay.innerHTML = `
@@ -1738,7 +1758,8 @@ try {
                 // Helper to determine status
                 const determineStatus = (url) => {
                     if (!url) return 'SLEEP';
-                    if (url.includes('youtube.com/watch')) return 'WATCH';
+                    // Inclusive matching for video pages (watch, shorts, v, embed)
+                    if (url.includes('youtube.com/watch') || url.includes('/shorts/') || url.includes('/v/') || url.includes('/embed/')) return 'WATCH';
                     if (url.includes('youtube.com')) return 'HOME';
                     return 'SLEEP';
                 };
@@ -1830,7 +1851,8 @@ try {
     }
 
     // Init
-    async function establishConnection() {
+    async function establishConnection(forceDiscovery = false) {
+        if (forceDiscovery) connectedTabId = null;
         if (statusIndicator) statusIndicator.classList.remove('connected');
 
         // CRITICAL: Wipe old state immediately so we don't show phantom data
@@ -1851,7 +1873,8 @@ try {
         // 2. Scan active if still null
         if (!connectedTabId) {
             const [t] = await chrome.tabs.query({ active: true, currentWindow: true });
-            if (t && t.url.includes('youtube.com/watch')) {
+            // Optimized query: use the determineStatus logic for consistency
+            if (t && (t.url.includes('youtube.com/watch') || t.url.includes('/shorts/') || t.url.includes('/v/') || t.url.includes('/embed/'))) {
                 connectedTabId = t.id;
                 log("Detecting YouTube video...", "info");
             }
@@ -1859,7 +1882,8 @@ try {
 
         // 3. Scan Global if still null (Popup Fallback)
         if (!connectedTabId) {
-            const tabs = await chrome.tabs.query({ url: "*://*.youtube.com/watch*" });
+            // Find any tab that matches a video URL pattern
+            const tabs = await chrome.tabs.query({ url: ["*://*.youtube.com/watch*", "*://*.youtube.com/shorts/*", "*://*.youtube.com/v/*"] });
             const active = tabs.find(t => t.active) || tabs[0];
             if (active) connectedTabId = active.id;
         }
