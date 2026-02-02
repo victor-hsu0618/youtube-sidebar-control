@@ -179,6 +179,26 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
                 executeCommand('PAUSE');
                 sendResponse({ success: true });
                 break;
+            case 'PING_VIDEO':
+                const target = document.getElementById('movie_player') || video;
+                if (target) {
+                    const originalOutline = target.style.outline;
+                    const originalBoxShadow = target.style.boxShadow;
+                    const originalTransition = target.style.transition;
+
+                    target.style.transition = 'all 0.2s';
+                    target.style.outline = '8px solid #FFDD00'; // Brand Yellow
+                    target.style.boxShadow = '0 0 50px rgba(255, 221, 0, 0.6) inset';
+                    target.style.zIndex = '9999';
+
+                    setTimeout(() => {
+                        target.style.outline = originalOutline;
+                        target.style.boxShadow = originalBoxShadow;
+                        target.style.transition = originalTransition;
+                    }, 600);
+                }
+                sendResponse({ success: true });
+                break;
             case 'SET_SPEED':
                 executeCommand('SPEED', msg.speed);
                 sendResponse({ success: true });

@@ -637,6 +637,15 @@ try {
         setTimeout(() => btn.style.color = origColor, 1000);
     });
 
+    // --- Ping (Match) Button ---
+    document.getElementById('btn-ping-video')?.addEventListener('click', () => {
+        sendMessage('PING_VIDEO');
+        // Visual feedback on the button itself
+        const btn = document.getElementById('btn-ping-video');
+        btn.style.color = 'var(--accent-color)';
+        setTimeout(() => btn.style.color = '', 500);
+    });
+
     // --- Set Default Button ---
     document.getElementById('btn-set-default')?.addEventListener('click', async () => {
         if (!currentStorageKey || !currentVideoId) return;
