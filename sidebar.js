@@ -575,43 +575,20 @@ try {
     document.getElementById('lib-btn-import')?.addEventListener('click', () => libFileImport?.click());
     libFileImport?.addEventListener('change', importVideoData);
 
-    // --- Auto Detect Button ---
+    // --- Auto Detect Button (Force Sync) ---
     document.getElementById('btn-detect-video')?.addEventListener('click', async () => {
-        if (!currentVideoId) {
-            const btn = document.getElementById('btn-detect-video');
-            btn.style.color = '#ff4e45';
-            setTimeout(() => btn.style.color = '', 1000);
-            return;
-        }
-
-        const all = await chrome.storage.sync.get(null);
-        const related = [];
-        Object.keys(all).forEach(k => {
-            if (k.startsWith('v_' + currentVideoId) && all[k].isSaved) {
-                related.push({ ...all[k], _key: k });
-            }
-        });
-
-        if (related.length === 0) {
-            const btn = document.getElementById('btn-detect-video');
-            btn.style.color = '#ff4e45'; // Error Red
-            setTimeout(() => btn.style.color = '', 1000);
-            return;
-        }
-
-        related.sort((a, b) => {
-            if (a.isDefault && !b.isDefault) return -1;
-            if (!a.isDefault && b.isDefault) return 1;
-            return (b.updatedAt || 0) - (a.updatedAt || 0);
-        });
-
-        const best = related[0];
-        loadStorageProfile(best._key);
-
+        // Visual Feedback
         const btn = document.getElementById('btn-detect-video');
         const origColor = btn.style.color;
-        btn.style.color = '#4cc713'; // Success Green
-        setTimeout(() => btn.style.color = origColor, 1000);
+        btn.style.color = 'var(--accent-color)';
+        setTimeout(() => btn.style.color = origColor, 500);
+
+        // Force Hard Re-connection to Active Tab
+        console.log("[YT Study] Manual Auto-Detect triggered: Forcing re-connection...");
+        connectedTabId = null;
+        currentVideoId = null; // This ensures the incoming metadata triggers 'isNewVideo' logic
+        statusIndicator.classList.remove('connected');
+        establishConnection();
     });
 
     // --- Clone Button ---
@@ -635,15 +612,6 @@ try {
         const origColor = btn.style.color;
         btn.style.color = '#4cc713';
         setTimeout(() => btn.style.color = origColor, 1000);
-    });
-
-    // --- Ping (Match) Button ---
-    document.getElementById('btn-ping-video')?.addEventListener('click', () => {
-        sendMessage('PING_VIDEO');
-        // Visual feedback on the button itself
-        const btn = document.getElementById('btn-ping-video');
-        btn.style.color = 'var(--accent-color)';
-        setTimeout(() => btn.style.color = '', 500);
     });
 
     // --- Set Default Button ---
