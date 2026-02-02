@@ -1797,12 +1797,27 @@ try {
     };
 
     chrome.tabs.onActivated.addListener(checkActiveTab);
+    // Monitor Tab Switching (Crucial for Persistent Side Panel)
+    chrome.tabs.onActivated.addListener(async (activeInfo) => {
+        // When user switches tab, check if it's a YouTube video and re-bind.
+        // We delay slightly to ensure the tab is fully "active" in Chrome's internal state.
+        setTimeout(() => {
+            // Reset connection ID to allow establishing new connection
+            connectedTabId = null;
+            statusIndicator.classList.remove('connected');
+            establishConnection();
+        }, 100);
+    });
+
+    // Monitor internal navigation (e.g. clicking related video)
     chrome.tabs.onUpdated.addListener((id, info, tab) => {
-        if (tab.active && info.status === 'complete') checkActiveTab();
+        if (id === connectedTabId && info.status === 'complete') {
+            // If our connected tab navigated, re-establish to capture new video ID
+            establishConnection();
+        }
     });
 
     // Initial Check
-    checkActiveTab();
 
     // Init
     async function establishConnection() {
