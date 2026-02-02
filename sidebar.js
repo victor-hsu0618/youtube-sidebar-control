@@ -666,7 +666,7 @@ try {
     }
 
     // 2. Load Specific Profile (Connected)
-    async function loadStorageProfile(key) {
+    async function loadStorageFavorite(key) {
         const res = await chrome.storage.sync.get(key);
         if (res[key]) {
             currentVideoData = res[key];
@@ -1204,25 +1204,34 @@ try {
                     await chrome.storage.local.set({ [`pending_nav_${v.id}`]: v._key });
 
                     // Optimistic Load (Wait for it)
-                    await loadStorageProfile(v._key);
+                    await loadStorageFavorite(v._key);
 
                     // Switch Video Logic (Unified for Sidebar & Popup)
                     let targetId = connectedTabId;
                     if (!targetId) {
                         const [t] = await chrome.tabs.query({ active: true, currentWindow: true });
-                        if (t) targetId = t.id;
+                        // Only use active tab if it's already a YouTube page or a safe replacable page
+                        if (t && (t.url.includes('youtube.com') || t.url.includes('chrome://newtab') || t.url === 'about:blank')) {
+                            targetId = t.id;
+                        }
                     }
 
                     if (targetId) {
                         const t = await chrome.tabs.get(targetId).catch(() => null);
-                        if (t && !t.url.includes(v.id)) {
-                            chrome.tabs.update(targetId, { url: `https://youtube.com/watch?v=${v.id}` });
+                        if (t) {
+                            if (!t.url.includes(v.id)) {
+                                chrome.tabs.update(targetId, { url: `https://youtube.com/watch?v=${v.id}`, active: true });
+                            } else {
+                                await loadStorageFavorite(v._key);
+                                chrome.storage.local.remove(`pending_nav_${v.id}`);
+                            }
                         } else {
-                            // Already on page, manually load trigger 
-                            // because METADATA might not fire if navigation doesn't happen
-                            await loadStorageProfile(v._key);
-                            chrome.storage.local.remove(`pending_nav_${v.id}`);
+                            // Target closed, create new
+                            chrome.tabs.create({ url: `https://youtube.com/watch?v=${v.id}` });
                         }
+                    } else {
+                        // No suitable tab to replace, create new
+                        chrome.tabs.create({ url: `https://youtube.com/watch?v=${v.id}` });
                     }
                     switchView('player');
                 }
@@ -1342,6 +1351,7 @@ try {
 
         // Connection Check
         if (statusIndicator) statusIndicator.classList.add('connected');
+        showStandby(false); // Hide instructions if we were in orphaned mode
 
         if (msg.action === 'VIDEO_METADATA') {
             const d = msg.data;
@@ -1802,13 +1812,21 @@ try {
     function resetInternalState() {
         console.log('[YT Study] Resetting internal state...');
         currentVideoId = null;
-        currentVideoData = createEmptyData();
-        // Clear UI immediately to prevent stale data
-        document.getElementById('current-video-title').textContent = "Connecting...";
+        currentStorageKey = null; // CRITICAL: Stop updateHeader from using old key
+        currentVideoData = createEmptyData(null, "Connecting...");
+        isSyncing = false; // Release any old locks
+
+        // Update UI via central renderers
+        updateHeader();
+
+        // Clear times and lists
         document.getElementById('time-current').textContent = "--:--";
         document.getElementById('time-total').textContent = "--:--";
         const list = document.getElementById('bookmarks-list');
         if (list) list.innerHTML = '';
+
+        // Also reload library to clear active markers from potentially different videos
+        loadLibrary();
     }
 
     // Init
@@ -1885,6 +1903,7 @@ try {
         } else {
             console.log("No Video Tab Found");
             document.getElementById('current-video-title').textContent = "No Video Found";
+            showStandby('HOME'); // Restore instructions when orphaned
         }
     }
 
