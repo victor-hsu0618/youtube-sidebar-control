@@ -1796,9 +1796,25 @@ try {
 
     // Initial Check
 
+    // Reset State Helper
+    function resetInternalState() {
+        console.log('[YT Study] Resetting internal state...');
+        currentVideoId = null;
+        currentVideoData = createEmptyData();
+        // Clear UI immediately to prevent stale data
+        document.getElementById('current-video-title').textContent = "Connecting...";
+        document.getElementById('time-current').textContent = "--:--";
+        document.getElementById('time-total').textContent = "--:--";
+        const list = document.getElementById('bookmarks-list');
+        if (list) list.innerHTML = '';
+    }
+
     // Init
     async function establishConnection() {
         if (statusIndicator) statusIndicator.classList.remove('connected');
+
+        // CRITICAL: Wipe old state immediately so we don't show phantom data
+        resetInternalState();
 
         // 1. Check URL param (Popup Mode)
         const urlParams = new URLSearchParams(window.location.search);
