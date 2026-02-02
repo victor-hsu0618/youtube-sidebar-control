@@ -1773,8 +1773,9 @@ try {
         }, 300); // 300ms debounce
     };
 
-    chrome.tabs.onActivated.addListener(checkActiveTab);
+    // chrome.tabs.onActivated.addListener(checkActiveTab);
     // Monitor Tab Switching (Crucial for Persistent Side Panel)
+    /*
     chrome.tabs.onActivated.addListener(async (activeInfo) => {
         // When user switches tab, check if it's a YouTube video and re-bind.
         // We delay slightly to ensure the tab is fully "active" in Chrome's internal state.
@@ -1785,6 +1786,7 @@ try {
             establishConnection();
         }, 100);
     });
+    */
 
     // Monitor internal navigation (e.g. clicking related video)
     chrome.tabs.onUpdated.addListener((id, info, tab) => {
