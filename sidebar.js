@@ -1198,57 +1198,58 @@ try {
 
             el.addEventListener('click', async (e) => {
                 if (e.target.tagName !== 'BUTTON') {
-                    // Visual Feedback & Immediate State Clean
-                    showStandby(false);
-                    document.getElementById('current-video-title').textContent = "Opening YouTube...";
+                    const vid = v.id || v.videoId || (v._key ? v._key.split('_')[1] : null);
 
-                    const vid = v.id || v.videoId; // Fallback for safety
-                    if (!vid) {
-                        log("Error: Missing Video ID for library item", "error");
-                        return;
-                    }
+                    try {
+                        if (!vid) throw new Error("Missing Video ID");
 
-                    // Set Intention
-                    await chrome.storage.local.set({ [`pending_nav_${vid}`]: v._key });
+                        // 1. Immediate Visual Response
+                        showStandby(false);
+                        document.getElementById('current-video-title').textContent = "Opening YouTube...";
+                        switchView('player');
 
-                    // Optimistic Load (Wait for data lookup)
-                    await loadStorageFavorite(v._key);
+                        // 2. Prepare for switch
+                        await chrome.storage.local.set({ [`pending_nav_${vid}`]: v._key });
 
-                    // Switch Video Logic
-                    let targetId = connectedTabId;
-                    if (!targetId) {
-                        const [t] = await chrome.tabs.query({ active: true, currentWindow: true });
-                        // Only use active tab if it's already a YouTube page or a safe replacable page
-                        if (t && (t.url.includes('youtube.com') || t.url.includes('chrome://newtab') || t.url === 'about:blank')) {
-                            targetId = t.id;
+                        // 3. Navigate
+                        let targetId = connectedTabId;
+                        if (!targetId) {
+                            const [t] = await chrome.tabs.query({ active: true, currentWindow: true });
+                            // Only use active tab if it's already a YouTube page or a safe replacable page
+                            if (t && (t.url.includes('youtube.com') || t.url.includes('chrome://newtab') || t.url === 'about:blank')) {
+                                targetId = t.id;
+                            }
                         }
-                    }
 
-                    if (targetId) {
-                        const t = await chrome.tabs.get(targetId).catch(() => null);
-                        if (t) {
-                            connectedTabId = targetId; // Bind immediately
-                            if (!t.url.includes(vid)) {
-                                chrome.tabs.update(targetId, { url: `https://youtube.com/watch?v=${vid}`, active: true });
+                        if (targetId) {
+                            const t = await chrome.tabs.get(targetId).catch(() => null);
+                            if (t) {
+                                connectedTabId = targetId; // Bind immediately
+                                if (!t.url.includes(vid)) {
+                                    chrome.tabs.update(targetId, { url: `https://youtube.com/watch?v=${vid}`, active: true });
+                                } else {
+                                    await loadStorageFavorite(v._key);
+                                    chrome.storage.local.remove(`pending_nav_${vid}`);
+                                }
                             } else {
-                                await loadStorageFavorite(v._key);
-                                chrome.storage.local.remove(`pending_nav_${vid}`);
+                                const newTab = await chrome.tabs.create({ url: `https://youtube.com/watch?v=${vid}` });
+                                connectedTabId = newTab.id;
                             }
                         } else {
-                            // Target closed, create new
                             const newTab = await chrome.tabs.create({ url: `https://youtube.com/watch?v=${vid}` });
-                            connectedTabId = newTab.id; // Bind immediately
+                            connectedTabId = newTab.id;
                         }
-                    } else {
-                        // No suitable tab to replace, create new
-                        const newTab = await chrome.tabs.create({ url: `https://youtube.com/watch?v=${vid}` });
-                        connectedTabId = newTab.id; // Bind immediately
+
+                        // 4. Trigger handshake
+                        establishConnection();
+
+                    } catch (err) {
+                        console.error("Library Click Error:", err);
+                        log("Failed to open: " + err.message, "error");
+                        // Force debug console open if failure
+                        const dbg = document.getElementById('debug-console');
+                        if (dbg) dbg.style.display = 'block';
                     }
-
-                    // Start the discovery process for the new tab
-                    establishConnection();
-
-                    switchView('player');
                 }
             });
 

@@ -351,6 +351,16 @@
         </table>
       </div>
     </div>
+    <!-- Debug Console -->
+    <div id="debug-console"
+      style="display: none; height: 100px; overflow-y: auto; border-top: 1px solid #333; background: #000; color: #aaa; font-family: monospace; font-size: 10px; padding: 5px; flex-shrink: 0;">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+        <span>Debug Logic (Shown on error)</span>
+        <button onclick="document.getElementById('debug-logs').innerHTML = ''"
+          style="background:none; border:none; color:#666; cursor:pointer;">[Clear]</button>
+      </div>
+      <div id="debug-logs"></div>
+    </div>
   </div>
 
   <script src="sidebar.js"></script>
