@@ -1199,49 +1199,52 @@ try {
             el.addEventListener('click', async (e) => {
                 if (e.target.tagName !== 'BUTTON') {
                     const vid = v.id || v.videoId || (v._key ? v._key.split('_')[1] : null);
+                    log(`Library click: vid=${vid}, key=${v._key}`, "info");
 
                     try {
                         if (!vid) throw new Error("Missing Video ID");
 
-                        // 1. Immediate Visual Response
+                        // 1. UI Response
                         showStandby(false);
-                        document.getElementById('current-video-title').textContent = "Opening YouTube...";
+                        const titleEl = document.getElementById('current-video-title');
+                        if (titleEl) titleEl.textContent = "Opening YouTube...";
                         switchView('player');
 
-                        // 2. Prepare for switch
-                        await chrome.storage.local.set({ [`pending_nav_${vid}`]: v._key });
+                        // 2. Storage Intention (Non-blocking)
+                        chrome.storage.local.set({ [`pending_nav_${vid}`]: v._key });
 
                         // 3. Navigate
                         let targetId = connectedTabId;
+                        log(`Checking navigation: targetId=${targetId}`, "info");
+
                         if (!targetId) {
-                            const [t] = await chrome.tabs.query({ active: true, currentWindow: true });
-                            // Only use active tab if it's already a YouTube page or a safe replacable page
-                            if (t && (t.url.includes('youtube.com') || t.url.includes('chrome://newtab') || t.url === 'about:blank')) {
-                                targetId = t.id;
+                            const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+                            if (tabs[0]) {
+                                targetId = tabs[0].id;
+                                log("Found active targetId: " + targetId, "info");
                             }
                         }
 
                         if (targetId) {
                             const t = await chrome.tabs.get(targetId).catch(() => null);
                             if (t) {
-                                connectedTabId = targetId; // Bind immediately
-                                if (!t.url.includes(vid)) {
-                                    chrome.tabs.update(targetId, { url: `https://youtube.com/watch?v=${vid}`, active: true });
-                                } else {
-                                    await loadStorageFavorite(v._key);
-                                    chrome.storage.local.remove(`pending_nav_${vid}`);
-                                }
+                                connectedTabId = targetId;
+                                log(`Updating tab ${targetId} to ${vid}`, "info");
+                                chrome.tabs.update(targetId, { url: `https://youtube.com/watch?v=${vid}`, active: true });
                             } else {
-                                const newTab = await chrome.tabs.create({ url: `https://youtube.com/watch?v=${vid}` });
-                                connectedTabId = newTab.id;
+                                log("TargetId invalid, creating new", "info");
+                                const nt = await chrome.tabs.create({ url: `https://youtube.com/watch?v=${vid}` });
+                                connectedTabId = nt.id;
                             }
                         } else {
-                            const newTab = await chrome.tabs.create({ url: `https://youtube.com/watch?v=${vid}` });
-                            connectedTabId = newTab.id;
+                            log("No target, creating new tab", "info");
+                            const nt = await chrome.tabs.create({ url: `https://youtube.com/watch?v=${vid}` });
+                            connectedTabId = nt.id;
                         }
 
                         // 4. Trigger handshake
-                        establishConnection();
+                        log("Triggering connection...", "info");
+                        establishConnection(true);
 
                     } catch (err) {
                         console.error("Library Click Error:", err);
