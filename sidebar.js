@@ -1855,15 +1855,34 @@ try {
                     if (attempt < 8) {
                         // Faster initial retry (50ms) for first 3 attempts, then backoff
                         const delay = attempt < 3 ? 50 : 100 * Math.pow(2, attempt - 3);
+
+                        // Self-Healing: If we fail a few times, try to inject the script ourselves
+                        // The user might have reloaded the tab or extension was reloaded
+                        if (attempt === 2) {
+                            console.log('[YT Study] Connection lagging, attempting to inject content script...');
+                            document.getElementById('current-video-title').textContent = "Injecting Script...";
+                            try {
+                                await chrome.scripting.executeScript({
+                                    target: { tabId: connectedTabId },
+                                    files: ['content.js']
+                                });
+                            } catch (err) {
+                                console.log("Injection failed (might already exist or no permission):", err);
+                            }
+                        }
+
                         setTimeout(() => tryConnect(attempt + 1), delay);
                     } else {
                         console.log('[YT Study] Connection timeout, content script may not be ready');
+                        document.getElementById('current-video-title').textContent = "Connection Failed (Refresh Tab)";
+                        statusIndicator.style.backgroundColor = 'var(--danger-color)';
                     }
                 }
             };
             tryConnect();
         } else {
             console.log("No Video Tab Found");
+            document.getElementById('current-video-title').textContent = "No Video Found";
         }
     }
 
