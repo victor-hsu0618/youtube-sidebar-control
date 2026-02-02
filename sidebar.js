@@ -292,6 +292,7 @@ try {
 
     if (playPauseBtn) {
         playPauseBtn.addEventListener('click', async () => {
+            log("Play/Pause clicked", "info");
             lastCommandSentTime = Date.now();
             const originalState = isCurrentlyPlaying;
             const nextPlayingState = !isCurrentlyPlaying;
@@ -303,8 +304,11 @@ try {
             syncMarkersUI(true);
 
             try {
-                await sendMessage(action);
+                const res = await sendMessage(action);
+                if (!res || !res.success) throw new Error(res ? res.error : "Failed");
+                log(`${action} Success`, "success");
             } catch (err) {
+                log(`${action} failed: ${err.message}. Reverting UI.`, "error");
                 // Revert if it fails
                 isCurrentlyPlaying = originalState;
                 playPauseBtn.innerHTML = isCurrentlyPlaying ? ICON_PAUSE : ICON_PLAY;
@@ -1463,7 +1467,12 @@ try {
                 }
             }
             if (d.isPlaying !== undefined) {
-                updatePlayPauseIcon(d.isPlaying);
+                // Initial stabilization: If we just sent a command or just connected, 
+                // trust the lastCommandSentTime guard more strictly for isPlaying too
+                const isRecentlyCommanded = (Date.now() - lastCommandSentTime < 800);
+                if (!isRecentlyCommanded) {
+                    updatePlayPauseIcon(d.isPlaying);
+                }
             }
             if (d.duration !== undefined) {
                 updateTotalTime(d.duration);
