@@ -205,8 +205,10 @@
               <span id="speed-display" class="value-display">1.0x</span>
             </div>
             <div id="speed-content" class="accordion-content collapsed">
-              <div class="slider-container">
+              <div class="slider-container" style="display: flex; align-items: center; gap: 8px;">
+                <button class="icon-btn speed-step-btn" id="speed-down" title="Decrease speed 0.05x">-</button>
                 <input type="range" id="speed-slider" min="0.25" max="3.0" step="0.05" value="1.0">
+                <button class="icon-btn speed-step-btn" id="speed-up" title="Increase speed 0.05x">+</button>
               </div>
               <div class="presets">
                 <button class="preset-btn" data-speed="0.5">0.5x</button>
@@ -308,12 +310,16 @@
             <td>Rewind / Forward 10s</td>
           </tr>
           <tr>
+            <td><kbd>←</kbd> / <kbd>→</kbd></td>
+            <td>Rewind / Forward 5s</td>
+          </tr>
+          <tr>
             <td><kbd>,</kbd> / <kbd>.</kbd></td>
             <td>Frame Back / Forward</td>
           </tr>
           <tr>
             <td><kbd>Shift</kbd>+<kbd>,</kbd> / <kbd>.</kbd></td>
-            <td>Speed Down / Up</td>
+            <td>Speed -/+ 0.05x</td>
           </tr>
           <tr>
             <td><kbd>[</kbd> / <kbd>]</kbd></td>

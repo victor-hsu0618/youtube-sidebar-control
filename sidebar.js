@@ -92,6 +92,35 @@ try {
     let currentLoopEnabled = false;
     let isCurrentlyPlaying = false;
 
+    // --- Real-time State Synchronization (Solution A: Hybrid Architecture) ---
+    // Listen to session storage changes for INSTANT UI updates (<5ms latency)
+    chrome.storage.session.onChanged.addListener((changes, areaName) => {
+        if (areaName !== 'session') return;
+
+        if (changes.videoPlaying) {
+            const newPlayingState = changes.videoPlaying.newValue;
+            console.log('[YT Study Sidebar] Instant state update from storage:', newPlayingState ? 'PLAYING' : 'PAUSED');
+
+            // Update UI immediately - this bypasses message passing delay!
+            isCurrentlyPlaying = newPlayingState;
+            if (playPauseBtn) {
+                playPauseBtn.innerHTML = isCurrentlyPlaying ? ICON_PAUSE : ICON_PLAY;
+            }
+            syncMarkersUI();
+        }
+    });
+
+    // Initialize state from session storage on load
+    chrome.storage.session.get(['videoPlaying'], (result) => {
+        if (result.videoPlaying !== undefined) {
+            isCurrentlyPlaying = result.videoPlaying;
+            if (playPauseBtn) {
+                playPauseBtn.innerHTML = isCurrentlyPlaying ? ICON_PAUSE : ICON_PLAY;
+            }
+            console.log('[YT Study Sidebar] Initial state loaded from storage:', isCurrentlyPlaying ? 'PLAYING' : 'PAUSED');
+        }
+    });
+
     // --- Navigation ---
     function switchView(viewName) {
         Object.keys(views).forEach(k => {
@@ -138,75 +167,109 @@ try {
     if (subTabs.markers) subTabs.markers.addEventListener('click', () => switchSubPanel('markers'));
     if (subTabs.controls) subTabs.controls.addEventListener('click', () => switchSubPanel('controls'));
 
-    // --- Pop Out Logic ---
+    // --- Pop Out Logic (Solution: Separate Sidebar and Popup behaviors) ---
     const popOutBtn = document.getElementById('nav-popout');
     if (popOutBtn) {
-        chrome.windows.getCurrent((win) => {
-            if (win.type === 'popup') {
-                popOutBtn.style.display = 'none';
-            }
-        });
+        // Synchronous check: Popup windows are opened with ?tabId=
+        const isPopupWindow = window.location.search.includes('tabId=');
 
-        let activePopupId = null;
+        if (isPopupWindow) {
+            console.log('[YT Study] Instance: POPUP WINDOW');
 
-        const updateBtnState = () => {
-            if (activePopupId) {
-                popOutBtn.style.color = '#ff4e45'; // Red for Close
-                popOutBtn.title = "Close Pop Out";
-                popOutBtn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>';
-            } else {
-                popOutBtn.style.color = '';
-                popOutBtn.title = "Pop Out Window";
-                popOutBtn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>';
-            }
-        };
+            // 1. Setup Popup UI (Return to Sidebar Button)
+            popOutBtn.title = "Return to Sidebar";
+            popOutBtn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>';
+            popOutBtn.style.color = ''; // Reset color
+            popOutBtn.style.transform = 'scaleX(-1)'; // Flip to indicate return
 
-        popOutBtn.addEventListener('click', async () => {
-            // Close if active
-            if (activePopupId) {
-                try { await chrome.windows.remove(activePopupId); } catch (e) { }
-                activePopupId = null;
-                updateBtnState();
-                return;
-            }
+            // 2. Setup Popup specific click listener (Open Sidebar and Close)
+            popOutBtn.addEventListener('click', async () => {
+                console.log('[YT Study] ===== Return to Sidebar clicked =====');
 
-            // Find current target tab to pass
-            let targetId = connectedTabId;
-            if (!targetId) {
-                // Determine current active tab in this window
-                const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-                if (tab) targetId = tab.id;
-            }
+                try {
+                    // Get tabId from URL
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const tabIdStr = urlParams.get('tabId');
 
-            const url = targetId ? `sidebar.html?tabId=${targetId}` : 'sidebar.html';
-
-            chrome.windows.create({
-                url: url,
-                type: 'popup',
-                width: 400,
-                height: 700,
-                focused: true
-            }, (win) => {
-                activePopupId = win.id;
-                updateBtnState();
-
-                // Reset state when closed externally
-                const onRemoved = (winId) => {
-                    if (winId === activePopupId) {
-                        activePopupId = null;
-                        updateBtnState();
-                        chrome.windows.onRemoved.removeListener(onRemoved);
+                    if (tabIdStr) {
+                        const tabId = parseInt(tabIdStr, 10);
+                        // Open the side panel for this tab
+                        await chrome.sidePanel.open({ tabId });
+                        console.log('[YT Study] Requested side panel open for tab:', tabId);
                     }
-                };
-                chrome.windows.onRemoved.addListener(onRemoved);
 
-                // Auto Close on Sidebar Unload (Keep this preference)
-                const closePopup = () => {
-                    try { chrome.windows.remove(win.id); } catch (e) { }
-                };
-                window.addEventListener('unload', closePopup);
+                    // Close this popup
+                    const currentWindow = await chrome.windows.getCurrent();
+                    await chrome.windows.remove(currentWindow.id);
+                } catch (err) {
+                    console.error('[YT Study] Error during return to sidebar:', err);
+                    window.close(); // Fallback
+                }
             });
-        });
+
+        } else {
+            console.log('[YT Study] Instance: SIDEBAR');
+
+            // Sidebar-only logic
+            let activePopupId = null;
+
+            const updateBtnState = () => {
+                if (activePopupId) {
+                    popOutBtn.style.color = '#ff4e45'; // Red for Close
+                    popOutBtn.title = "Close Pop Out";
+                    popOutBtn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>';
+                } else {
+                    popOutBtn.style.color = '';
+                    popOutBtn.title = "Pop Out Window";
+                    popOutBtn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>';
+                }
+            };
+
+            popOutBtn.addEventListener('click', async () => {
+                // If we have an active popup, close it instead of opening more
+                if (activePopupId) {
+                    try { await chrome.windows.remove(activePopupId); } catch (e) { }
+                    activePopupId = null;
+                    updateBtnState();
+                    return;
+                }
+
+                // Normal Pop-out sequence
+                let targetId = connectedTabId;
+                if (!targetId) {
+                    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+                    if (tab) targetId = tab.id;
+                }
+
+                const url = targetId ? `sidebar.html?tabId=${targetId}` : 'sidebar.html';
+
+                chrome.windows.create({
+                    url: url,
+                    type: 'popup',
+                    width: 400,
+                    height: 700,
+                    focused: true
+                }, (win) => {
+                    activePopupId = win.id;
+                    // Skip updateBtnState() here to prevent icon flickering 
+                    // since the sidebar is about to close anyway.
+
+                    // Sidebar instance closes itself after handing off to popup
+                    console.log('[YT Study] Handing off to popup, closing sidebar');
+                    setTimeout(() => { window.close(); }, 100);
+
+                    // Safety listener if window.close() fails or for cleanup
+                    const onRemoved = (winId) => {
+                        if (winId === activePopupId) {
+                            activePopupId = null;
+                            updateBtnState();
+                            chrome.windows.onRemoved.removeListener(onRemoved);
+                        }
+                    };
+                    chrome.windows.onRemoved.addListener(onRemoved);
+                });
+            });
+        }
     }
 
     // --- Communication ---
@@ -225,21 +288,35 @@ try {
         try {
             let targetTabId = null;
 
+            // Fast path: Validate cached connection first
             if (connectedTabId) {
-                targetTabId = connectedTabId;
-            }
-
-            if (!targetTabId) {
-                const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-                if (tab && tab.url.includes('youtube.com/watch')) {
-                    targetTabId = tab.id;
+                try {
+                    // Quick validation: try to get tab info
+                    const tab = await chrome.tabs.get(connectedTabId);
+                    if (tab && tab.url && tab.url.includes('youtube.com/watch')) {
+                        targetTabId = connectedTabId;
+                    } else {
+                        // Cached tab is no longer valid
+                        connectedTabId = null;
+                    }
+                } catch (e) {
+                    // Tab doesn't exist anymore
+                    connectedTabId = null;
                 }
             }
 
+            // Optimized single query for both active and any YouTube tab
             if (!targetTabId) {
                 const tabs = await chrome.tabs.query({ url: "*://*.youtube.com/watch*" });
-                const active = tabs.find(t => t.active) || tabs[0];
-                if (active) targetTabId = active.id;
+                if (tabs.length > 0) {
+                    // Prefer active tab in current window
+                    const currentWindow = await chrome.windows.getCurrent();
+                    const activeTab = tabs.find(t => t.active && t.windowId === currentWindow.id);
+                    // Fall back to any active tab
+                    const anyActiveTab = tabs.find(t => t.active);
+                    // Fall back to first available tab
+                    targetTabId = (activeTab || anyActiveTab || tabs[0]).id;
+                }
             }
 
             if (!targetTabId) {
@@ -265,8 +342,15 @@ try {
         } catch (error) {
             log(`Retry ${retryCount + 1}: ${action} (${error.message})`, 'error');
 
+            // Invalidate cache on error
+            if (error.message.includes('Could not establish connection') ||
+                error.message.includes('Receiving end does not exist')) {
+                connectedTabId = null;
+            }
+
             if (retryCount < 2) { // 3 tries total
-                const delay = 50 * (retryCount + 1);
+                // Faster retry delays: 20ms, 40ms instead of 50ms, 100ms
+                const delay = 20 * (retryCount + 1);
                 await new Promise(r => setTimeout(r, delay));
                 return sendMessage(action, payload, retryCount + 1);
             }
@@ -290,15 +374,32 @@ try {
         syncMarkersUI();
     }
 
+    // Debounce mechanism for Play/Pause button
+    let playPauseDebounceTimer = null;
+    let isProcessingPlayPause = false;
+
     if (playPauseBtn) {
         playPauseBtn.addEventListener('click', async () => {
+            // Prevent rapid clicks
+            if (isProcessingPlayPause) {
+                log("Play/Pause already processing, ignoring click", "info");
+                return;
+            }
+
+            // Clear any pending debounce
+            if (playPauseDebounceTimer) {
+                clearTimeout(playPauseDebounceTimer);
+            }
+
+            isProcessingPlayPause = true;
             log("Play/Pause clicked", "info");
             lastCommandSentTime = Date.now();
+
             const originalState = isCurrentlyPlaying;
             const nextPlayingState = !isCurrentlyPlaying;
             const action = nextPlayingState ? 'PLAY_VIDEO' : 'PAUSE_VIDEO';
 
-            // Speculative update for immediate feedback
+            // Optimistic update for immediate feedback (will be confirmed by storage listener)
             isCurrentlyPlaying = nextPlayingState;
             playPauseBtn.innerHTML = isCurrentlyPlaying ? ICON_PAUSE : ICON_PLAY;
             syncMarkersUI(true);
@@ -307,12 +408,22 @@ try {
                 const res = await sendMessage(action);
                 if (!res || !res.success) throw new Error(res ? res.error : "Failed");
                 log(`${action} Success`, "success");
+                // Note: Actual UI update will come from storage listener automatically
             } catch (err) {
                 log(`${action} failed: ${err.message}. Reverting UI.`, "error");
-                // Revert if it fails
+                // Revert if it fails (storage won't update, so we need manual revert)
                 isCurrentlyPlaying = originalState;
                 playPauseBtn.innerHTML = isCurrentlyPlaying ? ICON_PAUSE : ICON_PLAY;
                 syncMarkersUI(true);
+
+                // Visual feedback for error
+                playPauseBtn.style.opacity = '0.5';
+                setTimeout(() => { playPauseBtn.style.opacity = '1'; }, 200);
+            } finally {
+                // Reset processing flag after a short delay to prevent accidental double-clicks
+                playPauseDebounceTimer = setTimeout(() => {
+                    isProcessingPlayPause = false;
+                }, 100); // Reduced from 150ms since storage sync is now instant
             }
         });
     }
@@ -334,11 +445,33 @@ try {
         btn.addEventListener('click', () => {
             const val = btn.dataset.speed;
             speedSlider.value = val;
-            speedDisplay.textContent = val + 'x';
+            speedDisplay.textContent = parseFloat(val).toFixed(2) + 'x';
             sendMessage('SET_SPEED', { speed: parseFloat(val) });
-            // Optional: Auto-expand if set via presets somehow? Usually already expanded.
         });
     });
+
+    const speedDownBtn = document.getElementById('speed-down');
+    const speedUpBtn = document.getElementById('speed-up');
+
+    if (speedDownBtn) {
+        speedDownBtn.addEventListener('click', () => {
+            const currentSpeed = parseFloat(speedSlider.value);
+            const newSpeed = Math.max(0.25, currentSpeed - 0.05);
+            speedSlider.value = newSpeed.toFixed(2);
+            speedDisplay.textContent = newSpeed.toFixed(2) + 'x';
+            sendMessage('SET_SPEED', { speed: newSpeed });
+        });
+    }
+
+    if (speedUpBtn) {
+        speedUpBtn.addEventListener('click', () => {
+            const currentSpeed = parseFloat(speedSlider.value);
+            const newSpeed = Math.min(3.0, currentSpeed + 0.05);
+            speedSlider.value = newSpeed.toFixed(2);
+            speedDisplay.textContent = newSpeed.toFixed(2) + 'x';
+            sendMessage('SET_SPEED', { speed: newSpeed });
+        });
+    }
 
     // --- Accordions (Collapsible Sections) ---
     const speedHeader = document.getElementById('speed-header');
@@ -1565,6 +1698,12 @@ try {
         } else if (key === 'l') {
             e.preventDefault();
             sendMessage('SEEK_BY', { offset: 10 });
+        } else if (key === 'arrowleft') {
+            e.preventDefault();
+            sendMessage('SEEK_BY', { offset: -5 });
+        } else if (key === 'arrowright') {
+            e.preventDefault();
+            sendMessage('SEEK_BY', { offset: 5 });
         } else if (key === 'r') {
             e.preventDefault();
             // Restart current highlighted marker
@@ -1607,7 +1746,7 @@ try {
             if (e.shiftKey) {
                 // Decrease Speed
                 const currentSpeed = parseFloat(document.getElementById('speed-slider')?.value || "1.0");
-                const newSpeed = Math.max(0.25, currentSpeed - 0.25);
+                const newSpeed = Math.max(0.25, currentSpeed - 0.05);
                 sendMessage('SET_SPEED', { speed: newSpeed });
             } else {
                 // Micro Seek Back (0.05s ~ 1 frame @ 20fps)
@@ -1619,7 +1758,7 @@ try {
             if (e.shiftKey) {
                 // Increase Speed
                 const currentSpeed = parseFloat(document.getElementById('speed-slider')?.value || "1.0");
-                const newSpeed = Math.min(3.0, currentSpeed + 0.25);
+                const newSpeed = Math.min(3.0, currentSpeed + 0.05);
                 sendMessage('SET_SPEED', { speed: newSpeed });
             } else {
                 // Micro Seek Forward

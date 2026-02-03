@@ -20,15 +20,21 @@ function init() {
     video.removeEventListener('timeupdate', handleTimeUpdate);
     video.removeEventListener('play', notifyStatus);
     video.removeEventListener('pause', notifyStatus);
-    video.removeEventListener('ratechange', notifyStatus); // Added
+    video.removeEventListener('ratechange', notifyStatus);
     video.removeEventListener('loadedmetadata', notifyStatus);
+    video.removeEventListener('play', broadcastPlayState);
+    video.removeEventListener('pause', broadcastPlayState);
 
     // Events
     video.addEventListener('timeupdate', handleTimeUpdate);
     video.addEventListener('play', () => notifyStatus());
     video.addEventListener('pause', () => notifyStatus());
-    video.addEventListener('ratechange', () => notifyStatus()); // Added
+    video.addEventListener('ratechange', () => notifyStatus());
     video.addEventListener('loadedmetadata', () => notifyStatus());
+
+    // Real-time state broadcasting for instant UI updates
+    video.addEventListener('play', broadcastPlayState);
+    video.addEventListener('pause', broadcastPlayState);
 
     console.log('[YT Study] Video element found, content script ready');
 
@@ -38,6 +44,52 @@ function init() {
 
     notifyStatus(); // Initial sync
     notifyLoop();   // Initial sync
+    broadcastPlayState(); // Initial state broadcast
+}
+
+// Unify Speed Hotkeys: Intercept Shift + < / > to ensure 0.05x increments
+document.addEventListener('keydown', (e) => {
+    // Ignore if user is typing in an input/textarea/contenteditable
+    const target = e.target;
+    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
+
+    if (e.shiftKey) {
+        if (e.key === ',' || e.key === '<') {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            if (video) {
+                const newSpeed = Math.max(0.25, video.playbackRate - 0.05);
+                executeCommand('SPEED', newSpeed);
+            }
+        } else if (e.key === '.' || e.key === '>') {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            if (video) {
+                const newSpeed = Math.min(3.0, video.playbackRate + 0.05);
+                executeCommand('SPEED', newSpeed);
+            }
+        }
+    }
+}, true); // Use capture phase to intercept before YouTube's own listeners
+
+// Instant state broadcasting to session storage for zero-latency UI
+function broadcastPlayState() {
+    if (!video) return;
+    const isPlaying = !video.paused;
+
+    // Update session storage immediately (this is FAST, <1ms)
+    try {
+        chrome.storage.session.set({
+            videoPlaying: isPlaying,
+            lastStateUpdate: Date.now()
+        }).catch(() => { });
+
+        console.log('[YT Study] State broadcast:', isPlaying ? 'PLAYING' : 'PAUSED');
+    } catch (err) {
+        // Extension context invalidated (extension was reloaded)
+        // This is expected, just ignore it
+        console.log('[YT Study] Cannot broadcast state, extension context invalidated');
+    }
 }
 
 // Use MutationObserver for faster detection when video element appears
@@ -156,12 +208,25 @@ function executeCommand(action, value) {
 
 // Messages
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-    // Emergency Detection: If video element is missing, try to find it IMMEDIATELY
+    // Optimized Emergency Detection: Only check if video is actually null
     if (!video) {
         video = document.querySelector('video.html5-main-video') || document.querySelector('video');
         if (video) {
             console.log('[YT Study] Emergency video detection successful');
-            init(); // Re-attach listeners
+            // Attach only essential listeners for immediate functionality
+            video.addEventListener('timeupdate', handleTimeUpdate);
+            video.addEventListener('play', () => notifyStatus());
+            video.addEventListener('pause', () => notifyStatus());
+            video.addEventListener('ratechange', () => notifyStatus());
+            video.addEventListener('loadedmetadata', () => notifyStatus());
+            // Add state broadcasting
+            video.addEventListener('play', broadcastPlayState);
+            video.addEventListener('pause', broadcastPlayState);
+            broadcastPlayState(); // Broadcast current state
+        } else {
+            // Video still not found, respond with error immediately
+            sendResponse({ success: false, error: 'Video element not found' });
+            return true;
         }
     }
 
@@ -278,8 +343,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
                 // Actually, sidebar knows 'activeLi', so relaying through sidebar is easier.
                 // However, global hotkey goes and directly calls content script.
                 // We'll rely on the sidebar's check in background/sidebar to handle 'RESTART_ACTIVE_MARKER'
-                // For now, let's just seek to the start of the current marker if possible?
-                // Easier to just send a message back to sidebar: "HEY_USER_PRESSED_RESTART"
+                // For now, let's just send a message back to sidebar: "HEY_USER_PRESSED_RESTART"
                 chrome.runtime.sendMessage({ action: 'HOTKEY_RESTART' }).catch(() => { });
                 sendResponse({ success: true });
                 break;

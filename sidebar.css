@@ -215,6 +215,7 @@ header {
 
   /* Multi-line truncation */
   display: -webkit-box;
+  line-clamp: 2;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
@@ -726,6 +727,18 @@ button:active {
 
 .icon-btn:hover {
   background: #444;
+}
+
+.speed-step-btn {
+  width: 24px;
+  height: 24px;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  flex-shrink: 0;
 }
 
 /* Toggle Switch */
