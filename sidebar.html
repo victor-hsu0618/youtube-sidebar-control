@@ -151,7 +151,8 @@
       <!-- Player Sub-Tabs -->
       <div class="player-tabs">
         <button id="tab-markers" class="tab-btn active">Markers</button>
-        <button id="tab-controls" class="tab-btn">Controls</button>
+        <button id="tab-controls" class="tab-btn">Advanced <span id="nav-upgrade-dot"
+            style="display:none; color:var(--accent-color); font-size:8px; vertical-align:top;">(Upgrade)</span></button>
       </div>
 
       <div id="panel-markers" class="sub-panel active">
@@ -218,6 +219,51 @@
               </div>
             </div>
           </section>
+          <!-- Additional Advanced Diagnostics -->
+          <section class="control-group">
+            <div class="section-header">
+              <h2>Cloud Sync & Systems</h2>
+            </div>
+            <div style="padding: 10px 4px; display: flex; flex-direction: column; gap: 8px;">
+              <button id="btn-refresh-sync" class="action-btn outline-btn full-width-btn"
+                style="font-size: 11px; padding: 6px;">↻ Refresh Cloud Sync & Diagnostics</button>
+
+              <div id="sync-usage-container" class="storage-usage" title="Chrome Sync Storage Usage"
+                style="margin-top: 4px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2px;">
+                  <span style="font-size: 10px; color: #888;">Cloud Storage Usage</span>
+                  <div id="sync-usage-text" class="storage-text">0% Used</div>
+                </div>
+                <div class="storage-bar-bg">
+                  <div id="sync-usage-bar" class="storage-bar-fill"></div>
+                </div>
+              </div>
+
+              <div id="monetization-test-box"
+                style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed #444; display: flex; flex-direction: column; gap: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span id="user-account-display"
+                    style="font-size: 10px; color: #888; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Account:
+                    Detecting...</span>
+                  <div style="display:flex; gap:6px; align-items:center;">
+                    <button id="btn-deactivate-pro"
+                      style="display:none; background:none; border:none; color:#666; font-size:10px; cursor:pointer; text-decoration:underline; padding:0;">(Deactivate)</button>
+                    <span id="pro-badge" class="pro-badge" style="display: none;">PRO</span>
+                  </div>
+                </div>
+                <button id="btn-upgrade" class="upgrade-btn"
+                  style="width: 100%; margin: 0; padding: 6px; display: none;">Activate
+                  Pro Features (Enter Code)</button>
+                <p style="font-size: 9px; color: #666; font-style: italic; margin: 0;">Contact author to get an
+                  activation
+                  code for unlimited Library & Markers.</p>
+              </div>
+
+              <p style="font-size: 10px; color: #666; line-height: 1.4; margin-top: 4px;">Force-reload state from Google
+                Sync storage if
+                data feels out of sync.</p>
+            </div>
+          </section>
         </div>
       </div>
     </div>
@@ -236,12 +282,6 @@
               All</button>
             <input type="file" id="file-global-import" accept=".json" hidden />
           </div>
-          <div id="sync-usage-container" class="storage-usage" title="Chrome Sync Storage Usage">
-            <div class="storage-bar-bg">
-              <div id="sync-usage-bar" class="storage-bar-fill"></div>
-            </div>
-            <div id="sync-usage-text" class="storage-text">0% Used</div>
-          </div>
           <button id="lib-btn-import" class="action-btn"
             style="font-size:10px; margin:0; padding:2px 8px; width:auto;">+ Add Video</button>
           <input type="file" id="lib-file-import" accept=".json" hidden />
@@ -253,7 +293,7 @@
       </div>
 
       <!-- Sponsorship only in Library -->
-      <div class="view-footer">
+      <div class="view-footer" style="flex-direction: column; gap: 8px;">
         <a href="https://www.buymeacoffee.com/victorhsu" target="_blank" class="bmc-btn">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
             <path
@@ -369,6 +409,7 @@
     </div>
   </div>
 
+  <script src="monetization.js"></script>
   <script src="sidebar.js"></script>
 </body>
 

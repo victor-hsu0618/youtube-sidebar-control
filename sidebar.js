@@ -15,6 +15,81 @@ function log(msg, type = 'info') {
     console.log(msg);
 }
 
+// Log Extension ID for cross-device verification
+console.log("[YT Study] Extension ID:", chrome.runtime.id);
+log(`Instance ID: ${chrome.runtime.id.substring(0, 8)}...`, 'info');
+
+// Initialize Monetization
+if (typeof initMonetization === 'function') {
+    initMonetization();
+}
+
+/**
+ * Update UI based on subscription status
+ */
+function updateSubscriptionUI() {
+    console.log('[YT Study] updateSubscriptionUI triggered');
+    const proBadge = document.getElementById('pro-badge');
+    const upgradeBtn = document.getElementById('btn-upgrade');
+    const deactivateBtn = document.getElementById('btn-deactivate-pro');
+    const upgradeDot = document.getElementById('nav-upgrade-dot');
+
+    if (!proBadge || !upgradeBtn) {
+        console.warn('[YT Study] Monetization UI elements not found in DOM yet.');
+        return;
+    }
+
+    const paid = isPro();
+    console.log('[YT Study] Current Subscription Level:', paid ? 'PRO' : 'FREE');
+
+    if (paid) {
+        proBadge.style.display = 'inline-block';
+        upgradeBtn.style.display = 'none';
+        if (deactivateBtn) deactivateBtn.style.display = 'inline-block';
+        if (upgradeDot) upgradeDot.style.display = 'none';
+    } else {
+        proBadge.style.display = 'none';
+        upgradeBtn.style.display = 'block';
+        if (deactivateBtn) deactivateBtn.style.display = 'none';
+        if (upgradeDot) upgradeDot.style.display = 'inline';
+    }
+}
+window.updateSubscriptionUI = updateSubscriptionUI;
+
+// Initial UI Sweep
+setTimeout(updateSubscriptionUI, 500);
+
+// Attach Upgrade Button Listener
+document.getElementById('btn-upgrade')?.addEventListener('click', () => {
+    if (typeof upgradeToPro === 'function') {
+        upgradeToPro();
+    }
+});
+
+// Attach Deactivate Button Listener
+document.getElementById('btn-deactivate-pro')?.addEventListener('click', () => {
+    if (typeof deactivatePro === 'function') {
+        deactivatePro();
+    }
+});
+
+/**
+ * Audit-friendly storage removal
+ */
+async function secureRemove(key) {
+    if (!key) return;
+    log(`ATTEMPT DELETE: ${key}`, 'error');
+    try {
+        await chrome.storage.sync.remove(key);
+        log(`SUCCESS DELETE: ${key}`, 'success');
+        if (chrome.runtime.lastError) {
+            log(`DELETE ERROR: ${chrome.runtime.lastError.message}`, 'error');
+        }
+    } catch (err) {
+        log(`DELETE FATAL: ${err.message}`, 'error');
+    }
+}
+
 /*
 // Global Click Debugger: Logs EVERY click to verify browser event firing
 document.addEventListener('mousedown', (e) => {
@@ -705,7 +780,20 @@ try {
         addMarkerBtn.textContent = `+ Add Now(${timeStr}) to "${groupName}" (A)`;
     }
 
-    document.getElementById('add-bookmark')?.addEventListener('click', () => sendMessage('ADD_BOOKMARK_REQUEST'));
+    document.getElementById('add-bookmark')?.addEventListener('click', () => {
+        // Feature Gate: Limit markers for Free users
+        if (!isPro()) {
+            const groupName = groupSelector ? groupSelector.value : "Default";
+            const currentMarkers = currentVideoData.tagGroups[groupName] || [];
+            if (currentMarkers.length >= 10) {
+                if (confirm('You have reached the limit of 10 markers for this group in the Free version. Upgrade to PRO for unlimited markers!')) {
+                    upgradeToPro();
+                }
+                return;
+            }
+        }
+        sendMessage('ADD_BOOKMARK_REQUEST');
+    });
     // btn-export/import removed in Pro-Mode
 
     const libFileImport = document.getElementById('lib-file-import');
@@ -840,8 +928,12 @@ try {
     }
 
     async function saveData() {
+        if (!currentVideoId || (currentVideoData && currentVideoData.title === "Connecting...")) {
+            console.log("[YT Study] saveData blocked: Uninitialized or Connecting state.");
+            return;
+        }
+
         if (!currentStorageKey) {
-            if (!currentVideoId) return;
             currentStorageKey = `v_${currentVideoId}_${Date.now()}`;
             currentVideoData.isSaved = true;
             currentVideoData.createdAt = Date.now();
@@ -883,6 +975,15 @@ try {
             titleContainer.appendChild(tag);
         }
 
+        // --- Conflict Badge (Multi-Profile) ---
+        if (cachedRelatedKeys && cachedRelatedKeys.length > 1) {
+            const warnTag = document.createElement('span');
+            warnTag.textContent = "!";
+            warnTag.title = `${cachedRelatedKeys.length} profiles found for this video. Check Library.`;
+            warnTag.style.cssText = "background:#ff4e45; color:white; font-size:10px; padding:2px 5px; border-radius:10px; margin-right:6px; cursor:help; font-weight:bold;";
+            titleContainer.appendChild(warnTag);
+        }
+
         const titleSpan = document.createElement('span');
         titleSpan.textContent = currentVideoData.title || "Unknown Video";
         titleContainer.appendChild(titleSpan);
@@ -903,17 +1004,30 @@ try {
         }
     }
 
-    document.getElementById('toggle-library-save')?.addEventListener('click', () => {
+    document.getElementById('toggle-library-save')?.addEventListener('click', async () => {
         if (currentVideoData.isSaved) {
             if (confirm("Remove this session from Library?")) {
                 // Delete
-                chrome.storage.sync.remove(currentStorageKey).then(async () => {
-                    initNewVideoSession(currentVideoId, { title: currentVideoData.title, thumbnail: currentVideoData.thumbnail });
-                    loadLibrary();
-                    loadFavorites();
-                });
+                await secureRemove(currentStorageKey);
+                initNewVideoSession(currentVideoId, { title: currentVideoData.title, thumbnail: currentVideoData.thumbnail });
+                loadLibrary();
+                loadFavorites();
             }
         } else {
+            // Check for 10-video limit if not PRO
+            if (!isPro()) {
+                const allData = await chrome.storage.sync.get(null);
+                const savedVideos = Object.keys(allData).filter(k => k.startsWith('v_') && allData[k].isSaved);
+                if (savedVideos.length >= 10) {
+                    alert('Free version is limited to 10 saved videos in the Library. Please upgrade to Pro to save unlimited videos.');
+                    switchView('library');
+                    setTimeout(() => {
+                        const container = document.getElementById('view-library');
+                        if (container) container.scrollTop = container.scrollHeight;
+                    }, 300);
+                    return;
+                }
+            }
             // Save
             currentVideoData.isSaved = true;
             saveData();
@@ -1043,6 +1157,64 @@ try {
             e.target.value = '';
         };
         reader.readAsText(file);
+    }
+
+    // --- Sync Diagnostic Logic ---
+    const btnRefreshSync = document.getElementById('btn-refresh-sync');
+    if (btnRefreshSync) {
+        btnRefreshSync.addEventListener('click', async () => {
+            log(`Starting Cloud Sync Refresh (ID: ${chrome.runtime.id.substring(0, 8)})...`, "info");
+            btnRefreshSync.disabled = true;
+            btnRefreshSync.textContent = "↻ Syncing...";
+
+            try {
+                // Force a fresh fetch of everything in sync storage
+                const all = await chrome.storage.sync.get(null);
+                const keys = Object.keys(all);
+                const videoKeys = keys.filter(k => k.startsWith('v_'));
+                const legacyKeys = keys.filter(k => !k.startsWith('v_') && k !== 'followMarkers');
+
+                // Deep Diagnostics
+                console.log("[YT Study Deep Audit]");
+                console.log("- Extension ID:", chrome.runtime.id);
+                console.log("- Total Keys in Sync Area:", keys.length);
+                console.log("- Video Sessions found:", videoKeys.length);
+                if (legacyKeys.length > 0) {
+                    console.warn("- Potential Legacy/Foreign keys found:", legacyKeys);
+                    log(`Warning: Found ${legacyKeys.length} unrecognized data keys.`, 'error');
+                }
+
+                let totalMarkers = 0;
+                videoKeys.forEach(k => {
+                    const v = all[k];
+                    const mCount = v.tagGroups ? Object.values(v.tagGroups).reduce((acc, g) => acc + g.length, 0) : (v.bookmarks ? v.bookmarks.length : 0);
+                    totalMarkers += mCount;
+                });
+
+                log(`Diagnostic Result: ${videoKeys.length} profiles, ${totalMarkers} markers total.`, "success");
+
+                // Update UI Cache
+                if (currentVideoId) updateDataCache(all, currentVideoId);
+
+                // Refresh Lists
+                await loadLibrary();
+                await loadFavorites();
+
+                // If we were "Connecting...", trigger a re-detect
+                if (currentVideoData && (currentVideoData.title === "Connecting..." || currentVideoId === null)) {
+                    establishConnection(true);
+                }
+
+                alert(`Sync Audit Complete!\n\nExtension ID: ${chrome.runtime.id}\nProfiles Found: ${videoKeys.length}\nTotal Markers: ${totalMarkers}\n\nIf your data is still missing, please ensure BOTH machines show the SAME Extension ID above.`);
+
+            } catch (err) {
+                log("Sync Audit failed: " + err.message, "error");
+                alert("Sync Audit failed: " + err.message);
+            } finally {
+                btnRefreshSync.disabled = false;
+                btnRefreshSync.textContent = "↻ Refresh Cloud Sync & Diagnostics";
+            }
+        });
     }
 
     function triggerDownload(url, filename) {
@@ -1278,6 +1450,12 @@ try {
         items.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
 
         renderList(container, items);
+
+        // Append ID for verification
+        const usageText = document.getElementById('sync-usage-text');
+        if (usageText && !usageText.textContent.includes('| ID:')) {
+            usageText.textContent += ` | ID: ${chrome.runtime.id.substring(0, 8)}`;
+        }
     }
 
     // --- Favorites Logic ---
@@ -1300,10 +1478,24 @@ try {
 
     function renderList(container, items) {
         container.innerHTML = '';
-        items.forEach(v => {
+
+        // Safety check for monetization status
+        let paid = false;
+        try {
+            if (typeof isPro === 'function') paid = isPro();
+        } catch (e) { console.warn("monetization check failed", e); }
+
+        items.forEach((v, index) => {
+            const isGated = !paid && index >= 10;
             const el = document.createElement('div');
             el.className = 'library-item';
             if (v._key === currentStorageKey) el.classList.add('active');
+
+            if (isGated) {
+                el.style.opacity = '0.4';
+                el.style.cursor = 'not-allowed';
+                el.title = 'Free version is limited to 10 videos. Upgrade to Pro to unlock.';
+            }
 
             const thumbSrc = v.thumbnail || '';
             let count = 0;
@@ -1335,6 +1527,10 @@ try {
 
             el.addEventListener('click', async (e) => {
                 if (e.target.tagName !== 'BUTTON') {
+                    if (isGated) {
+                        alert('This video is locked. Free version is limited to 10 videos. Please upgrade to Pro in the Advanced panel.');
+                        return;
+                    }
                     const vid = v.id || v.videoId || (v._key ? v._key.split('_')[1] : null);
                     log(`Library click: vid=${vid}, key=${v._key}`, "info");
 
@@ -1348,7 +1544,13 @@ try {
                         switchView('player');
 
                         // 2. Storage Intention (Non-blocking)
-                        chrome.storage.local.set({ [`pending_nav_${vid}`]: v._key });
+                        chrome.storage.local.set({
+                            [`pending_nav_${vid}`]: v._key,
+                            'playback_intent': {
+                                value: isCurrentlyPlaying,
+                                ts: Date.now()
+                            }
+                        });
 
                         // 3. Navigate
                         let targetId = connectedTabId;
@@ -1396,7 +1598,7 @@ try {
             el.querySelector('.delete-btn').addEventListener('click', async (e) => {
                 e.stopPropagation();
                 if (confirm('Delete this save?')) {
-                    await chrome.storage.sync.remove(v._key);
+                    await secureRemove(v._key);
                     const all = await chrome.storage.sync.get(null);
                     if (currentStorageKey === v._key) {
                         initNewVideoSession(currentVideoId, { title: v.title, thumbnail: v.thumbnail });
@@ -1522,66 +1724,73 @@ try {
 
         if (msg.action === 'VIDEO_METADATA') {
             const d = msg.data;
-            // Redundant safety check: ensure we are not processing data from a different video ID 
-            // naturally, if tab ID matches, video ID should match, but race conditions exist on navigation.
-
             const isNewVideo = d.videoId !== currentVideoId;
             const isUninitialized = currentVideoId === null;
 
+            // 1. ALWAYS check for explicit Library navigation first
+            const pendingKey = `pending_nav_${d.videoId}`;
+            const localData = await chrome.storage.local.get(pendingKey);
+
+            if (localData[pendingKey]) {
+                console.log("[YT Study] Loading Explicit Profile from Library:", localData[pendingKey]);
+                currentVideoId = d.videoId; // Ensure ID is sync'd
+                isSyncing = true;
+                await loadStorageFavorite(localData[pendingKey]);
+                chrome.storage.local.remove(pendingKey); // Consume the token
+                isSyncing = false;
+                return; // Priority handled
+            }
+
+            // 2. Normal Auto-Detect/Title-Update Logic
             if (isNewVideo || (d.title && d.title !== "YouTube" && currentVideoData.title !== d.title)) {
-                // Keep ID updated immediately
                 currentVideoId = d.videoId;
 
-                // --- Smart Load Logic ---
                 if (isNewVideo || isUninitialized) {
-                    if (isSyncing) return; // Wait for current sync to finish
+                    if (isSyncing) return;
 
-                    // 1. Check Pending Navigation (User clicked specific profile)
-                    const pendingKey = `pending_nav_${d.videoId}`;
-                    const localData = await chrome.storage.local.get(pendingKey);
+                    // Auto Detect Logic
+                    const all = await chrome.storage.sync.get(null);
+                    const related = [];
+                    Object.keys(all).forEach(k => {
+                        if (k.startsWith('v_' + d.videoId) && all[k].isSaved) {
+                            related.push({ ...all[k], _key: k });
+                        }
+                    });
 
-                    if (localData[pendingKey]) {
-                        console.log("Loading Pending Favorite:", localData[pendingKey]);
-                        isSyncing = true;
-                        await loadStorageFavorite(localData[pendingKey]);
-                        chrome.storage.local.remove(pendingKey); // Clear
-                        isSyncing = false;
-                    } else {
-                        // 2. Auto Detect (Default or Recent)
-                        const all = await chrome.storage.sync.get(null);
-                        const related = [];
-                        Object.keys(all).forEach(k => {
-                            if (k.startsWith('v_' + d.videoId) && all[k].isSaved) {
-                                related.push({ ...all[k], _key: k });
-                            }
+                    if (related.length > 0) {
+                        // Sort: Default > Marker Count > Recent
+                        related.sort((a, b) => {
+                            if (a.isDefault && !b.isDefault) return -1;
+                            if (!a.isDefault && b.isDefault) return 1;
+
+                            const getCount = (v) => {
+                                if (v.tagGroups) return Object.values(v.tagGroups).reduce((acc, g) => acc + g.length, 0);
+                                if (v.bookmarks) return v.bookmarks.length;
+                                return 0;
+                            };
+                            const countA = getCount(a);
+                            const countB = getCount(b);
+                            if (countA !== countB) return countB - countA;
+                            return (b.updatedAt || 0) - (a.updatedAt || 0);
                         });
 
-                        if (related.length > 0) {
-                            // Sort: Default > Recent
-                            related.sort((a, b) => {
-                                if (a.isDefault && !b.isDefault) return -1;
-                                if (!a.isDefault && b.isDefault) return 1;
-                                return (b.updatedAt || 0) - (a.updatedAt || 0);
-                            });
-                            console.log("Auto-Detected Favorite:", related[0]._key);
-                            log(`Auto-detected: ${related[0].title || 'video'}`, 'success');
-                            isSyncing = true;
-                            await loadStorageFavorite(related[0]._key);
-                            isSyncing = false;
-                        } else {
-                            // 3. New Session
-                            log(`New session: ${d.title}`, 'info');
-                            initNewVideoSession(d.videoId, { title: d.title, thumbnail: d.thumbnail });
-                        }
+                        console.log("Auto-Detected Favorite (Smart):", related[0]._key);
+                        log(`Auto-detected Profile: ${related[0].title || 'video'}`, 'success');
+                        isSyncing = true;
+                        await loadStorageFavorite(related[0]._key);
+                        isSyncing = false;
+                    } else {
+                        // Truly new video with no saved sessions
+                        log(`New session: ${d.title}`, 'info');
+                        initNewVideoSession(d.videoId, { title: d.title, thumbnail: d.thumbnail });
                     }
-                } else {
-                    // Same video, just update title if better
+                } else if (d.title && d.title !== "YouTube") {
+                    // Update title if it was "Loading..." or changed
                     currentVideoData.title = d.title;
-                    if (d.thumbnail) currentVideoData.thumbnail = d.thumbnail;
+                    currentVideoData.thumbnail = d.thumbnail || currentVideoData.thumbnail;
                     updateHeader();
                 }
             }
-
             // Command Guard: Ignore status updates for a window after user action (seek/play)
             // This prevents "pulse rollback" where the UI jumps back to old time before seek completes
             const isGuarded = (Date.now() - lastCommandSentTime < 200);
@@ -1649,7 +1858,10 @@ try {
             }
         }
         else if (msg.action === 'PLAYBACK_STATUS') {
-            updatePlayPauseIcon(msg.playing);
+            // Only update if it matches current video to avoid race conditions during navigation
+            if (msg.videoId === currentVideoId) {
+                updatePlayPauseIcon(msg.playing);
+            }
         }
         else if (msg.action === 'BOOKMARK_ADDED') {
             const groupName = currentVideoData.activeGroup || "Default";

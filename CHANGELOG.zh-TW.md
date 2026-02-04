@@ -4,6 +4,17 @@
 
 **YouTube Study Companion** 專案的所有重要更新紀錄。
 
+## [2.5.1] - 2026-02-03
+### 新增 (Added)
+- **已知問題列表**: 建立 `docs/KNOWN_ISSUES.md` (中英雙語)，紀錄 Play/Pause 延遲、同步限制等已知事項。
+- **同步手冊更新**: 在使用手冊中加入手動產生 API Key 的詳細步驟，以達成開發環境下的跨裝置同步。
+- **專業操作建議**: 於使用手冊中加入使用快捷鍵的專業建議 (Hotkey Recommendation)，提升操作效率。
+
+### 變更 (Changed)
+- **速度控制優化**: 將播放速度的調整間隔細分至 5% (0.05x)，提供更精確的控制。
+- **CSS 相容性修正**: 修復了 `sidebar.css` 中的 `line-clamp` 與 `landing.css` 中的 `background-clip` 標準屬性定義，提升瀏覽器相容性。
+- **視窗互動優化**: 改善了側邊欄與浮動視窗 (Pop-out) 切換時的行為邏輯。
+
 ## [2.5.0] - 2026-02-01
 ### 新增 (Added)
 - **宣傳網站**: 於 `docs/` 建立 Landing Page 供 GitHub Pages 託管。

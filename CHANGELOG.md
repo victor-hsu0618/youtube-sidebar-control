@@ -4,6 +4,17 @@
 
 All notable changes to the **YouTube Study Companion** project will be documented in this file.
 
+## [2.5.1] - 2026-02-03
+### Added
+- **Known Issues List**: Created bilingual `docs/KNOWN_ISSUES.md` to document Play/Pause lag, sync limitations, and lifecycle issues.
+- **Manual Sync Instructions**: Added step-by-step guide in User Manual for manual API Key generation to enable cross-device sync in developer mode.
+- **Hotkey Recommendations**: Added pro-tips to User Manual encouraging keyboard shortcuts for better speed and stability.
+
+### Changed
+- **Speed Control Optimization**: Adjusted speed increment to 5% (0.05x) for finer playback control.
+- **CSS Compatibility Fixes**: Defined standard properties for `line-clamp` in `sidebar.css` and `background-clip` in `landing.css` to improve browser compatibility.
+- **Window Interaction**: Improved logic for switching between the sidebar and the pop-out window.
+
 ## [2.5.0] - 2026-02-01
 ### Added
 - **Promotional Website**: Launched a landing page in `docs/` for GitHub Pages hosting.

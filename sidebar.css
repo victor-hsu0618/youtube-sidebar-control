@@ -157,6 +157,44 @@ header {
   font-family: monospace;
 }
 
+.pro-badge {
+  font-size: 10px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #ffd700, #ff8c00);
+  color: #000;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 4px;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+}
+
+.upgrade-btn {
+  font-size: 10px;
+  font-weight: 700;
+  background: var(--accent-color);
+  color: #000;
+  border: none;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-left: 4px;
+  cursor: pointer;
+  animation: pulse-glow 2s infinite;
+}
+
+@keyframes pulse-glow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(62, 166, 255, 0.4);
+  }
+
+  70% {
+    box-shadow: 0 0 0 6px rgba(62, 166, 255, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(62, 166, 255, 0);
+  }
+}
+
 .header-add-btn {
   display: none;
   /* Removed in 2.4 */

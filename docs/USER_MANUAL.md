@@ -27,9 +27,9 @@ After launching the Extension, you will see the main screen. The sidebar is desi
 
 *   **Player**: The main operation area. It now features two internal sub-tabs:
     *   **Markers**: Your primary workspace for taking and browsing notes.
-    *   **Controls**: Adjustment area for Speed and A-B Loop.
-*   **Library**: View the history of all videos for which you have saved favorites.
-*   **Favorites**: Quick access to your frequently used favorites marked as "Star/Default".
+    *   **Advanced**: Adjustment area for Speed, Cloud Sync Refresh, and **Pro Account Activation**.
+*   **Library**: View history of saved sessions. Free users are limited to **10 saved videos** here.
+*   **Favorites**: Quick access to starred/default sessions.
 
 ![Interface Overview Screenshot](images/interface_overview.png)
 *(Suggested Screenshot: Full screen after opening Sidebar)*
@@ -37,13 +37,27 @@ After launching the Extension, you will see the main screen. The sidebar is desi
 On the right side of the top title bar is a **↗️ Arrow Button**. Click to detach the window (Pop-out). 
 
 ### 🟢 Status Indicator
-Next to the **v2.0** badge, you will see a small circular indicator:
+Next to the **v2.6.5** badge, you will see a small circular indicator:
 - **Green**: Extension is actively connected to the YouTube video.
 - **Grey**: extension is in Standby mode (saving resources).
 
 ---
 
-## 2. Player Controls
+## 2. Pro Features & Cloud Verification
+
+YouTube Study Companion now supports cloud-linked account binding.
+
+1.  **Auto Identification**: The system automatically detects the Google account logged into your Chrome browser.
+2.  **Unlocking**: Go to **Player -> Advanced**, click **Activate Pro Features**, and enter the Code provided by the author.
+3.  **Sync Persistence**: Once activated, your Pro status is stored in the cloud. It will automatically be recognized on any computer where you are logged into the same Google account.
+4.  **Free Version Limits**:
+    *   Library capped at 10 saved videos.
+    *   Marker groups capped at 10 markers per group.
+    *   Locked videos in the Library appear dimmed and unclickable until you upgrade.
+
+---
+
+## 3. Player Controls
 
 At the top of the Player tab, you have full control over video playback.
 
@@ -119,6 +133,8 @@ When you click the heart icon `❤️` in the title bar, you are actually saving
 ---
 
 ## 7. Keyboard Shortcuts
+> [!TIP]
+> **Pro Tip**: For the smoothest experience, we strongly recommend using **Keyboard Shortcuts** instead of mouse-clicking the UI. This significantly speeds up your workflow and reduces potential anomalies caused by UI rendering or click delays.
 
 YouTube Study Companion supports a wide range of keyboard shortcuts. Click the **Keyboard Icon (⌨️)** in the title bar to toggle the on-screen guide.
 
@@ -151,6 +167,16 @@ Your settings, bookmarks, and notes are automatically synchronized across all yo
 2.  Go to `chrome://settings/syncSetup`.
 3.  Ensure that **Extensions** is enabled in the "Manage what you sync" section.
 4.  The extension will automatically sync your data in the background.
+
+### ⚠️ Manual Sync Enablement (For Developer Mode)
+As the extension is not yet published, to sync between different computers, you need to fix your "Extension ID". Please generate your own key through the browser:
+1. Compress the project folder into a `.zip` file.
+2. Go to the [Chrome Developer Dashboard](https://chrome.google.com/webstore/devconsole) (Login with Google account).
+3. Click "Add new item" and upload your `.zip` file (**Note: You only need to upload; no $5 fee or actual publishing is required**).
+4. Once uploaded, navigate to the "Package" tab in the left menu for that item.
+5. Click "View public key" to see a long string.
+6. Copy this string and paste it into the `"key": "..."` field of your local `manifest.json`.
+7. Now, when you load the project on any computer, the ID will remain consistent, and auto-sync will work correctly.
 
 ---
 
