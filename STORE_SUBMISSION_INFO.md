@@ -42,8 +42,9 @@ Transform YouTube into your ultimate learning station. Designed for serious lear
 - Resize and toggle visibility as needed.
 
 **🔐 Pro Features (Optional)**
+- **Unlimited Library Videos**: Save more than the 10-video limit of the Free version.
+- **Unlimited Markers**: Remove the 10-marker per group limit for detailed study.
 - **Cloud Sync**: Sync your notes and markers across all your devices (Chrome Identity integration).
-- **Unlimited Collections**: Organize notes into unlimited folders and categories.
 - Support potential future updates!
 
 ---
@@ -79,6 +80,9 @@ We value your privacy. Your notes are yours. We collect your email address ONLY 
 ### Privacy Policy URL (隱私權政策連結)
 您必須提供我們託管在 GitHub Pages 的連結：
 `https://victor-hsu0618.github.io/youtube-sidebar-control/docs/privacy.html`
+
+### Pricing Page URL (訂閱方案連結 - 僅供參考)
+`https://victor-hsu0618.github.io/youtube-sidebar-control/docs/pricing.html`
 
 ### Permissions Justification (權限使用說明)
 
