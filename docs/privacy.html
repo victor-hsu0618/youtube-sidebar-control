@@ -50,68 +50,210 @@
         a:hover {
             text-decoration: underline;
         }
+
+        /* Language Switcher */
+        .lang-switch {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: flex-end;
+        }
+
+        .lang-btn {
+            background: transparent;
+            border: 1px solid #333;
+            color: #666;
+            padding: 5px 15px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.2s;
+        }
+
+        .lang-btn.active {
+            background: #ff0000;
+            color: #fff;
+            border-color: #ff0000;
+        }
+
+        .lang-btn:hover:not(.active) {
+            border-color: #666;
+            color: #ccc;
+        }
+
+        .content-section {
+            display: none;
+        }
+
+        .content-section.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
     </style>
 </head>
 
 <body>
-    <h1>Privacy Policy</h1>
-    <p>Last Updated: February 9, 2026</p>
 
-    <p>YouTube Study Companion (the "Extension") is committed to protecting your privacy. This Privacy Policy explains
-        how we handle your information.</p>
+    <div class="lang-switch">
+        <button class="lang-btn active" onclick="switchLang('en')">English</button>
+        <button class="lang-btn" onclick="switchLang('zh')">繁體中文</button>
+    </div>
 
-    <h2>1. Data Collection</h2>
-    <p>The Extension collects the following data to provide its core features:</p>
-    <ul>
-        <li><strong>Email Address:</strong> Obtained via the Chrome Identity API to uniquely identify your account for
-            cross-device synchronization and license verification.</li>
-        <li><strong>User Content:</strong> Your saved bookmarks, timestamps, and study notes are stored to enable the
-            learning features of the Extension.</li>
-        <li><strong>Website Activity:</strong> YouTube video URLs and titles are accessed only to associate your notes
-            and bookmarks with the correct video.</li>
-    </ul>
+    <!-- English Content -->
+    <div id="en-content" class="content-section active">
+        <h1>Privacy Policy</h1>
+        <p>Last Updated: February 9, 2026</p>
 
-    <h2>2. Data Usage</h2>
-    <p>We use your data strictly for the following purposes:</p>
-    <ul>
-        <li>To enable synchronization of your study notes across multiple devices.</li>
-        <li>To provide specialized playback controls and timestamped markers.</li>
-        <li>To verify Pro feature eligibility (if applicable).</li>
-    </ul>
+        <p>YouTube Study Companion (the "Extension") is committed to protecting your privacy. This Privacy Policy
+            explains
+            how we handle your information.</p>
 
-    <h2>3. Data Sharing</h2>
-    <p><strong>We do not sell, trade, or rent your personal information to third parties.</strong> Data is only
-        transmitted to your own secure cloud storage (via Google Sync or Google Sheets API as configured) for
-        synchronization purposes.</p>
+        <h2>1. Data Collection</h2>
+        <p>The Extension collects the following data to provide its core features:</p>
+        <ul>
+            <li><strong>Email Address:</strong> Obtained via the Chrome Identity API to uniquely identify your account
+                for
+                cross-device synchronization and license verification (Pro status).</li>
+            <li><strong>User Content:</strong> Your saved bookmarks, timestamps, and study notes are stored to enable
+                the
+                learning features of the Extension.</li>
+            <li><strong>Website Activity:</strong> YouTube video URLs and titles are accessed only to associate your
+                notes
+                and bookmarks with the correct video.</li>
+        </ul>
 
-    <h2>4. Data Protection</h2>
-    <p>All data handled by the Extension is managed through secure Google Chrome APIs and standard encryption protocols
-        used by Google services.</p>
+        <h2>2. Data Usage</h2>
+        <p>We use your data strictly for the following purposes:</p>
+        <ul>
+            <li>To enable synchronization of your study notes across multiple devices.</li>
+            <li>To provide specialized playback controls and timestamped markers.</li>
+            <li>To verify Pro feature eligibility and subscription status via our secure verification server.</li>
+        </ul>
 
-    <h2>5. Contact</h2>
-    <p>For any questions regarding this policy, please contact us via our <a
-            href="https://github.com/victor-hsu0618/youtube-sidebar-control">GitHub Repository</a>.</p>
+        <h2>3. Data Sharing</h2>
+        <p><strong>We do not sell, trade, or rent your personal information to third parties.</strong> Data is only
+            transmitted to your own secure cloud storage (via Google Sync or Google Sheets API as configured) for
+            synchronization purposes and license verification.</p>
 
-    <hr style="border: 0; border-top: 1px solid #333; margin: 40px 0;">
+        <h2>4. Data Protection</h2>
+        <p>All data handled by the Extension is managed through secure Google Chrome APIs and standard encryption
+            protocols
+            used by Google services.</p>
 
-    <h2>About YouTube Study Companion</h2>
-    <p>YouTube Study Companion is designed to transform YouTube into a powerful learning platform with professional
-        tools:</p>
-    <ul>
-        <li><strong>⚡ Precision Control:</strong> Master the pace with 0.1x speed adjustments and frame-by-frame
-            seeking.</li>
-        <li><strong>🔄 AB Loop Mastery:</strong> Set A-B points instantly to loop and drill down into complex sections.
-        </li>
-        <li><strong>📝 Smart Notes:</strong> Create timestamped markers and notes to jump back to key insights.</li>
-        <li><strong>📚 Learning Library:</strong> Access and manage all your notes across different videos from one
-            dashboard.</li>
-        <li><strong>⭐ Favorite Markers:</strong> Pin your most important insights for quick review anytime.</li>
-    </ul>
+        <h2>5. Contact</h2>
+        <p>For any questions regarding this policy, please contact us via our <a
+                href="https://github.com/victor-hsu0618/youtube-sidebar-control">GitHub Repository</a>.</p>
+
+        <hr style="border: 0; border-top: 1px solid #333; margin: 40px 0;">
+
+        <h2>About YouTube Study Companion</h2>
+        <p>YouTube Study Companion is designed to transform YouTube into a powerful learning platform with professional
+            tools:</p>
+        <ul>
+            <li><strong>⚡ Precision Control:</strong> Master the pace with 0.1x speed adjustments and frame-by-frame
+                seeking.</li>
+            <li><strong>🔄 AB Loop Mastery:</strong> Set A-B points instantly to loop and drill down into complex
+                sections.
+            </li>
+            <li><strong>📝 Smart Notes:</strong> Create timestamped markers and notes to jump back to key insights.</li>
+            <li><strong>📚 Learning Library:</strong> Access and manage all your notes across different videos from one
+                dashboard.</li>
+            <li><strong>⭐ Favorite Markers:</strong> Pin your most important insights for quick review anytime.</li>
+        </ul>
+    </div>
+
+    <!-- Traditional Chinese Content -->
+    <div id="zh-content" class="content-section">
+        <h1>隱私權政策 (Privacy Policy)</h1>
+        <p>最後更新日期：2026 年 2 月 9 日</p>
+
+        <p>YouTube Study Companion（以下簡稱「本擴充功能」）致力於保護您的隱私。本隱私權政策說明我們如何處理您的資訊。</p>
+
+        <h2>1. 資料收集</h2>
+        <p>本擴充功能收集以下資料以提供核心服務：</p>
+        <ul>
+            <li><strong>電子郵件地址 (Email Address)：</strong> 透過 Chrome Identity API 取得，僅用於識別您的帳戶以進行跨裝置同步以及驗證 Pro 版授權資格。</li>
+            <li><strong>使用者內容 (User Content)：</strong> 我們會儲存您的書籤、時間戳記及學習筆記，以提供學習輔助功能。</li>
+            <li><strong>網站活動 (Website Activity)：</strong> 僅存取 YouTube 影片連結及標題，以便將您的筆記正確關聯至對應的影片。</li>
+        </ul>
+
+        <h2>2. 資料使用</h2>
+        <p>我們會將您的資料嚴格用於以下用途：</p>
+        <ul>
+            <li>啟用多裝置間的學習筆記同步功能。</li>
+            <li>提供專業播放控制及時間戳記標記功能。</li>
+            <li>透過我們安全的驗證伺服器來確認 Pro 版功能的使用資格與訂閱狀態。</li>
+        </ul>
+
+        <h2>3. 資料分享</h2>
+        <p><strong>我們絕不出售、交易或出租您的個人資訊給第三方。</strong> 資料僅透過安全的 Google Sync 或 Google Sheets
+            API（依您的設定）傳輸至您個人的雲端儲存空間進行同步及授權驗證。</p>
+
+        <h2>4. 資料保護</h2>
+        <p>本擴充功能處理的所有資料均透過安全的 Google Chrome API 及 Google 服務採用的標準加密協定進行管理。</p>
+
+        <h2>5. 聯絡我們</h2>
+        <p>若對本政策有任何疑問，請透過我們的 <a href="https://github.com/victor-hsu0618/youtube-sidebar-control">GitHub Repository</a>
+            聯繫我們。</p>
+
+        <hr style="border: 0; border-top: 1px solid #333; margin: 40px 0;">
+
+        <h2>關於 YouTube Study Companion</h2>
+        <p>YouTube Study Companion 旨在將 YouTube 轉變為強大的學習平台，提供以下專業工具：</p>
+        <ul>
+            <li><strong>⚡ 精準控制：</strong> 透過 0.1x 速度調整及逐格播放，完全掌握學習節奏。</li>
+            <li><strong>🔄 AB 循環播放：</strong> 快速設定 A-B 點循環，深入鑽研複雜片段。</li>
+            <li><strong>📝 智慧筆記：</strong> 建立帶有時間戳記的筆記，快速回顧關鍵洞見。</li>
+            <li><strong>📚 學習資料庫：</strong> 透過儀表板管理跨影片的所有學習筆記。</li>
+            <li><strong>⭐ 重點收藏：</strong> 釘選最重要的筆記，隨時快速複習。</li>
+        </ul>
+    </div>
 
     <div class="footer">
         <p>© 2026 YouTube Study Companion. Built for learners.</p>
-        <p><a href="index.html">Back to Home</a></p>
+        <p><a href="index.html" id="back-link">Back to Home</a></p>
     </div>
+
+    <script>
+        function switchLang(lang) {
+            // Update buttons
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            const activeBtnIndex = lang === 'en' ? 0 : 1;
+            document.querySelectorAll('.lang-btn')[activeBtnIndex].classList.add('active');
+
+            // Update content visibility
+            document.getElementById('en-content').classList.remove('active');
+            document.getElementById('zh-content').classList.remove('active');
+
+            document.getElementById(lang + '-content').classList.add('active');
+
+            // Update footer link text
+            const backLink = document.getElementById('back-link');
+            if (lang === 'zh') {
+                backLink.textContent = "返回首頁";
+            } else {
+                backLink.textContent = "Back to Home";
+            }
+        }
+
+        // Auto-detect browser language
+        const userLang = navigator.language || navigator.userLanguage;
+        if (userLang.includes('zh')) {
+            switchLang('zh');
+        }
+    </script>
 </body>
 
 </html>

@@ -7,9 +7,91 @@
     <title>YouTube Study Companion - Master Your Learning</title>
     <link rel="stylesheet" href="landing.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Language Switcher Styles */
+        .lang-switch {
+            display: flex;
+            gap: 10px;
+            margin-right: 20px;
+        }
+
+        .lang-btn {
+            background: transparent;
+            border: 1px solid #444;
+            color: #888;
+            padding: 4px 12px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.2s;
+        }
+
+        .lang-btn.active {
+            background: #ff0000;
+            color: #fff;
+            border-color: #ff0000;
+        }
+
+        .lang-btn:hover:not(.active) {
+            border-color: #666;
+            color: #ccc;
+        }
+
+        .lang-zh,
+        .lang-en {
+            display: none;
+        }
+
+        /* Show based on class */
+        body.lang-en-active .lang-en {
+            display: inline;
+        }
+
+        body.lang-en-active blockquote.lang-en,
+        body.lang-en-active div.lang-en,
+        body.lang-en-active p.lang-en,
+        body.lang-en-active h1.lang-en,
+        body.lang-en-active h2.lang-en,
+        body.lang-en-active h3.lang-en,
+        body.lang-en-active section.lang-en {
+            display: block;
+        }
+
+        body.lang-zh-active .lang-zh {
+            display: inline;
+        }
+
+        body.lang-zh-active blockquote.lang-zh,
+        body.lang-zh-active div.lang-zh,
+        body.lang-zh-active p.lang-zh,
+        body.lang-zh-active h1.lang-zh,
+        body.lang-zh-active h2.lang-zh,
+        body.lang-zh-active h3.lang-zh,
+        body.lang-zh-active section.lang-zh {
+            display: block;
+        }
+
+        /* Smooth Transition */
+        .lang-content {
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
 </head>
 
-<body>
+<body class="lang-en-active">
 
     <header>
         <div class="logo">
@@ -17,21 +99,33 @@
                 style="width: 32px; height: 32px; margin-right: 12px; border-radius: 6px;">
             YouTube Study Companion
         </div>
-        <nav>
-            <a href="privacy.html"
-                style="color:white; text-decoration:none; font-size:0.9rem; margin-right: 20px;">Privacy</a>
+        <nav style="display: flex; align-items: center;">
+            <div class="lang-switch">
+                <button id="btn-en" class="lang-btn active" onclick="switchLang('en')">EN</button>
+                <button id="btn-zh" class="lang-btn" onclick="switchLang('zh')">中</button>
+            </div>
+            <a href="privacy.html" style="color:white; text-decoration:none; font-size:0.9rem; margin-right: 20px;">
+                <span class="lang-en">Privacy</span>
+                <span class="lang-zh">隱私政策</span>
+            </a>
             <a href="https://github.com/victor-hsu0618/youtube-sidebar-control"
                 style="color:white; text-decoration:none; font-size:0.9rem;">GitHub</a>
         </nav>
     </header>
 
     <section class="hero">
-        <h1>Transform YouTube into your<br>Ultimate Learning Station.</h1>
-        <p class="subtitle">Professional playback controls, AB looping, timestamped notes, and a distraction-free
-            sidebar. Designed for serious learners.</p>
+        <h1 class="lang-en lang-content">Transform YouTube into your<br>Ultimate Learning Station.</h1>
+        <h1 class="lang-zh lang-content">將 YouTube 打造為你的<br>終極學習工作站</h1>
+
+        <p class="subtitle lang-en lang-content">Professional playback controls, AB looping, timestamped notes, and a
+            distraction-free sidebar. Designed for serious learners.</p>
+        <p class="subtitle lang-zh lang-content">專業級播放控制、AB 循環播放、時間戳記筆記與無干擾側邊欄。專為深度學習者打造。</p>
 
         <!-- Replace LINK with actual Chrome Web Store link when available -->
-        <a href="https://chrome.google.com/webstore" class="cta-btn">Available on Chrome Store</a>
+        <a href="https://chrome.google.com/webstore" class="cta-btn">
+            <span class="lang-en">Available on Chrome Store</span>
+            <span class="lang-zh">在 Chrome 商店下載</span>
+        </a>
 
         <div style="margin-top: 60px;">
             <img src="images/premium/hero.jpg" alt="Hero Screenshot"
@@ -40,7 +134,10 @@
     </section>
 
     <section id="screenshots" style="padding: 80px 20px; background: #0a0c10;">
-        <h2 style="text-align: center; margin-bottom: 40px; font-size: 2rem;">Visual Walkthrough</h2>
+        <h2 style="text-align: center; margin-bottom: 40px; font-size: 2rem;">
+            <span class="lang-en">Visual Walkthrough</span>
+            <span class="lang-zh">功能預覽</span>
+        </h2>
         <div style="display: flex; overflow-x: auto; gap: 20px; padding-bottom: 20px; scroll-snap-type: x mandatory;">
             <img src="images/premium/ss1.jpg" alt="Full Interface"
                 style="height: 400px; border-radius: 8px; scroll-snap-align: start; border: 1px solid #333;">
@@ -60,49 +157,93 @@
             <div class="feature-card">
                 <img src="images/premium/ss2.jpg" alt="Playback"
                     style="width: 100%; border-radius: 8px; margin-bottom: 20px; border: 1px solid #333;">
-                <h3>⚡ Precision Control</h3>
-                <p>Master the pace of your learning with 0.1x speed adjustments and frame-by-frame seeking using WASD
-                    hotkeys.</p>
+                <h3 class="lang-en">⚡ Precision Control</h3>
+                <h3 class="lang-zh">⚡ 精準控制</h3>
+                <p class="lang-en">Master the pace of your learning with 0.1x speed adjustments and frame-by-frame
+                    seeking using WASD hotkeys.</p>
+                <p class="lang-zh">透過 0.1x 的微調與逐格預覽功能，精準掌控學習節奏。支援 WASD 快捷鍵極速操作。</p>
             </div>
             <div class="feature-card">
                 <img src="images/premium/ss5.jpg" alt="Looping"
                     style="width: 100%; border-radius: 8px; margin-bottom: 20px; border: 1px solid #333;">
-                <h3>🔄 AB Loop Mastery</h3>
-                <p>Struggling with a complex section? Set A-B points instantly to loop and drill down until you
-                    understand it.</p>
+                <h3 class="lang-en">🔄 AB Loop Mastery</h3>
+                <h3 class="lang-zh">🔄 AB 循環播放</h3>
+                <p class="lang-en">Struggling with a complex section? Set A-B points instantly to loop and drill down
+                    until you understand it.</p>
+                <p class="lang-zh">遇到難點？快速設定 A-B 斷點重複播放，直到你徹底理解每一個細節。</p>
             </div>
             <div class="feature-card">
                 <img src="images/premium/ss1.jpg" alt="Notes"
                     style="width: 100%; border-radius: 8px; margin-bottom: 20px; border: 1px solid #333;">
-                <h3>📝 Smart Notes</h3>
-                <p>Drop timestamped markers with notes. One click jumps you back to exactly where you had that insight.
-                </p>
+                <h3 class="lang-en">📝 Smart Notes</h3>
+                <h3 class="lang-zh">📝 智慧筆記</h3>
+                <p class="lang-en">Drop timestamped markers with notes. One click jumps you back to exactly where you
+                    had that insight.</p>
+                <p class="lang-zh">隨手記下帶時間戳記的筆記，點擊即可瞬間跳回那個時刻，不錯過任何靈感。</p>
             </div>
             <div class="feature-card">
                 <img src="images/premium/ss4.jpg" alt="Library"
                     style="width: 100%; border-radius: 8px; margin-bottom: 20px; border: 1px solid #333;">
-                <h3>📚 Learning Library</h3>
-                <p>Track your entire learning journey. Access and manage all your notes across different videos from one
-                    dashboard.</p>
+                <h3 class="lang-en">📚 Learning Library</h3>
+                <h3 class="lang-zh">📚 學習資料庫</h3>
+                <p class="lang-en">Track your entire learning journey. Access and manage all your notes across different
+                    videos from one dashboard.</p>
+                <p class="lang-zh">追蹤你的完整學習路徑。透過統一儀表板管理分散在不同影片中的所有筆記。</p>
             </div>
             <div class="feature-card">
                 <img src="images/premium/ss3.jpg" alt="Favorite"
                     style="width: 100%; border-radius: 8px; margin-bottom: 20px; border: 1px solid #333;">
-                <h3>⭐ Favorite Markers</h3>
-                <p>Pin your most important insights. One-click access to your top study moments for quick review
-                    anytime.</p>
+                <h3 class="lang-en">⭐ Favorite Markers</h3>
+                <h3 class="lang-zh">⭐ 重點收藏</h3>
+                <p class="lang-en">Pin your most important insights. One-click access to your top study moments for
+                    quick review anytime.</p>
+                <p class="lang-zh">釘選最重要的筆記。快速存取你的學習核心精華，隨時進行高效複習。</p>
             </div>
         </div>
     </section>
 
     <footer>
-        <p>© 2026 YouTube Study Companion. Open Source on <a
-                href="https://github.com/victor-hsu0618/youtube-sidebar-control">GitHub</a>.</p>
+        <p>
+            <span class="lang-en">© 2026 YouTube Study Companion. Open Source on <a
+                    href="https://github.com/victor-hsu0618/youtube-sidebar-control">GitHub</a>.</span>
+            <span class="lang-zh">© 2026 YouTube Study Companion. 開源專案收錄於 <a
+                    href="https://github.com/victor-hsu0618/youtube-sidebar-control">GitHub</a>.</span>
+        </p>
         <p style="margin-top: 10px; font-size: 0.8rem; color: #666;">
-            <a href="privacy.html" style="color: #888;">Privacy Policy</a> | Not affiliated with Google or YouTube.
+            <a href="privacy.html" style="color: #888;">
+                <span class="lang-en">Privacy Policy</span>
+                <span class="lang-zh">隱私政策</span>
+            </a> |
+            <span class="lang-en">Not affiliated with Google or YouTube.</span>
+            <span class="lang-zh">與 Google 或 YouTube 無關。</span>
         </p>
     </footer>
 
+    <script>
+        function switchLang(lang) {
+            document.body.classList.remove('lang-en-active', 'lang-zh-active');
+            document.body.classList.add('lang-' + lang + '-active');
+            
+            document.getElementById('btn-en').classList.remove('active');
+            document.getElementById('btn-zh').classList.remove('active');
+            document.getElementById('btn-' + lang).classList.add('active');
+
+            // Save preference
+            localStorage.setItem('preferred-lang', lang);
+        }
+
+        // Auto-detect browser language or saved preference
+        const savedLang = localStorage.getItem('preferred-lang');
+        const userLang = navigator.language || navigator.userLanguage;
+        
+        if (savedLang) {
+            switchLang(savedLang);
+        } else if (userLang.includes('zh')) {
+            switchLang('zh');
+        } else {
+            switchLang('en');
+        }
+    </script>
 </body>
 
 </html>

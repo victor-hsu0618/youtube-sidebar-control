@@ -6,7 +6,14 @@ let loopEnabled = false;
 let initAttempts = 0;
 let lastInitedVideoId = null;
 
-function init() {
+function init(shouldResetLoop = false) {
+    if (shouldResetLoop) {
+        console.log('[YT Study] Resetting A-B Loop for new video');
+        loopStart = null;
+        loopEnd = null;
+        loopEnabled = false;
+        notifyLoop();
+    }
     video = document.querySelector('video.html5-main-video') || document.querySelector('video');
     if (!video) {
         initAttempts++;
@@ -429,7 +436,7 @@ setInterval(() => {
 
     if (isNewVideo || isDetached) {
         console.log(`[YT Study] Re-initializing: isNewVideo=${isNewVideo}, isDetached=${isDetached}`);
-        init();
+        init(isNewVideo);
     } else if (!video && document.querySelector('video')) {
         init();
     }
