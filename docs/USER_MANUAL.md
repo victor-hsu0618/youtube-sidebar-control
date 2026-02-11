@@ -37,7 +37,7 @@ After launching the Extension, you will see the main screen. The sidebar is desi
 On the right side of the top title bar is a **↗️ Arrow Button**. Click to detach the window (Pop-out). 
 
 ### 🟢 Status Indicator
-Next to the **v2.5.0** badge, you will see a small circular indicator:
+Next to the **v2.5.1** badge, you will see a small circular indicator:
 - **Green**: Extension is actively connected to the YouTube video.
 - **Grey**: extension is in Standby mode (saving resources).
 
