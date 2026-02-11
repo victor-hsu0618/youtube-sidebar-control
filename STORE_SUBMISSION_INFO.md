@@ -51,6 +51,41 @@ Transform YouTube into your ultimate learning station. Designed for serious lear
 We value your privacy. Your notes are yours. We collect your email address ONLY to verify your Pro license status and enable cross-device sync. We do not track your browsing history outside of YouTube.
 ```
 
+### 中文詳細描述 (Chinese Description)
+```markdown
+將 YouTube 打造為您的終極學習工作站。專為深度學習者、音樂家、語言學生及任何追求效率的使用者設計。
+
+🚀 **核心功能：**
+
+**1. 專業級播放控制**
+- 以 0.1x 為單位精細調整播放速度。
+- 支援「逐幀前進/後退」，方便進行細節分析。
+- 鍵盤快速鍵 (WASD) 操作模式，像玩遊戲一樣高效控制影片。
+
+**2. A-B 循環播放 (AB Loop)**
+- 瞬時設定起點 (A) 與終點 (B)，重複播放難點片段。
+- 學習樂器、練習語言發音、或分析舞蹈動作的絕佳工具。
+- 一鍵清除循環，恢復正常播放流程。
+
+**3. 智慧筆記與時間戳記書籤**
+- 靈感稍縱即逝？無需暫停影片即可快速記下帶有時間戳記的筆記。
+- 點擊任何筆記，影片會立即跳轉回當時的正確時刻。
+- **影片獨立管理**：筆記會與特定影片連結，學習路徑井然有序。
+
+**4. 無干擾側邊欄**
+- 所有工具都整合在精緻的暗色調側邊欄中，完全不遮擋影片播放面板。
+- 支援調整視窗大小與獨立彈出（Pop-out）功能。
+
+**🔐 Pro 進階功能 (可選)**
+- **擴充影片庫**：解除免費版 10 部影片的儲存限制。
+- **擴充標記數量**：增加每組標記的容量，滿足高強度筆記需求。
+- 支持開發者持續維護與功能開發！
+
+---
+**隱私承諾：**
+我們重視您的隱私，您的筆記屬於您。我們僅收集 Email 地址用於驗證您的 Pro 授權狀態並支援跨裝置同步。我們絕不會追蹤您在 YouTube 以外的瀏覽紀錄。
+```
+
 ### Category (類別)
 建議選擇：
 - **Primary**: `Productivity` (生產力工具)
