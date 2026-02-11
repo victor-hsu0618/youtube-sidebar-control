@@ -33,6 +33,7 @@ function updateSubscriptionUI() {
     const upgradeBtn = document.getElementById('btn-upgrade');
     const deactivateBtn = document.getElementById('btn-deactivate-pro');
     const upgradeDot = document.getElementById('nav-upgrade-dot');
+    const upgradeInfoBox = document.getElementById('upgrade-info-box');
 
     if (!proBadge || !upgradeBtn) {
         console.warn('[YT Study] Monetization UI elements not found in DOM yet.');
@@ -47,11 +48,13 @@ function updateSubscriptionUI() {
         upgradeBtn.style.display = 'none';
         if (deactivateBtn) deactivateBtn.style.display = 'inline-block';
         if (upgradeDot) upgradeDot.style.display = 'none';
+        if (upgradeInfoBox) upgradeInfoBox.style.display = 'none';
     } else {
         proBadge.style.display = 'none';
         upgradeBtn.style.display = 'block';
         if (deactivateBtn) deactivateBtn.style.display = 'none';
         if (upgradeDot) upgradeDot.style.display = 'inline';
+        if (upgradeInfoBox) upgradeInfoBox.style.display = 'block';
     }
 }
 window.updateSubscriptionUI = updateSubscriptionUI;

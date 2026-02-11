@@ -202,6 +202,76 @@
         </div>
     </section>
 
+    <!-- Pricing / Subscription Section -->
+    <section id="pricing"
+        style="padding: 80px 20px; background: #0f1115; text-align: center; border-top: 1px solid #222;">
+        <h2 style="font-size: 2.5rem; margin-bottom: 20px;">
+            <span class="lang-en">Elevate Your Learning</span>
+            <span class="lang-zh">進階學習體驗</span>
+        </h2>
+        <p style="color: #888; max-width: 600px; margin: 0 auto 40px;">
+            <span class="lang-en">Unlock the full potential of YouTube Study Companion with a Pro license. One-time
+                activation, lifetime benefits.</span>
+            <span class="lang-zh">取得 Pro 授權，解鎖 YouTube Study Companion 的完整潛力。一次啟用，終身享有。</span>
+        </p>
+
+        <div
+            style="max-width: 400px; margin: 0 auto; background: #1a1d23; padding: 40px; border-radius: 20px; border: 1px solid #333; box-shadow: 0 20px 40px rgba(0,0,0,0.4);">
+            <div style="font-size: 3rem; font-weight: 700; color: #fff; margin-bottom: 10px;">Pro</div>
+            <p style="color: #ff0000; font-weight: 600; margin-bottom: 30px;">
+                <span class="lang-en">Support Continued Development</span>
+                <span class="lang-zh">支持持續開發</span>
+            </p>
+
+            <ul style="text-align: left; color: #ccc; margin-bottom: 40px; list-style: none; padding: 0;">
+                <li style="margin-bottom: 12px; display: flex; align-items: center;">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="#4CAF50" style="margin-right: 10px;">
+                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                    </svg>
+                    <span class="lang-en">Unlimited Library Videos</span>
+                    <span class="lang-zh">無限量儲存影片</span>
+                </li>
+                <li style="margin-bottom: 12px; display: flex; align-items: center;">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="#4CAF50" style="margin-right: 10px;">
+                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                    </svg>
+                    <span class="lang-en">Unlimited Markers Per Video</span>
+                    <span class="lang-zh">單一影片無限量標記</span>
+                </li>
+                <li style="margin-bottom: 12px; display: flex; align-items: center;">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="#4CAF50" style="margin-right: 10px;">
+                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                    </svg>
+                    <span class="lang-en">Full Cloud Synchronization</span>
+                    <span class="lang-zh">完整雲端同步功能</span>
+                </li>
+                <li style="margin-bottom: 12px; display: flex; align-items: center;">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="#4CAF50" style="margin-right: 10px;">
+                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                    </svg>
+                    <span class="lang-en">Priority Support & Updates</span>
+                    <span class="lang-zh">優先技術支援與更新</span>
+                </li>
+            </ul>
+
+            <h4 style="color: #fff; margin-bottom: 15px;">
+                <span class="lang-en">How to get your code?</span>
+                <span class="lang-zh">如何取得啟用碼？</span>
+            </h4>
+            <p style="font-size: 0.9rem; color: #888; margin-bottom: 25px;">
+                <span class="lang-en">Please click the button below to support via Buy Me a Coffee ($5). Once confirmed,
+                    I will manually send the activation code to your email.</span>
+                <span class="lang-zh">請點擊下方按鈕支持作者 ($5)。確認後，我將手動將啟用碼發送至您的電子郵件。</span>
+            </p>
+
+            <a href="https://www.buymeacoffee.com/victorhsu" target="_blank" class="cta-btn"
+                style="width: 100%; box-sizing: border-box; display: block; text-decoration: none;">
+                <span class="lang-en">Buy Me a Coffee & Get Pro</span>
+                <span class="lang-zh">支持作者並取得 Pro</span>
+            </a>
+        </div>
+    </section>
+
     <footer>
         <p>
             <span class="lang-en">© 2026 YouTube Study Companion. Open Source on <a
@@ -223,7 +293,7 @@
         function switchLang(lang) {
             document.body.classList.remove('lang-en-active', 'lang-zh-active');
             document.body.classList.add('lang-' + lang + '-active');
-            
+
             document.getElementById('btn-en').classList.remove('active');
             document.getElementById('btn-zh').classList.remove('active');
             document.getElementById('btn-' + lang).classList.add('active');
@@ -235,7 +305,7 @@
         // Auto-detect browser language or saved preference
         const savedLang = localStorage.getItem('preferred-lang');
         const userLang = navigator.language || navigator.userLanguage;
-        
+
         if (savedLang) {
             switchLang(savedLang);
         } else if (userLang.includes('zh')) {
