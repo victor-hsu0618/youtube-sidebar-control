@@ -231,7 +231,11 @@
                 btn.classList.remove('active');
             });
             const activeBtnIndex = lang === 'en' ? 0 : 1;
-            document.querySelectorAll('.lang-btn')[activeBtnIndex].classList.add('active');
+            // distinct buttons might not be in order if HTML changed, 
+            // but for this simple page, selecting by index 0/1 matches the HTML structure (English first, Chinese second)
+            const buttons = document.querySelectorAll('.lang-btn');
+            if (lang === 'en' && buttons[0]) buttons[0].classList.add('active');
+            if (lang === 'zh' && buttons[1]) buttons[1].classList.add('active');
 
             // Update content visibility
             document.getElementById('en-content').classList.remove('active');
@@ -246,12 +250,25 @@
             } else {
                 backLink.textContent = "Back to Home";
             }
+
+            // Save preference
+            localStorage.setItem('preferred-lang', lang);
         }
 
-        // Auto-detect browser language
+        // Auto-detect browser language or saved preference
+        const savedLang = localStorage.getItem('preferred-lang');
         const userLang = navigator.language || navigator.userLanguage;
-        if (userLang.includes('zh')) {
+
+        if (savedLang) {
+            switchLang(savedLang);
+        } else if (userLang.includes('zh')) {
             switchLang('zh');
+        } else {
+            // Default to English if no preference and not Chinese browser
+            // No need to call switchLang('en') explicitly as HTML defaults to English, 
+            // but calling it ensures button states are correct if we add more logic.
+            // Let's call it to be safe for button states.
+            switchLang('en');
         }
     </script>
 </body>
