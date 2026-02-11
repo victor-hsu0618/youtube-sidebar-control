@@ -35,7 +35,7 @@ Transform YouTube into your ultimate learning station. Designed for serious lear
 **3. Smart Notes & Timestamped Bookmarks**
 - Inspiration strikes fast! Add notes with automatic timestamps without stopping the video.
 - Click any note to jump exactly to that moment in the video.
-- **Global Search**: Find that one concept you learned months ago across all your video notes.
+- **Video-Specific Focus**: Notes are context-aware and tied to specific videos for organized learning.
 
 **4. Distraction-Free Sidebar**
 - All tools live in a sleek, dark-mode sidebar that doesn't clutter the video player.
