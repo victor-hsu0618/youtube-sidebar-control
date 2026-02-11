@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pricing - YouTube Study Companion</title>
+    <link rel="stylesheet" href="landing.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f1115;
+            color: #ccc;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 40px;
+            background: rgba(15, 17, 21, 0.9);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #222;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            font-weight: 700;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+        }
+
+        /* Language Switcher */
+        .lang-switch {
+            display: flex;
+            gap: 10px;
+            margin-right: 20px;
+        }
+
+        .lang-btn {
+            background: transparent;
+            border: 1px solid #444;
+            color: #888;
+            padding: 4px 12px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+
+        .lang-btn.active {
+            background: #ff0000;
+            color: #fff;
+            border-color: #ff0000;
+        }
+
+        .lang-zh,
+        .lang-en {
+            display: none;
+        }
+
+        body.lang-en-active .lang-en {
+            display: inline;
+        }
+
+        body.lang-zh-active .lang-zh {
+            display: inline;
+        }
+
+        body.lang-en-active blockquote.lang-en,
+        body.lang-en-active div.lang-en,
+        body.lang-en-active p.lang-en,
+        body.lang-en-active h1.lang-en,
+        body.lang-en-active h2.lang-en,
+        body.lang-en-active h3.lang-en,
+        body.lang-en-active section.lang-en {
+            display: block;
+        }
+
+        body.lang-zh-active blockquote.lang-zh,
+        body.lang-zh-active div.lang-zh,
+        body.lang-zh-active p.lang-zh,
+        body.lang-zh-active h1.lang-zh,
+        body.lang-zh-active h2.lang-zh,
+        body.lang-zh-active h3.lang-zh,
+        body.lang-zh-active section.lang-zh {
+            display: block;
+        }
+
+        .cta-btn {
+            background: #ff0000;
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            display: inline-block;
+            transition: all 0.3s;
+        }
+
+        .cta-btn:hover {
+            background: #cc0000;
+            transform: translateY(-2px);
+        }
+
+        footer {
+            padding: 40px 20px;
+            text-align: center;
+            border-top: 1px solid #222;
+            margin-top: 60px;
+        }
+    </style>
+</head>
+
+<body class="lang-en-active">
+
+    <header>
+        <a href="index.html" class="logo">
+            <img src="images/premium/icon.png" alt="Logo"
+                style="width: 24px; height: 24px; margin-right: 10px; border-radius: 4px;">
+            YouTube Study Companion
+        </a>
+        <nav style="display: flex; align-items: center;">
+            <div class="lang-switch">
+                <button id="btn-en" class="lang-btn active" onclick="switchLang('en')">EN</button>
+                <button id="btn-zh" class="lang-btn" onclick="switchLang('zh')">中</button>
+            </div>
+            <a href="index.html" style="color:white; text-decoration:none; font-size:0.9rem; margin-right: 20px;">
+                <span class="lang-en">Home</span>
+                <span class="lang-zh">首頁</span>
+            </a>
+            <a href="privacy.html" style="color:white; text-decoration:none; font-size:0.9rem; margin-right: 20px;">
+                <span class="lang-en">Privacy</span>
+                <span class="lang-zh">隱私政策</span>
+            </a>
+        </nav>
+    </header>
+
+    <section id="pricing" style="padding: 100px 20px; text-align: center;">
+        <h1 style="font-size: 3rem; margin-bottom: 20px; color: #fff;">
+            <span class="lang-en">Elevate Your Learning</span>
+            <span class="lang-zh">進階學習體驗</span>
+        </h1>
+        <p style="color: #888; max-width: 600px; margin: 0 auto 60px; font-size: 1.2rem;">
+            <span class="lang-en">Unlock the full potential of YouTube Study Companion with a Pro license. One-time
+                activation, lifetime benefits.</span>
+            <span class="lang-zh">取得 Pro 授權，解鎖 YouTube Study Companion 的完整潛力。一次啟用，終身享有。</span>
+        </p>
+
+        <div
+            style="max-width: 450px; margin: 0 auto; background: #1a1d23; padding: 60px 40px; border-radius: 24px; border: 1px solid #333; box-shadow: 0 30px 60px rgba(0,0,0,0.5);">
+            <div style="font-size: 3.5rem; font-weight: 800; color: #fff; margin-bottom: 10px;">Pro</div>
+            <p style="color: #ff0000; font-weight: 600; margin-bottom: 40px; font-size: 1.1rem;">
+                <span class="lang-en">Support Continued Development</span>
+                <span class="lang-zh">支持持續開發</span>
+            </p>
+
+            <ul
+                style="text-align: left; color: #ccc; margin-bottom: 50px; list-style: none; padding: 0; font-size: 1.1rem;">
+                <li style="margin-bottom: 16px; display: flex; align-items: center;">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="#4CAF50" style="margin-right: 12px;">
+                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                    </svg>
+                    <span class="lang-en">Unlimited Library Videos</span>
+                    <span class="lang-zh">無限量儲存影片</span>
+                </li>
+                <li style="margin-bottom: 16px; display: flex; align-items: center;">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="#4CAF50" style="margin-right: 12px;">
+                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                    </svg>
+                    <span class="lang-en">Unlimited Markers Per Video</span>
+                    <span class="lang-zh">單一影片無限量標記</span>
+                </li>
+                <li style="margin-bottom: 16px; display: flex; align-items: center;">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="#4CAF50" style="margin-right: 12px;">
+                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                    </svg>
+                    <span class="lang-en">Full Cloud Synchronization</span>
+                    <span class="lang-zh">完整雲端同步功能</span>
+                </li>
+                <li style="margin-bottom: 16px; display: flex; align-items: center;">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="#4CAF50" style="margin-right: 12px;">
+                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                    </svg>
+                    <span class="lang-en">Priority Support & Updates</span>
+                    <span class="lang-zh">優先技術支援與更新</span>
+                </li>
+            </ul>
+
+            <h4 style="color: #fff; margin-bottom: 15px;">
+                <span class="lang-en">How to get your code?</span>
+                <span class="lang-zh">如何取得啟用碼？</span>
+            </h4>
+            <p style="font-size: 1rem; color: #888; margin-bottom: 30px; line-height: 1.5;">
+                <span class="lang-en">Please click the button below to buy me a coffee ($5 or more). I will manually
+                    send the activation code to your email within 24 hours.</span>
+                <span class="lang-zh">請點擊下方按鈕支持作者 ($5 或更多)。我將在 24 小時內手動將啟用碼發送至您的電子郵件。</span>
+            </p>
+
+            <a href="https://www.buymeacoffee.com/victorhsu" target="_blank" class="cta-btn"
+                style="width: 100%; box-sizing: border-box; display: block;">
+                <span class="lang-en">Buy Me a Coffee & Get Pro</span>
+                <span class="lang-zh">支持作者並取得 Pro</span>
+            </a>
+        </div>
+    </section>
+
+    <footer>
+        <p>© 2026 YouTube Study Companion. Built for learners.</p>
+        <p><a href="index.html" id="back-link" style="color: #888; text-decoration: none;">
+                <span class="lang-en">Back to Home</span>
+                <span class="lang-zh">返回首頁</span>
+            </a></p>
+    </footer>
+
+    <script>
+        function switchLang(lang) {
+            document.body.classList.remove('lang-en-active', 'lang-zh-active');
+            document.body.classList.add('lang-' + lang + '-active');
+            document.getElementById('btn-en').classList.remove('active');
+            document.getElementById('btn-zh').classList.remove('active');
+            document.getElementById('btn-' + lang).classList.add('active');
+            localStorage.setItem('preferred-lang', lang);
+        }
+
+        const savedLang = localStorage.getItem('preferred-lang');
+        const userLang = navigator.language || navigator.userLanguage;
+        if (savedLang) switchLang(savedLang);
+        else if (userLang.includes('zh')) switchLang('zh');
+        else switchLang('en');
+    </script>
+</body>
+
+</html>
