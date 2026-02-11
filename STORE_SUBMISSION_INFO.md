@@ -42,8 +42,8 @@ Transform YouTube into your ultimate learning station. Designed for serious lear
 - Resize and toggle visibility as needed.
 
 **🔐 Pro Features (Optional)**
-- **Unlimited Library Videos**: Save more than the 10-video limit of the Free version.
-- **Unlimited Markers**: Remove the 10-marker per group limit for detailed study.
+- **Extended Library**: Save more than the 10-video limit of the Free version.
+- **Extended Markers**: Increase marker capacity per group for detailed study.
 - Support potential future updates!
 
 ---
