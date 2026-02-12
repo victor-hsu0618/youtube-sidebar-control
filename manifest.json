@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "YouTube Study Companion",
-  "version": "2.5.1",
+  "version": "3.0.0-beta",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAt8ZC1qo54L5BTCyrdapcRZek7bzKtfKyeV8RFILvZ7sIORCBlAM0IkwKuCwz2GzWLoRNzWYWd0P8TqCnm3+Be1qBJ993GPIjdsQaImQmhpVckVuboBA04NdF+0rxIRAJz29g3U6iNAaMh2OwpYs4ivQrKAg3AwaECTd2twwQKjzzGnmzQiVLCgDAM3BbD8OsbmXu7KfmT0TMAbnR87eAJ1pXovXzJp8f2sazExbUv2sDP0hOtQH6GXV04t/RVSD0bLgVUMCKcxtlHCP+L3JOS5rPmAWShKtOPsh5xiNTBwfGMrm3v+gu7V7kn/dG8dpeTfKgFBRYjWIvb46fmM5iUwIDAQAB",
   "description": "Professional playback controls for learning: Speed, Loop, Bookmarks, and Notes.",
   "permissions": [
