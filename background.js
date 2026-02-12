@@ -47,8 +47,10 @@ chrome.runtime.onStartup.addListener(() => {
 
 // Hotkey Relay
 chrome.commands.onCommand.addListener(async (command) => {
-    const tabs = await chrome.tabs.query({ url: "*://*.youtube.com/watch*", active: true, currentWindow: true });
-    const targetTab = tabs[0] || (await chrome.tabs.query({ url: "*://*.youtube.com/watch*" }))[0];
+    // Inclusive matching for all video formats
+    const queryOptions = { url: ["*://*.youtube.com/watch*", "*://*.youtube.com/shorts*", "*://*.youtube.com/v/*"] };
+    const tabs = await chrome.tabs.query({ ...queryOptions, active: true, currentWindow: true });
+    const targetTab = tabs[0] || (await chrome.tabs.query(queryOptions))[0];
 
     if (targetTab) {
         let action = '';
@@ -57,8 +59,16 @@ chrome.commands.onCommand.addListener(async (command) => {
         else if (command === 'add-marker') action = 'ADD_BOOKMARK_REQUEST';
 
         if (action) {
-            chrome.tabs.sendMessage(targetTab.id, { action, ... (typeof payload !== 'undefined' ? payload : {}) })
+            chrome.tabs.sendMessage(targetTab.id, { action })
                 .catch(err => console.log('Hotkey relay failed:', err));
         }
+    }
+});
+
+// Listener for content script utilities
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (msg.action === 'GET_TAB_ID') {
+        sendResponse({ tabId: sender.tab ? sender.tab.id : null });
+        return true;
     }
 });

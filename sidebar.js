@@ -173,11 +173,12 @@ try {
     // --- Real-time State Synchronization (Solution A: Hybrid Architecture) ---
     // Listen to session storage changes for INSTANT UI updates (<5ms latency)
     chrome.storage.session.onChanged.addListener((changes, areaName) => {
-        if (areaName !== 'session') return;
+        if (areaName !== 'session' || !connectedTabId) return;
 
-        if (changes.videoPlaying) {
-            const newPlayingState = changes.videoPlaying.newValue;
-            console.log('[YT Study Sidebar] Instant state update from storage:', newPlayingState ? 'PLAYING' : 'PAUSED');
+        const stateKey = `videoPlaying_${connectedTabId}`;
+        if (changes[stateKey]) {
+            const newPlayingState = changes[stateKey].newValue;
+            console.log(`[YT Study Sidebar] Instant state update (${stateKey}):`, newPlayingState ? 'PLAYING' : 'PAUSED');
 
             // Update UI immediately - this bypasses message passing delay!
             isCurrentlyPlaying = newPlayingState;
@@ -189,15 +190,22 @@ try {
     });
 
     // Initialize state from session storage on load
-    chrome.storage.session.get(['videoPlaying'], (result) => {
-        if (result.videoPlaying !== undefined) {
-            isCurrentlyPlaying = result.videoPlaying;
-            if (playPauseBtn) {
-                playPauseBtn.innerHTML = isCurrentlyPlaying ? ICON_PAUSE : ICON_PLAY;
-            }
-            console.log('[YT Study Sidebar] Initial state loaded from storage:', isCurrentlyPlaying ? 'PLAYING' : 'PAUSED');
+    function refreshInitialState() {
+        if (!connectedTabId) {
+            console.log('[YT Study Sidebar] refreshInitialState skipped: No connectedTabId');
+            return;
         }
-    });
+        const stateKey = `videoPlaying_${connectedTabId}`;
+        chrome.storage.session.get([stateKey], (result) => {
+            if (result[stateKey] !== undefined) {
+                isCurrentlyPlaying = result[stateKey];
+                if (playPauseBtn) {
+                    playPauseBtn.innerHTML = isCurrentlyPlaying ? ICON_PAUSE : ICON_PLAY;
+                }
+                console.log(`[YT Study Sidebar] State synchronized from storage (${stateKey}):`, isCurrentlyPlaying ? 'PLAYING' : 'PAUSED');
+            }
+        });
+    }
 
     // --- Navigation ---
     function switchView(viewName) {
@@ -371,7 +379,9 @@ try {
                 try {
                     // Quick validation: try to get tab info
                     const tab = await chrome.tabs.get(connectedTabId);
-                    if (tab && tab.url && tab.url.includes('youtube.com/watch')) {
+                    // Inclusive matching for video pages
+                    const isYT = tab && tab.url && (tab.url.includes('youtube.com/watch') || tab.url.includes('/shorts/') || tab.url.includes('/v/'));
+                    if (isYT) {
                         targetTabId = connectedTabId;
                     } else {
                         // Cached tab is no longer valid
@@ -385,7 +395,8 @@ try {
 
             // Optimized single query for both active and any YouTube tab
             if (!targetTabId) {
-                const tabs = await chrome.tabs.query({ url: "*://*.youtube.com/watch*" });
+                const queryOptions = { url: ["*://*.youtube.com/watch*", "*://*.youtube.com/shorts*", "*://*.youtube.com/v/*"] };
+                const tabs = await chrome.tabs.query(queryOptions);
                 if (tabs.length > 0) {
                     // Prefer active tab in current window
                     const currentWindow = await chrome.windows.getCurrent();
@@ -1850,13 +1861,15 @@ try {
             updateLoopVisuals();
         }
         else if (msg.action === 'TIME_UPDATE') {
+            // Only update time if it matches current video or if we are still uninitialized
+            if (msg.videoId && currentVideoId && msg.videoId !== currentVideoId) return;
+
             const isGuarded = (Date.now() - lastCommandSentTime < 200);
             if (!isGuarded) {
                 lastKnownCurrentTime = msg.currentTime;
                 if (!isDraggingProgress) {
                     updateUIWithTime(msg.currentTime);
                 }
-                // syncMarkersUI will respect Follow toggle internally
                 syncMarkersUI();
             }
         }
@@ -1867,6 +1880,12 @@ try {
             }
         }
         else if (msg.action === 'BOOKMARK_ADDED') {
+            // CRITICAL: Block saving if videoId doesn't match to prevent data corruption
+            if (msg.videoId && msg.videoId !== currentVideoId) {
+                console.warn("[YT Study] Blocked bookmark addition: Video ID mismatch.", { msg: msg.videoId, current: currentVideoId });
+                return;
+            }
+
             const groupName = currentVideoData.activeGroup || "Default";
             if (!currentVideoData.tagGroups) currentVideoData.tagGroups = {};
             if (!currentVideoData.tagGroups[groupName]) currentVideoData.tagGroups[groupName] = [];
@@ -2272,6 +2291,7 @@ try {
                 try {
                     await sendMessage('GET_STATUS');
                     console.log('[YT Study] Connected to tab', connectedTabId);
+                    refreshInitialState(); // Sync UI after connection
                 } catch (e) {
                     if (attempt < 15) {
                         // Faster initial retry (50ms) for first 3 attempts, then backoff

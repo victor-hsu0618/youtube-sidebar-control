@@ -166,3 +166,45 @@ Google 會要求解釋為什麼需要以下權限，請參考以下寫法：
 4.  [ ] 填寫：填入上述 Store Listing 資訊。
 5.  [ ] 圖片：上傳 Icon, Screenshots, Promo Tiles。
 6.  [ ] 送審：按 "Submit for Review"。
+
+---
+
+## 6. Single Purpose (單一用途說明)
+
+**推薦填寫英文以利全球審核：**
+
+> "The single purpose of YouTube Study Companion is to provide a dedicated, distraction-free interface for video-based learning on YouTube. It achieves this by consolidating professional playback tools—specifically fine-grained speed control (0.1x increments), A-B loop repetition, and timestamped personal notes—into a single, integrated sidebar. Unlike general toolkits, every feature within this extension is strictly designed to help users dissect and review educational content more efficiently. By localizing all controls in the sidebar, it ensures that students, musicians, and language learners can interact with the video information without ever covering the video player itself, thereby maintaining a continuous and effective study flow."
+
+---
+
+## 7. 常見問題與審核注意事項 (FAQ & Review Notes)
+
+### Q: 為什麼 Chrome Store 顯示「已更新：1970年1月1日」？
+**原因：** 這是 Unix 紀元 (Unix Epoch) 的起點。當數據遺失、尚未同步或欄位為空值時，系統會預設顯示為 0。
+*   這是 **Google 系統端** 的問題，通常發生在剛上傳或審核中。
+*   **解決方案：** 無需處理，審核通過後系統會自動更新為正確的日期。
+
+### Q: 如何管理測試人員與進行測試？
+
+如果您希望使用 Chrome 線上應用程式商店的官方測試功能（需等待初次審核通過後）：
+
+#### 1. 設定受信任的測試人員名單 (Trusted Testers)
+*   **位置**：登入 [Chrome Developer Dashboard](https://chrome.google.com/webstore/devconsole/) -> 點擊左側選單的「**Account (帳戶)**」。
+*   **設定**：在「**Management (管理)**」分頁中，找到「**Trusted tester accounts**」。
+*   **操作**：在此處輸入測試人員的 Google Email 帳號（多個帳號用逗號隔開），或使用 Google Groups。
+*   **注意**：這份名單是**帳號層級**的，您所有的擴充功能都可以共享這份測試名單。
+
+#### 2. 將擴充功能發佈給測試人員
+*   **位置**：進入擴充功能的管理頁面 -> 點擊「**Distribution (發佈)**」。
+*   **Visibility (能見度)** 選擇：
+    *   **Private (私下)**：只有您在第一步設定的名單可以看到並安裝。
+    *   **Unlisted (不公開)**：只要有連結的人就能安裝，但不會在商店搜尋結果中出現。
+*   **提醒**：**初次發佈**（無論是公開、私下或不公開）**都必須經過 Google 人工審核**。
+
+#### 3. 審核期間的緊急測試方案 (不需經過 Google)
+如果您在等待審核時，急需讓測試人員看到功能，請使用此方案：
+*   **步驟**：
+    1. 將包裝好的 Source Code 資料夾（含 `manifest.json`）壓縮傳給測試人員。
+    2. 測試人員解壓縮後，至 `chrome://extensions/` 開啟「**開發人員模式**」。
+    3. 點擊「**載入解壓縮 (Load unpacked)**」，並選取該資料夾。
+*   **優點**：完全繞過審核，即改即測。

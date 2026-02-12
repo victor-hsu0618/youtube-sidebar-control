@@ -5,21 +5,73 @@ let loopEnd = null;
 let loopEnabled = false;
 let initAttempts = 0;
 let lastInitedVideoId = null;
+let isInitializing = false;
+let myTabId = null;
+
+// Request Tab ID on load
+chrome.runtime.sendMessage({ action: 'GET_TAB_ID' }, (response) => {
+    if (response && response.tabId) {
+        myTabId = response.tabId;
+        console.log('[YT Study] Content script assigned Tab ID:', myTabId);
+        broadcastPlayState(); // Initial broadcast with tab ID
+    }
+});
+
+function getActiveVideoId() {
+    const params = new URLSearchParams(window.location.search);
+    let id = params.get('v');
+
+    if (!id && window.location.pathname.startsWith('/shorts/')) {
+        const parts = window.location.pathname.split('/');
+        id = parts[2];
+    }
+
+    // Check player for source of truth if available
+    try {
+        const player = document.getElementById('movie_player');
+        if (player && typeof player.getVideoData === 'function') {
+            const data = player.getVideoData();
+            if (data && data.video_id) return data.video_id;
+        }
+    } catch (e) { }
+
+    return id;
+}
 
 function init(shouldResetLoop = false) {
+    if (isInitializing) return;
+
+    const currentVideoId = getActiveVideoId();
+    if (!currentVideoId) {
+        console.log('[YT Study] No active video ID found, skipping init');
+        return;
+    }
+
+    isInitializing = true;
+
     if (shouldResetLoop) {
-        console.log('[YT Study] Resetting A-B Loop for new video');
+        console.log('[YT Study] Resetting A-B Loop for new video:', currentVideoId);
         loopStart = null;
         loopEnd = null;
         loopEnabled = false;
         notifyLoop();
     }
+
     video = document.querySelector('video.html5-main-video') || document.querySelector('video');
     if (!video) {
         initAttempts++;
+        isInitializing = false;
         // Faster retry for better responsiveness
         const retryDelay = initAttempts < 10 ? 100 : 500;
-        setTimeout(init, retryDelay);
+        setTimeout(() => init(shouldResetLoop), retryDelay);
+        return;
+    }
+
+    // Check if the video element is actually ready (for SPA transitions)
+    if (video.readyState < 1 && initAttempts < 10) {
+        initAttempts++;
+        isInitializing = false;
+        setTimeout(() => init(shouldResetLoop), 200);
         return;
     }
 
@@ -43,11 +95,12 @@ function init(shouldResetLoop = false) {
     video.addEventListener('play', broadcastPlayState);
     video.addEventListener('pause', broadcastPlayState);
 
-    console.log('[YT Study] Video element found, content script ready');
+    console.log('[YT Study] Video element found, content script ready for:', currentVideoId);
 
     // Track what we inited on
-    const params = new URLSearchParams(window.location.search);
-    lastInitedVideoId = params.get('v');
+    lastInitedVideoId = currentVideoId;
+    initAttempts = 0;
+    isInitializing = false;
 
     notifyStatus(); // Initial sync
     notifyLoop();   // Initial sync
@@ -116,20 +169,20 @@ document.addEventListener('keydown', (e) => {
 
 // Instant state broadcasting to session storage for zero-latency UI
 function broadcastPlayState() {
-    if (!video) return;
+    if (!video || !myTabId) return;
     const isPlaying = !video.paused;
 
     // Update session storage immediately (this is FAST, <1ms)
+    // Use Tab ID in key to prevent cross-tab interference
     try {
+        const stateKey = `videoPlaying_${myTabId}`;
         chrome.storage.session.set({
-            videoPlaying: isPlaying,
-            lastStateUpdate: Date.now()
+            [stateKey]: isPlaying,
+            lastGlobalUpdate: Date.now()
         }).catch(() => { });
 
-        console.log('[YT Study] State broadcast:', isPlaying ? 'PLAYING' : 'PAUSED');
+        console.log(`[YT Study] State broadcast (${stateKey}):`, isPlaying ? 'PLAYING' : 'PAUSED');
     } catch (err) {
-        // Extension context invalidated (extension was reloaded)
-        // This is expected, just ignore it
         console.log('[YT Study] Cannot broadcast state, extension context invalidated');
     }
 }
@@ -174,8 +227,7 @@ let lastMetadataSentTime = 0;
 function notifyStatus(isPeriodic = false) {
     if (!video) return;
     try {
-        const idSearchParams = new URLSearchParams(window.location.search);
-        const videoId = idSearchParams.get('v');
+        const videoId = getActiveVideoId();
 
         // 1. Playback Status (Always send)
         chrome.runtime.sendMessage({
@@ -208,6 +260,7 @@ function notifyStatus(isPeriodic = false) {
                 // Low-overhead time update
                 chrome.runtime.sendMessage({
                     action: 'TIME_UPDATE',
+                    videoId: videoId,
                     currentTime: video.currentTime || 0
                 }).catch(() => { });
             }
@@ -220,22 +273,24 @@ function executeCommand(action, value) {
     const player = document.getElementById('movie_player');
     const hasAPI = player && typeof player.playVideo === 'function';
 
-    // Performance Marker
-    const startTime = performance.now();
-
     const useVideoFallback = () => {
-        // Validation: If current video ref is stale/detached, try to re-detect
         if (!video || !video.isConnected) {
             video = document.querySelector('video.html5-main-video') || document.querySelector('video');
         }
 
-        if (!video) {
-            console.warn(`[YT Study] Cannot execute fallback for ${action}: No video element found.`);
-            return;
-        }
+        if (!video) return;
 
-        console.log(`[YT Study] Using video element fallback for ${action}`);
-        if (action === 'PLAY') video.play().catch(() => { });
+        console.log(`[YT Study] Executing fallback for ${action}`);
+        if (action === 'PLAY') {
+            const playPromise = video.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                    console.warn("[YT Study] video.play() failed:", error);
+                    // If it failed due to user gesture requirement, we might need 
+                    // to show a UI hint later, but for now we just log it.
+                });
+            }
+        }
         else if (action === 'PAUSE') video.pause();
         else if (action === 'SEEK') video.currentTime = value;
         else if (action === 'SPEED') video.playbackRate = value;
@@ -246,14 +301,22 @@ function executeCommand(action, value) {
             case 'PLAY':
                 if (hasAPI) {
                     player.playVideo();
-                    // Speculative state update if API is slow
-                    if (video && video.paused) setTimeout(() => { if (video && video.paused) useVideoFallback(); }, 50);
+                    // YouTube sometimes ignores playVideo() if called immediately after navigation
+                    // or during certain overlay states. We check after a short delay.
+                    setTimeout(() => {
+                        if (video && video.paused) {
+                            console.log("[YT Study] API play failed to start, using fallback...");
+                            useVideoFallback();
+                        }
+                    }, 150);
                 } else useVideoFallback();
                 break;
             case 'PAUSE':
                 if (hasAPI) {
                     player.pauseVideo();
-                    if (video && !video.paused) setTimeout(() => { if (video && !video.paused) useVideoFallback(); }, 50);
+                    setTimeout(() => {
+                        if (video && !video.paused) useVideoFallback();
+                    }, 100);
                 } else useVideoFallback();
                 break;
             case 'SEEK':
@@ -261,21 +324,13 @@ function executeCommand(action, value) {
                 else useVideoFallback();
                 break;
             case 'SPEED':
-                if (hasAPI) {
-                    player.setPlaybackRate(value);
-                    // Also set on video element for immediate feedback
-                    if (video) video.playbackRate = value;
-                } else useVideoFallback();
+                if (hasAPI) player.setPlaybackRate(value);
+                if (video) video.playbackRate = value;
                 break;
         }
     } catch (e) {
-        console.warn('[YT Study] API execution failed, falling back to video element:', e);
+        console.warn('[YT Study] Command execution error, falling back:', e);
         useVideoFallback();
-    }
-
-    const duration = performance.now() - startTime;
-    if (duration > 15) {
-        console.warn(`[YT Study] Command ${action} took ${duration.toFixed(2)}ms`);
     }
 }
 
@@ -393,7 +448,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
                 break;
             case 'ADD_BOOKMARK_REQUEST':
                 const curTime = video ? video.currentTime : 0;
-                chrome.runtime.sendMessage({ action: 'BOOKMARK_ADDED', time: curTime }).catch(() => { });
+                chrome.runtime.sendMessage({
+                    action: 'BOOKMARK_ADDED',
+                    videoId: getActiveVideoId(),
+                    time: curTime
+                }).catch(() => { });
                 sendResponse({ success: true });
                 break;
             case 'GET_STATUS':
@@ -428,16 +487,32 @@ init();
 
 // Watch for SPA navigation and Detached elements
 setInterval(() => {
-    const params = new URLSearchParams(window.location.search);
-    const currentV = params.get('v');
+    const currentV = getActiveVideoId();
 
     const isDetached = video && !video.isConnected;
     const isNewVideo = currentV && currentV !== lastInitedVideoId;
 
     if (isNewVideo || isDetached) {
-        console.log(`[YT Study] Re-initializing: isNewVideo=${isNewVideo}, isDetached=${isDetached}`);
+        console.log(`[YT Study] Re-initializing from interval: isNewVideo=${isNewVideo}, isDetached=${isDetached}`);
         init(isNewVideo);
     } else if (!video && document.querySelector('video')) {
         init();
     }
-}, 500); // More frequent check for faster response after navigation
+}, 1000); // Polling as fallback
+
+// Primary SPA Navigation Listeners
+document.addEventListener('yt-navigate-finish', () => {
+    const currentV = getActiveVideoId();
+    if (currentV !== lastInitedVideoId) {
+        console.log(`[YT Study] SPA Navigation Detected: ${lastInitedVideoId} -> ${currentV}`);
+        init(true);
+    }
+});
+
+document.addEventListener('yt-page-data-updated', () => {
+    // Sometimes title or metadata updates slightly after navigation
+    const currentV = getActiveVideoId();
+    if (currentV === lastInitedVideoId) {
+        notifyStatus();
+    }
+});
