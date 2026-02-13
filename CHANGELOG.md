@@ -4,6 +4,22 @@
 
 All notable changes to the **YouTube Study Companion** project will be documented in this file.
 
+## [3.0.0-beta] - 2026-02-13
+### Added
+- **Group Play (Playlist Mode)**: Automatic sequential playback of all videos within a Favorite Group.
+- **Playlist Scraper**: One-click detection and import of entire YouTube playlists into Favorite Groups.
+- **Zero-Latency Interaction**: Hybrid architecture using `chrome.storage.session` for instant UI feedback (<5ms).
+- **Favorites Management**: Dedicated button (Heart icon) to categorize videos into custom groups.
+- **Profile Defaulting**: New button (Star icon) to set specific sessions as the auto-load default for a video ID.
+- **Hotkeys**: Added `R` to restart current marker and `Alt+[ / ]` for playlist navigation.
+
+### Changed
+- **UI Redesign**: 
+    - **Stacked Meta Bar**: Video title now supports 3-line display and full width.
+    - **Icon Semantics**: Folder icon now represents Library (Storage); Heart icon represents Favorites (Grouping).
+    - **Enlarged Shortcut Guide**: Modal expanded for easier reading.
+- **Playlist UI**: Added green glow and "Group Play Mode" banner for visual focus.
+
 ## [2.5.1] - 2026-02-03
 ### Added
 - **Known Issues List**: Created bilingual `docs/KNOWN_ISSUES.md` to document Play/Pause lag, sync limitations, and lifecycle issues.
