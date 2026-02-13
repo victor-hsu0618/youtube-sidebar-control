@@ -232,7 +232,6 @@ function scrapePlaylistInfo() {
     if (!listId) return null;
 
     let title = "";
-    // On playlist page
     const titleEl = document.querySelector('ytd-playlist-header-renderer h1')
         || document.querySelector('ytd-playlist-header-renderer #text')
         || document.querySelector('ytd-playlist-header-renderer .title')
@@ -431,9 +430,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             console.log('[YT Study] Emergency video re-capture successful');
             init(); // Full re-init to ensure listeners are attached
         } else {
-            // Video still not found, respond with error immediately
-            sendResponse({ success: false, error: 'Video element not found' });
-            return true;
+            // Video still not found, but some actions (like SCRAPE_PLAYLIST) don't need it
+            if (msg.action !== 'SCRAPE_PLAYLIST') {
+                sendResponse({ success: false, error: 'Video element not found' });
+                return true;
+            }
         }
     }
 

@@ -1047,6 +1047,10 @@ try {
         btn.disabled = true;
 
         try {
+            // Force refresh connectedTabId to currently active tab for detection
+            const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+            if (tabs[0]) connectedTabId = tabs[0].id;
+
             const response = await sendMessage('SCRAPE_PLAYLIST');
             if (response && response.success && response.data) {
                 const playlist = response.data;
@@ -1425,6 +1429,44 @@ try {
         setTimeout(() => btn.style.color = origColor, 1000);
     });
 
+    async function toggleVideoDefault(key) {
+        if (!key) return;
+        const all = await chrome.storage.sync.get(null);
+        const video = all[key];
+        if (!video) return;
+
+        const vid = video.id || video.videoId || key.split('_')[1];
+        const newValue = !video.isDefault;
+        video.isDefault = newValue;
+
+        if (newValue) {
+            // Unset others for SAME video ID
+            const related = Object.keys(all).filter(k => k.startsWith('v_' + vid));
+            const updates = {};
+            related.forEach(k => {
+                if (k !== key && all[k].isDefault) {
+                    all[k].isDefault = false;
+                    updates[k] = all[k];
+                }
+            });
+            if (Object.keys(updates).length > 0) {
+                await chrome.storage.sync.set(updates);
+            }
+        }
+
+        await chrome.storage.sync.set({ [key]: video });
+
+        // If this is the current video, sync local state
+        if (key === currentStorageKey) {
+            currentVideoData.isDefault = newValue;
+            updateHeader();
+        }
+
+        updateStorageUsage();
+        loadLibrary();
+        loadFavorites();
+    }
+
     // --- Set Default Button ---
     document.getElementById('btn-set-default')?.addEventListener('click', async () => {
         if (!currentVideoId) return;
@@ -1435,28 +1477,7 @@ try {
             await saveData();
         }
 
-        // Toggle Default
-        const newValue = !currentVideoData.isDefault;
-        currentVideoData.isDefault = newValue;
-
-        if (newValue) {
-            // Unset others
-            const all = await chrome.storage.sync.get(null);
-            const related = Object.keys(all).filter(k => k.startsWith('v_' + currentVideoId));
-            const updates = {};
-            related.forEach(k => {
-                if (k !== currentStorageKey && all[k].isDefault) {
-                    all[k].isDefault = false;
-                    updates[k] = all[k];
-                }
-            });
-            if (Object.keys(updates).length > 0) {
-                await chrome.storage.sync.set(updates);
-            }
-        }
-
-        saveData();
-        loadFavorites();
+        await toggleVideoDefault(currentStorageKey);
     });
 
     // --- Manage Favorites Button ---
@@ -2417,7 +2438,8 @@ try {
                     <div class="library-meta" style="display:flex; justify-content:space-between; align-items:center;">
                         <span style="font-size:10px; color:#888;">${metaLabel}${favBadge} • ${count} markers</span>
                         <div style="display:flex; gap:4px;">
-                            <button class="icon-btn small-action set-fav-groups-btn" title="Add to Favorite Groups" style="width:20px;height:20px;font-size:10px;">★</button>
+                            <button class="icon-btn small-action toggle-item-default-btn" title="Set as My Default Profile" style="width:20px;height:20px;font-size:10px; color:${v.isDefault ? '#ffca28' : ''};">★</button>
+                            <button class="icon-btn small-action set-fav-groups-btn" title="Add to Favorite Groups" style="width:20px;height:20px;font-size:10px; color:${v.favoriteGroups && v.favoriteGroups.length > 0 ? '#ff4e45' : ''};">❤</button>
                             <button class="icon-btn small-action export-item-btn" title="Export" style="width:20px;height:20px;font-size:10px;">⬇</button>
                         </div>
                     </div>
@@ -2528,6 +2550,10 @@ try {
             el.querySelector('.set-fav-groups-btn').addEventListener('click', (e) => {
                 e.stopPropagation();
                 showFavGroupPicker(v._key);
+            });
+            el.querySelector('.toggle-item-default-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleVideoDefault(v._key);
             });
             container.appendChild(el);
         });
