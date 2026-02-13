@@ -44,16 +44,23 @@
         <!-- Video Meta & Library Save -->
         <div class="video-meta-bar">
           <div id="current-video-title" class="current-title" title="No Video Detected">No Video</div>
-          <div style="display: flex; gap: 4px;">
+          <div class="video-meta-actions">
             <button id="btn-detect-video" class="icon-btn small-btn" title="Auto Detect">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
                 <path
                   d="M7.5 5.6L10 7 8.6 4.5 10 2 7.5 3.4 5 2 6.4 4.5 5 7zM19 2l-1.4 2.5L15 2l1.4 3.4L15 7l2.5-1.4L19 7l1.4-2.5L23 2l-2.6 1.4zM16.5 9l-1.8 3.9L10.8 15l3.9 1.8L16.5 21l1.8-4.2 3.9-1.8-3.9-1.8z" />
               </svg>
             </button>
-            <button id="btn-set-default" class="icon-btn small-btn" title="Set as My default">
+            <button id="btn-set-default" class="icon-btn small-btn" title="Set as My Default Profile">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
                 <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+              </svg>
+            </button>
+            <button id="btn-manage-favorites" class="icon-btn small-btn" title="Manage Favorite Groups">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <path
+                  d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z">
+                </path>
               </svg>
             </button>
             <button id="btn-clone-session" class="icon-btn small-btn" title="Clone Session">
@@ -63,11 +70,8 @@
               </svg>
             </button>
             <button id="toggle-library-save" class="icon-btn small-btn" title="Save to Library">
-              <svg id="icon-heart" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
-                stroke-width="2">
-                <path
-                  d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z">
-                </path>
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
               </svg>
             </button>
           </div>

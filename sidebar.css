@@ -233,31 +233,43 @@ header {
   box-shadow: 0 0 6px var(--success-color);
 }
 
-/* Video Meta Bar */
+/* Video Meta Bar (Refined for v3.0) */
 .video-meta-bar {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  /* Stacked layout for more title space */
+  gap: 10px;
   background: #1a1a1a;
-  padding: 6px 10px;
-  border-radius: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
   border: 1px solid #333;
 }
 
 .current-title {
-  font-weight: 500;
-  font-size: 13px;
-  color: #eee;
-  flex: 1;
-  margin-right: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #fff;
+  line-height: 1.4;
+  width: 100%;
 
-  /* Multi-line truncation */
+  /* Multi-line truncation (Allow up to 3 lines) */
   display: -webkit-box;
-  line-clamp: 2;
-  -webkit-line-clamp: 2;
+  line-clamp: 3;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
   white-space: normal;
+}
+
+.video-meta-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  /* Subtle separator */
 }
 
 

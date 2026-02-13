@@ -1427,18 +1427,19 @@ try {
 
     // --- Set Default Button ---
     document.getElementById('btn-set-default')?.addEventListener('click', async () => {
-        if (!currentStorageKey || !currentVideoId) return;
+        if (!currentVideoId) return;
 
-        // Toggle
+        // Ensure saved first
+        if (!currentStorageKey) {
+            currentVideoData.isSaved = true;
+            await saveData();
+        }
+
+        // Toggle Default
         const newValue = !currentVideoData.isDefault;
         currentVideoData.isDefault = newValue;
 
         if (newValue) {
-            if (!currentVideoData.favoriteGroups) currentVideoData.favoriteGroups = [];
-            if (!currentVideoData.favoriteGroups.includes("Default")) {
-                currentVideoData.favoriteGroups.push("Default");
-            }
-
             // Unset others
             const all = await chrome.storage.sync.get(null);
             const related = Object.keys(all).filter(k => k.startsWith('v_' + currentVideoId));
@@ -1452,14 +1453,23 @@ try {
             if (Object.keys(updates).length > 0) {
                 await chrome.storage.sync.set(updates);
             }
-        } else {
-            if (currentVideoData.favoriteGroups) {
-                currentVideoData.favoriteGroups = currentVideoData.favoriteGroups.filter(g => g !== "Default");
-            }
         }
 
         saveData();
-        loadFavorites(); // Refresh favorites list if visible
+        loadFavorites();
+    });
+
+    // --- Manage Favorites Button ---
+    document.getElementById('btn-manage-favorites')?.addEventListener('click', async () => {
+        if (!currentVideoId) return;
+
+        // If not saved yet, save it first
+        if (!currentStorageKey) {
+            currentVideoData.isSaved = true;
+            await saveData();
+        }
+
+        showFavGroupPicker(currentStorageKey);
     });
 
     // --- Core Data Logic ---
@@ -1607,6 +1617,18 @@ try {
                 defaultBtn.style.color = '#ffca28'; // Gold
             } else {
                 defaultBtn.style.color = '';
+            }
+        }
+
+        const favBtn = document.getElementById('btn-manage-favorites');
+        if (favBtn) {
+            favBtn.className = 'icon-btn small-btn';
+            const hasGroups = currentVideoData.favoriteGroups && currentVideoData.favoriteGroups.length > 0;
+            if (hasGroups) {
+                favBtn.classList.add('active');
+                favBtn.style.color = '#ff4e45'; // Heart Red
+            } else {
+                favBtn.style.color = '';
             }
         }
     }
