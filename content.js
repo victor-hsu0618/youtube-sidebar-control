@@ -233,19 +233,22 @@ function scrapePlaylistInfo() {
 
     let title = "";
     // On playlist page
-    const titleEl = document.querySelector('ytd-playlist-header-renderer #text')
+    const titleEl = document.querySelector('ytd-playlist-header-renderer h1')
+        || document.querySelector('ytd-playlist-header-renderer #text')
         || document.querySelector('ytd-playlist-header-renderer .title')
         || document.querySelector('#header-description h3')
-        || document.querySelector('yt-dynamic-sizing-formatted-string#container');
+        || document.querySelector('yt-dynamic-sizing-formatted-string#container')
+        || document.querySelector('.ytd-playlist-header-renderer.title');
 
     // On watch page, find the playlist title in the panel
-    const panelTitleEl = document.querySelector('ytd-playlist-panel-renderer #title-container a');
+    const panelTitleEl = document.querySelector('ytd-playlist-panel-renderer #title-container a')
+        || document.querySelector('ytd-playlist-panel-renderer .title a');
 
     if (panelTitleEl) title = panelTitleEl.innerText;
     else if (titleEl) title = titleEl.innerText;
 
     // Fallback title from page title
-    if (!title) {
+    if (!title || title.trim() === "") {
         title = document.title.replace(' - YouTube', '');
     }
 
@@ -254,24 +257,51 @@ function scrapePlaylistInfo() {
     if (items.length === 0) {
         items = document.querySelectorAll('ytd-playlist-panel-video-renderer');
     }
+    // Fallback for list-style items in some layouts
+    if (items.length === 0) {
+        items = document.querySelectorAll('ytd-item-section-renderer ytd-playlist-video-renderer');
+    }
 
     items.forEach(item => {
-        const vLink = item.querySelector('a#thumbnail') || item.querySelector('a#wc-endpoint');
-        const vTitleEl = item.querySelector('#video-title');
-        if (vLink && vTitleEl) {
-            const vUrl = new URL(vLink.href, window.location.origin);
-            const vId = vUrl.searchParams.get('v');
-            if (vId) {
-                videos.push({
-                    id: vId,
-                    title: vTitleEl.innerText.trim(),
-                    thumbnail: `https://img.youtube.com/vi/${vId}/mqdefault.jpg`
-                });
+        // Find title element - it's often the best source for both title and href
+        const vTitleEl = item.querySelector('#video-title') || item.querySelector('a.yt-simple-endpoint');
+        const vThumbnail = item.querySelector('a#thumbnail');
+
+        let vId = null;
+        let vTitle = "";
+
+        // Try to get ID and Title from the title element (usually an <a>)
+        if (vTitleEl) {
+            vTitle = vTitleEl.innerText.trim();
+            const href = vTitleEl.getAttribute('href');
+            if (href) {
+                const url = new URL(href, window.location.origin);
+                vId = url.searchParams.get('v');
             }
+        }
+
+        // Fallback or verify ID from thumbnail
+        if (!vId && vThumbnail) {
+            const href = vThumbnail.getAttribute('href');
+            if (href) {
+                const url = new URL(href, window.location.origin);
+                vId = url.searchParams.get('v');
+            }
+        }
+
+        if (vId) {
+            videos.push({
+                id: vId,
+                title: vTitle || `Video ${videos.length + 1}`,
+                thumbnail: `https://img.youtube.com/vi/${vId}/mqdefault.jpg`
+            });
         }
     });
 
-    if (videos.length === 0) return null;
+    if (videos.length === 0) {
+        console.warn(`[YT Study] Scrape failed: Found 0 items for list ${listId}`);
+        return null;
+    }
 
     return {
         listId: listId,
