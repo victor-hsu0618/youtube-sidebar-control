@@ -14,7 +14,7 @@
     <header class="compact-nav-bar">
       <div class="nav-controls">
         <div class="brand-assets">
-          <span class="version-badge">v2.5.1</span>
+          <span class="version-badge">v3.0.0 (Beta)</span>
           <div class="status-indicator" id="connection-status" title="Disconnected"></div>
         </div>
         <button id="nav-player" class="nav-btn active">Player</button>
@@ -37,6 +37,7 @@
 
     <!-- Player View -->
     <div id="view-player">
+      <div id="group-play-indicator" class="group-play-banner">Group Play Mode Active</div>
 
       <!-- Sticky Top Panel -->
       <div class="player-top-panel">
@@ -101,9 +102,14 @@
 
           <!-- Transport Controls -->
           <div class="transport-controls">
-            <button id="restart-btn" class="icon-btn" title="Back to Start (Home)">
+            <button id="prev-video-btn" class="icon-btn" title="Previous Video in Group (Alt+P)" style="display:none;">
               <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
                 <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" />
+              </svg>
+            </button>
+            <button id="restart-btn" class="icon-btn" title="Back to Start (Home)">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
               </svg>
             </button>
             <button id="rwd-btn" class="icon-btn" title="Rewind 10s (J)">
@@ -119,6 +125,11 @@
             <button id="fwd-btn" class="icon-btn" title="Forward 10s (L)">
               <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
                 <path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z" />
+              </svg>
+            </button>
+            <button id="next-video-btn" class="icon-btn" title="Next Video in Group (Alt+N)" style="display:none;">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
               </svg>
             </button>
             <button id="jump-loop" class="icon-btn mini-loop-btn" title="Jump to Start A ({)">
@@ -151,8 +162,25 @@
       <!-- Player Sub-Tabs -->
       <div class="player-tabs">
         <button id="tab-markers" class="tab-btn active">Markers</button>
+        <button id="tab-playlist" class="tab-btn" style="display:none;">Playlist</button>
         <button id="tab-controls" class="tab-btn">Advanced <span id="nav-upgrade-dot"
             style="display:none; color:var(--accent-color); font-size:8px; vertical-align:top;">(Upgrade)</span></button>
+      </div>
+
+      <div id="panel-playlist" class="sub-panel">
+        <section class="control-group" style="padding: 10px 0;">
+          <div class="section-header"
+            style="padding: 0 10px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <h2 id="playlist-group-title" style="margin:0;">Group Playlist</h2>
+            <button id="btn-stop-playlist" class="secondary-btn"
+              style="padding:2px 10px; font-size:10px; margin:0; width:auto; background:var(--danger-color); color:#fff; border-color:transparent;">⏹
+              Stop</button>
+          </div>
+          <div id="player-playlist-items" class="favorites-list"
+            style="max-height: calc(100vh - 350px); overflow-y: auto;">
+            <!-- Playlist items injected here -->
+          </div>
+        </section>
       </div>
 
       <div id="panel-markers" class="sub-panel active">
@@ -241,11 +269,11 @@
 
               <div id="monetization-test-box"
                 style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed #444; display: flex; flex-direction: column; gap: 8px;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                   <span id="user-account-display"
-                    style="font-size: 10px; color: #888; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Account:
+                    style="font-size: 10px; color: #888; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Account:
                     Detecting...</span>
-                  <div style="display:flex; gap:6px; align-items:center;">
+                  <div style="display:flex; gap:6px; align-items:center; flex-shrink: 0;">
                     <button id="btn-deactivate-pro"
                       style="display:none; background:none; border:none; color:#666; font-size:10px; cursor:pointer; text-decoration:underline; padding:0;">(Deactivate)</button>
                     <span id="pro-badge" class="pro-badge" style="display: none;">PRO</span>
@@ -271,11 +299,15 @@
       </div>
     </div>
 
-    <!-- Library View -->
+
     <div id="view-library" style="display: none;">
       <div class="library-header"
-        style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-        <h2>Saved Videos</h2>
+        style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <h2>Saved Videos</h2>
+          <button id="btn-toggle-edit" class="icon-btn small-btn" title="Toggle Edit Mode"
+            style="border:1px solid #444; border-radius:4px; width:45px; height:20px; font-size:9px; font-weight:700;">Edit</button>
+        </div>
         <div style="display:flex; gap:8px; align-items:center;">
           <div class="library-toolbar-actions" style="display:flex; gap:4px;">
             <button id="btn-global-export" class="secondary-btn"
@@ -288,6 +320,21 @@
           <button id="lib-btn-import" class="action-btn"
             style="font-size:10px; margin:0; padding:2px 8px; width:auto;">+ Add Video</button>
           <input type="file" id="lib-file-import" accept=".json" hidden />
+        </div>
+      </div>
+
+      <!-- Batch Action Bar (Initially Hidden) -->
+      <div id="lib-batch-actions" class="control-group"
+        style="display:none; margin-bottom:12px; padding:8px; align-items:center; gap:8px; font-size:11px; background:rgba(62,166,255,0.1); border-color:var(--accent-color);">
+        <div style="display:flex; align-items:center; gap:6px; flex:1;">
+          <input type="checkbox" id="lib-select-all" style="cursor:pointer;">
+          <span id="lib-selection-count" style="font-weight:600; color:var(--accent-color);">0 selected</span>
+        </div>
+        <div style="display:flex; gap:4px;">
+          <button id="btn-batch-add-fav" class="action-btn" style="padding:2px 8px; font-size:10px;">Set Favorite
+            Groups</button>
+          <button id="btn-batch-delete" class="secondary-btn"
+            style="padding:2px 8px; font-size:10px; border-color:var(--danger-color); color:var(--danger-color); margin:0;">Delete</button>
         </div>
       </div>
       <div id="library-list">
@@ -309,9 +356,65 @@
 
     <!-- Favorites View -->
     <div id="view-favorites" style="display: none;">
-      <div class="library-header" style="margin-bottom:12px;">
-        <h2>My Favorites (Default)</h2>
+      <div class="library-header" style="margin-bottom:8px; display:flex; flex-direction:column; gap:8px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+          <h2>Favorites</h2>
+          <div style="display:flex; gap:4px; align-items:center;">
+            <button id="btn-fav-toggle-edit" class="icon-btn small-btn" title="Toggle Edit Mode"
+              style="border:1px solid #444; border-radius:4px; width:45px; height:20px; font-size:9px; font-weight:700;">Edit</button>
+            <button id="btn-manage-fav-groups" class="icon-btn small-btn" title="Manage Groups">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                <path
+                  d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41l-0.36,2.54c-0.59,0.24-1.13,0.57-1.62,0.94L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.81,11.69,4.81,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="fav-group-bar" style="display:flex; gap:6px; align-items:center;">
+          <select id="fav-group-selector" class="group-select compact-select" style="flex:1;">
+            <option value="Default">Default</option>
+          </select>
+          <button id="btn-play-group" class="secondary-btn"
+            style="padding:2px 8px; font-size:10px; margin:0; width:auto;" title="Sequential Play Mode">▶ Play
+            Group</button>
+        </div>
+
+        <!-- Dynamic Storage Usage in Favorites -->
+        <div id="fav-sync-usage-container" class="storage-usage" title="Chrome Sync Storage Usage"
+          style="margin-top: 8px; padding: 0 4px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2px;">
+            <span style="font-size: 9px; color: #666;">Cloud Space Status</span>
+            <div id="fav-sync-usage-text" class="storage-text" style="font-size: 9px;">0% Used</div>
+          </div>
+          <div class="storage-bar-bg" style="height: 3px;">
+            <div id="fav-sync-usage-bar" class="storage-bar-fill"></div>
+          </div>
+        </div>
       </div>
+
+      <!-- Group Management Panel (Hidden by Default) -->
+      <div id="fav-group-mgmt" class="control-group" style="display:none; margin-bottom:12px; font-size:11px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <h3 style="font-size:12px;">Manage Favorite Groups</h3>
+          <button id="btn-close-fav-mgmt" style="background:none; border:none; color:#888; cursor:pointer;">×</button>
+        </div>
+        <div style="display:flex; gap:4px; margin-bottom:8px;">
+          <input type="text" id="new-fav-group-name" placeholder="New group name"
+            style="flex:1; background:#222; border:1px solid #444; color:#fff; border-radius:4px; padding:2px 6px;">
+          <button id="btn-add-fav-group" class="action-btn" style="padding:2px 8px;">Add</button>
+        </div>
+        <div id="fav-groups-list-mgmt"
+          style="display:flex; flex-direction:column; gap:4px; max-height:200px; overflow-y:auto; margin-bottom:8px;">
+          <!-- Group items with delete/rename buttons -->
+        </div>
+
+        <div style="padding-top:8px; border-top:1px solid #333; margin-top:4px;">
+          <button id="btn-manual-detect-playlist" class="secondary-btn"
+            style="width:100%; font-size:10px; padding:6px; border-color:var(--accent-color); color:var(--accent-color);">🔍
+            Detect & Import YouTube Playlist</button>
+        </div>
+      </div>
+
       <div id="favorites-list">
         <!-- Injected -->
         <p style="color: #666; text-align: center; padding: 20px;">No favorites set.</p>
@@ -373,6 +476,10 @@
             <td>Jump A / Toggle Loop</td>
           </tr>
           <tr>
+            <td><kbd>Alt</kbd>+<kbd>[</kbd> / <kbd>]</kbd></td>
+            <td>Prev / Next Video</td>
+          </tr>
+          <tr>
             <td><kbd>↑</kbd> / <kbd>↓</kbd></td>
             <td>Prev / Next Marker (Manual)</td>
           </tr>
@@ -412,6 +519,72 @@
     </div>
   </div>
 
+  <!-- Favorite Group Picker Modal -->
+  <div id="fav-group-picker-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title">Set Favorite Groups</div>
+        <button id="close-fav-picker"
+          style="background:none; border:none; color:#888; cursor:pointer; font-size:18px;">×</button>
+      </div>
+      <div id="fav-picker-body" class="modal-body">
+        <!-- Checkboxes injected here -->
+      </div>
+      <div class="modal-footer">
+        <button id="save-fav-picker" class="action-btn" style="padding:4px 12px; font-size:12px;">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Playlist Import Confirmation Modal -->
+  <div id="playlist-import-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width: 300px;">
+      <div class="modal-header">
+        <div class="modal-title">Import Playlist</div>
+        <button id="btn-close-playlist-modal"
+          style="background:none; border:none; color:#888; cursor:pointer; font-size:18px;">×</button>
+      </div>
+      <div class="modal-body">
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <div
+            style="background:rgba(255,193,7,0.05); border:1px solid rgba(255,193,7,0.2); padding:10px; border-radius:8px;">
+            <div id="playlist-modal-name" style="font-size:14px; font-weight:600; color:#fff; margin-bottom:4px;">
+              Playlist Name</div>
+            <div id="playlist-modal-count" style="font-size:11px; color:var(--accent-color);">0 videos detected</div>
+          </div>
+          <p style="font-size:12px; color:#aaa; line-height:1.5;">This will create a new Favorite Group and import all
+            videos from this playlist.</p>
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex; gap:8px;">
+        <button id="btn-cancel-playlist-import" class="secondary-btn"
+          style="flex:1; padding:8px; font-size:12px;">Cancel</button>
+        <button id="btn-confirm-playlist-import" class="action-btn" style="flex:2; padding:8px; font-size:12px;">Import
+          Now</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Generic Confirmation Modal -->
+  <div id="confirm-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width: 260px;">
+      <div class="modal-header">
+        <div id="confirm-modal-title" class="modal-title">Confirm Action</div>
+        <button id="btn-close-confirm-modal"
+          style="background:none; border:none; color:#888; cursor:pointer; font-size:18px;">×</button>
+      </div>
+      <div class="modal-body">
+        <p id="confirm-modal-message" style="font-size:12px; color:#aaa; line-height:1.5;">Are you sure you want to
+          proceed?</p>
+      </div>
+      <div class="modal-footer" style="display:flex; gap:8px;">
+        <button id="btn-cancel-confirm" class="secondary-btn"
+          style="flex:1; padding:8px; font-size:12px;">Cancel</button>
+        <button id="btn-confirm-action" class="action-btn"
+          style="flex:1; padding:8px; font-size:12px; background:var(--danger-color); border-color:var(--danger-color); color:#fff;">Delete</button>
+      </div>
+    </div>
+  </div>
   <script src="monetization.js"></script>
   <script src="sidebar.js"></script>
 </body>

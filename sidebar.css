@@ -1098,8 +1098,8 @@ input:checked+.slider:before {
 }
 
 .shortcut-table td {
-  padding: 6px 0;
-  font-size: 12px;
+  padding: 8px 0;
+  font-size: 13px;
   color: var(--text-secondary);
   border-bottom: 1px solid #2a2a2a;
 }
@@ -1108,19 +1108,19 @@ input:checked+.slider:before {
   background: #333;
   border: 1px solid #444;
   border-radius: 4px;
-  padding: 1px 5px;
+  padding: 2px 6px;
   font-family: inherit;
   color: #fff;
-  font-size: 10px;
+  font-size: 11px;
   box-shadow: 0 1.5px 0 #000;
   margin: 0 1px;
 }
 
 .global-hint {
   text-align: center;
-  font-size: 10px !important;
+  font-size: 11px !important;
   color: #666 !important;
-  padding-top: 12px !important;
+  padding-top: 14px !important;
   border-bottom: none !important;
 }
 
@@ -1283,6 +1283,23 @@ input:checked+.slider:before {
   border-radius: 8px;
   cursor: pointer;
   border: 1px solid #333;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.library-item:hover {
+  background: #2a2a2a;
+  transform: translateX(2px);
+}
+
+#library-list.edit-mode .library-item,
+#favorites-list.edit-mode .library-item {
+  cursor: default;
+}
+
+#library-list.edit-mode .library-item:hover,
+#favorites-list.edit-mode .library-item:hover {
+  background: var(--card-bg);
+  transform: none;
 }
 
 .library-item.active {
@@ -1297,6 +1314,15 @@ input:checked+.slider:before {
   object-fit: cover;
   border-radius: 4px;
   background: #000;
+}
+
+.library-item .item-select-checkbox {
+  display: none;
+}
+
+#library-list.edit-mode .item-select-checkbox,
+#favorites-list.edit-mode .item-select-checkbox {
+  display: block;
 }
 
 .library-info {
@@ -1422,7 +1448,7 @@ input:checked+.slider:before {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  width: 90px;
+  width: 100%;
 }
 
 #debug-console {
@@ -1464,4 +1490,114 @@ input:checked+.slider:before {
   color: var(--text-secondary);
   text-align: right;
   line-height: 1;
+}
+
+/* Modal Overlay & Content */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  backdrop-filter: blur(2px);
+}
+
+.modal-content {
+  background: var(--card-bg);
+  width: 90%;
+  max-width: 320px;
+  border-radius: var(--border-radius);
+  border: 1px solid #444;
+  padding: 20px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.modal-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent-color);
+}
+
+.modal-body {
+  margin-bottom: 16px;
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.fav-group-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.fav-group-item:last-child {
+  border-bottom: none;
+}
+
+.fav-group-item input[type="checkbox"] {
+  cursor: pointer;
+  accent-color: var(--accent-color);
+}
+
+.fav-group-item span {
+  font-size: 13px;
+  flex: 1;
+}
+
+/* Group Play Mode UI Enhancements */
+#view-player.playlist-mode-active {
+  border: 1px solid var(--success-color);
+  box-shadow: 0 0 10px rgba(76, 199, 19, 0.15);
+}
+
+.group-play-banner {
+  display: none;
+  background: var(--success-color);
+  color: #000;
+  font-size: 9px;
+  font-weight: 800;
+  text-align: center;
+  padding: 3px 0;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  border-radius: 4px;
+  margin-bottom: 6px;
+  animation: slideInDown 0.3s ease-out;
+}
+
+#view-player.playlist-mode-active .group-play-banner {
+  display: block;
+}
+
+@keyframes slideInDown {
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }

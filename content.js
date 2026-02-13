@@ -94,6 +94,9 @@ function init(shouldResetLoop = false) {
     // Real-time state broadcasting for instant UI updates
     video.addEventListener('play', broadcastPlayState);
     video.addEventListener('pause', broadcastPlayState);
+    video.addEventListener('ended', () => {
+        chrome.runtime.sendMessage({ action: 'VIDEO_ENDED', videoId: getActiveVideoId() }).catch(() => { });
+    });
 
     console.log('[YT Study] Video element found, content script ready for:', currentVideoId);
 
@@ -223,9 +226,66 @@ function handleTimeUpdate() {
     }
 }
 
+function scrapePlaylistInfo() {
+    const params = new URLSearchParams(window.location.search);
+    const listId = params.get('list');
+    if (!listId) return null;
+
+    let title = "";
+    // On playlist page
+    const titleEl = document.querySelector('ytd-playlist-header-renderer #text')
+        || document.querySelector('ytd-playlist-header-renderer .title')
+        || document.querySelector('#header-description h3')
+        || document.querySelector('yt-dynamic-sizing-formatted-string#container');
+
+    // On watch page, find the playlist title in the panel
+    const panelTitleEl = document.querySelector('ytd-playlist-panel-renderer #title-container a');
+
+    if (panelTitleEl) title = panelTitleEl.innerText;
+    else if (titleEl) title = titleEl.innerText;
+
+    // Fallback title from page title
+    if (!title) {
+        title = document.title.replace(' - YouTube', '');
+    }
+
+    const videos = [];
+    let items = document.querySelectorAll('ytd-playlist-video-renderer');
+    if (items.length === 0) {
+        items = document.querySelectorAll('ytd-playlist-panel-video-renderer');
+    }
+
+    items.forEach(item => {
+        const vLink = item.querySelector('a#thumbnail') || item.querySelector('a#wc-endpoint');
+        const vTitleEl = item.querySelector('#video-title');
+        if (vLink && vTitleEl) {
+            const vUrl = new URL(vLink.href, window.location.origin);
+            const vId = vUrl.searchParams.get('v');
+            if (vId) {
+                videos.push({
+                    id: vId,
+                    title: vTitleEl.innerText.trim(),
+                    thumbnail: `https://img.youtube.com/vi/${vId}/mqdefault.jpg`
+                });
+            }
+        }
+    });
+
+    if (videos.length === 0) return null;
+
+    return {
+        listId: listId,
+        title: title.trim() || "Imported Playlist",
+        videoCount: videos.length,
+        videos: videos
+    };
+}
+
 let lastMetadataSentTime = 0;
+
 function notifyStatus(isPeriodic = false) {
     if (!video) return;
+
     try {
         const videoId = getActiveVideoId();
 
@@ -239,7 +299,6 @@ function notifyStatus(isPeriodic = false) {
         // 2. Metadata (Throttle heavily)
         if (videoId) {
             const now = Date.now();
-            // Only send full metadata every 5 seconds if periodic, OR if specifically requested
             const shouldSendFullMetadata = !isPeriodic || (now - lastMetadataSentTime > 5000);
 
             if (shouldSendFullMetadata) {
@@ -257,7 +316,6 @@ function notifyStatus(isPeriodic = false) {
                     }
                 }).catch(() => { });
             } else {
-                // Low-overhead time update
                 chrome.runtime.sendMessage({
                     action: 'TIME_UPDATE',
                     videoId: videoId,
@@ -454,6 +512,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
                     time: curTime
                 }).catch(() => { });
                 sendResponse({ success: true });
+                break;
+            case 'SCRAPE_PLAYLIST':
+                const info = scrapePlaylistInfo();
+                sendResponse({ success: !!info, data: info });
                 break;
             case 'GET_STATUS':
                 notifyStatus();

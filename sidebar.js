@@ -121,6 +121,14 @@ try {
     let lastKnownDuration = 0; // Global duration sync for hotkeys
     let lastActiveLiTime = -1; // Track which marker is currently active to avoid redundant scroll/updates
     let lastCommandSentTime = 0; // Guard for speculative UI updates
+    let favoriteGroupsList = ["Default"];
+    let currentFavGroup = "Default";
+    let isLibraryEditMode = false;
+    let favoriteGroupOrders = {}; // Cache for custom orders
+    let isPlaylistMode = false;
+    let currentPlaylistItems = [];
+    let browsedGroupItems = []; // For Favorites view browsing
+    let detectedPlaylist = null;
 
     function createEmptyData(id = null, title = "Unknown") {
         return {
@@ -134,9 +142,184 @@ try {
             profileName: "New Session",
             activeGroup: "Default",
             tagGroups: { "Default": [], "Study": [], "Cust. A": [], "Cust. B": [] },
+            favoriteGroups: [], // Video can belong to multiple favorite groups
             duration: 0
         };
     }
+
+    // --- Favorite Groups Logic ---
+    async function initFavGroups() {
+        const data = await chrome.storage.sync.get('favorite_groups');
+        if (data.favorite_groups && Array.isArray(data.favorite_groups)) {
+            favoriteGroupsList = data.favorite_groups;
+        } else {
+            favoriteGroupsList = ["Default"];
+            await chrome.storage.sync.set({ 'favorite_groups': favoriteGroupsList });
+        }
+        updateFavGroupUI();
+    }
+
+    function updateFavGroupUI() {
+        const selector = document.getElementById('fav-group-selector');
+        if (!selector) return;
+
+        const currentVal = selector.value || currentFavGroup;
+        selector.innerHTML = '';
+        favoriteGroupsList.forEach(g => {
+            const opt = document.createElement('option');
+            opt.value = g;
+            opt.textContent = g;
+            selector.appendChild(opt);
+        });
+        if (favoriteGroupsList.includes(currentVal)) {
+            selector.value = currentVal;
+        } else {
+            selector.value = favoriteGroupsList[0];
+            currentFavGroup = favoriteGroupsList[0];
+        }
+
+        renderFavGroupMgmt();
+    }
+
+    function renderFavGroupMgmt() {
+        const container = document.getElementById('fav-groups-list-mgmt');
+        if (!container) return;
+        container.innerHTML = '';
+
+        favoriteGroupsList.forEach(g => {
+            const div = document.createElement('div');
+            div.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding:4px 6px; background:rgba(255,255,255,0.05); border-radius:4px; margin-bottom:2px;';
+
+            div.innerHTML = `
+                <span style="font-weight:500;">${g}</span>
+                <div style="display:flex; gap:8px;">
+                    <button class="rename-group-btn" style="background:none; border:none; color:var(--accent-color); cursor:pointer; font-size:10px; padding:0;">Rename</button>
+                    ${g !== 'Default' ? '<button class="delete-group-btn" style="background:none; border:none; color:var(--danger-color); cursor:pointer; font-size:10px; padding:0;">Delete</button>' : ''}
+                </div>
+            `;
+
+            div.querySelector('.rename-group-btn').onclick = (e) => { e.stopPropagation(); renameFavGroup(g); };
+            if (g !== 'Default') {
+                div.querySelector('.delete-group-btn').onclick = (e) => { e.stopPropagation(); deleteFavGroup(g); };
+            }
+            container.appendChild(div);
+        });
+    }
+
+    async function addFavGroup(name) {
+        name = name.trim();
+        if (!name || favoriteGroupsList.includes(name)) return;
+        favoriteGroupsList.push(name);
+        await chrome.storage.sync.set({ 'favorite_groups': favoriteGroupsList });
+        updateFavGroupUI();
+
+        // Auto-scroll to bottom of the management list so user sees the new item
+        setTimeout(() => {
+            const container = document.getElementById('fav-groups-list-mgmt');
+            if (container) {
+                container.scrollTop = container.scrollHeight;
+            }
+        }, 50);
+    }
+
+    async function deleteFavGroup(name) {
+        if (name === 'Default') return;
+
+        showConfirmModal(
+            "Delete Group",
+            `Delete favorite group "${name}"? Videos will remain but won't be in this group.`,
+            async () => {
+                favoriteGroupsList = favoriteGroupsList.filter(g => g !== name);
+                await chrome.storage.sync.set({ 'favorite_groups': favoriteGroupsList });
+
+                // Update all videos that had this group
+                const all = await chrome.storage.sync.get(null);
+                const updates = {};
+                Object.keys(all).forEach(key => {
+                    if (key.startsWith('v_') && all[key].favoriteGroups) {
+                        if (all[key].favoriteGroups.includes(name)) {
+                            all[key].favoriteGroups = all[key].favoriteGroups.filter(g => g !== name);
+                            updates[key] = all[key];
+                        }
+                    }
+                });
+                if (Object.keys(updates).length > 0) await chrome.storage.sync.set(updates);
+
+                updateFavGroupUI();
+                if (views.favorites.style.display !== 'none') loadFavorites();
+            }
+        );
+    }
+
+    async function renameFavGroup(oldName) {
+        const newName = prompt(`Rename group "${oldName}" to:`, oldName);
+        if (!newName || newName === oldName || favoriteGroupsList.includes(newName.trim())) return;
+        const trimmedNewName = newName.trim();
+
+        // Update list
+        favoriteGroupsList = favoriteGroupsList.map(g => g === oldName ? trimmedNewName : g);
+        await chrome.storage.sync.set({ 'favorite_groups': favoriteGroupsList });
+
+        // Update all videos that had this group
+        const all = await chrome.storage.sync.get(null);
+        const updates = {};
+        Object.keys(all).forEach(key => {
+            if (key.startsWith('v_')) {
+                let changed = false;
+                if (all[key].favoriteGroups && all[key].favoriteGroups.includes(oldName)) {
+                    all[key].favoriteGroups = all[key].favoriteGroups.map(g => g === oldName ? trimmedNewName : g);
+                    changed = true;
+                }
+                if (changed) updates[key] = all[key];
+            }
+        });
+        if (Object.keys(updates).length > 0) await chrome.storage.sync.set(updates);
+
+        updateFavGroupUI();
+        if (views.favorites.style.display !== 'none') loadFavorites();
+    }
+
+    initFavGroups();
+
+    // --- Edit Mode Logic ---
+    const toggleEditMode = () => {
+        isLibraryEditMode = !isLibraryEditMode;
+        const libList = document.getElementById('library-list');
+        const favList = document.getElementById('favorites-list');
+        const buttons = [document.getElementById('btn-toggle-edit'), document.getElementById('btn-fav-toggle-edit')];
+
+        buttons.forEach(btn => {
+            if (!btn) return;
+            if (isLibraryEditMode) {
+                btn.textContent = 'Done';
+                btn.style.background = 'var(--success-color)';
+                btn.style.color = '#000';
+            } else {
+                btn.textContent = 'Edit';
+                btn.style.background = 'transparent';
+                btn.style.color = '#888';
+            }
+        });
+
+        if (isLibraryEditMode) {
+            libList?.classList.add('edit-mode');
+            favList?.classList.add('edit-mode');
+        } else {
+            libList?.classList.remove('edit-mode');
+            favList?.classList.remove('edit-mode');
+
+            // Clear selections when exiting edit mode
+            document.querySelectorAll('.item-select-checkbox').forEach(cb => cb.checked = false);
+            updateBatchUI();
+        }
+
+        // Re-render to show/hide sort buttons and update UI state
+        loadLibrary();
+        loadFavorites();
+    };
+
+    document.getElementById('btn-toggle-edit')?.addEventListener('click', toggleEditMode);
+    document.getElementById('btn-fav-toggle-edit')?.addEventListener('click', toggleEditMode);
 
     // --- Elements ---
     const views = {
@@ -230,10 +413,12 @@ try {
     // --- Player Sub-Panels ---
     const subPanels = {
         markers: document.getElementById('panel-markers'),
+        playlist: document.getElementById('panel-playlist'),
         controls: document.getElementById('panel-controls')
     };
     const subTabs = {
         markers: document.getElementById('tab-markers'),
+        playlist: document.getElementById('tab-playlist'),
         controls: document.getElementById('tab-controls')
     };
 
@@ -251,6 +436,7 @@ try {
     }
 
     if (subTabs.markers) subTabs.markers.addEventListener('click', () => switchSubPanel('markers'));
+    if (subTabs.playlist) subTabs.playlist.addEventListener('click', () => switchSubPanel('playlist'));
     if (subTabs.controls) subTabs.controls.addEventListener('click', () => switchSubPanel('controls'));
 
     // --- Pop Out Logic (Solution: Separate Sidebar and Popup behaviors) ---
@@ -379,8 +565,8 @@ try {
                 try {
                     // Quick validation: try to get tab info
                     const tab = await chrome.tabs.get(connectedTabId);
-                    // Inclusive matching for video pages
-                    const isYT = tab && tab.url && (tab.url.includes('youtube.com/watch') || tab.url.includes('/shorts/') || tab.url.includes('/v/'));
+                    // Inclusive matching for video and playlist pages
+                    const isYT = tab && tab.url && (tab.url.includes('youtube.com/watch') || tab.url.includes('youtube.com/playlist') || tab.url.includes('/shorts/') || tab.url.includes('/v/'));
                     if (isYT) {
                         targetTabId = connectedTabId;
                     } else {
@@ -395,7 +581,7 @@ try {
 
             // Optimized single query for both active and any YouTube tab
             if (!targetTabId) {
-                const queryOptions = { url: ["*://*.youtube.com/watch*", "*://*.youtube.com/shorts*", "*://*.youtube.com/v/*"] };
+                const queryOptions = { url: ["*://*.youtube.com/watch*", "*://*.youtube.com/playlist*", "*://*.youtube.com/shorts*", "*://*.youtube.com/v/*"] };
                 const tabs = await chrome.tabs.query(queryOptions);
                 if (tabs.length > 0) {
                     // Prefer active tab in current window
@@ -410,7 +596,7 @@ try {
 
             if (!targetTabId) {
                 statusIndicator.classList.remove('connected');
-                statusIndicator.title = "Disconnected (No YT Video)";
+                statusIndicator.title = "Disconnected (No YouTube Page)";
                 return { success: false, error: 'No target tab' };
             }
 
@@ -814,6 +1000,394 @@ try {
     document.getElementById('lib-btn-import')?.addEventListener('click', () => libFileImport?.click());
     libFileImport?.addEventListener('change', importVideoData);
 
+    // --- Favorite Groups Listeners ---
+    document.getElementById('btn-manage-fav-groups')?.addEventListener('click', () => {
+        const mgmt = document.getElementById('fav-group-mgmt');
+        if (mgmt) mgmt.style.display = (mgmt.style.display === 'none' ? 'block' : 'none');
+    });
+
+    document.getElementById('btn-close-fav-mgmt')?.addEventListener('click', () => {
+        const mgmt = document.getElementById('fav-group-mgmt');
+        if (mgmt) mgmt.style.display = 'none';
+    });
+
+    document.getElementById('btn-add-fav-group')?.addEventListener('click', () => {
+        const input = document.getElementById('new-fav-group-name');
+        if (input && input.value.trim()) {
+            addFavGroup(input.value.trim());
+            input.value = '';
+        }
+    });
+
+    document.getElementById('fav-group-selector')?.addEventListener('change', () => {
+        currentFavGroup = document.getElementById('fav-group-selector').value;
+        loadFavorites();
+    });
+
+    document.getElementById('btn-play-group')?.addEventListener('click', () => {
+        togglePlaylist();
+    });
+
+    document.getElementById('prev-video-btn')?.addEventListener('click', () => {
+        playPrevVideo();
+    });
+
+    document.getElementById('next-video-btn')?.addEventListener('click', () => {
+        playNextVideo();
+    });
+
+    document.getElementById('btn-stop-playlist')?.addEventListener('click', () => {
+        togglePlaylist();
+    });
+
+    document.getElementById('btn-manual-detect-playlist')?.addEventListener('click', async () => {
+        const btn = document.getElementById('btn-manual-detect-playlist');
+        const origText = btn.textContent;
+        btn.textContent = 'Searching...';
+        btn.disabled = true;
+
+        try {
+            const response = await sendMessage('SCRAPE_PLAYLIST');
+            if (response && response.success && response.data) {
+                const playlist = response.data;
+                showPlaylistImportModal(playlist, async () => {
+                    btn.textContent = 'Importing...';
+                    await importPlaylistToGroup(playlist);
+                    btn.textContent = 'Import Done!';
+                    setTimeout(() => { btn.textContent = origText; }, 2000);
+                }, () => {
+                    btn.textContent = origText;
+                });
+            } else {
+                alert('No YouTube Playlist found on this page. Please make sure you are on a playlist page or a video with a playlist.');
+                btn.textContent = origText;
+            }
+        } catch (e) {
+            console.error(e);
+            btn.textContent = origText;
+        } finally {
+            btn.disabled = false;
+        }
+    });
+
+    /**
+     * Shows a custom modal for playlist import confirmation
+     */
+    function showPlaylistImportModal(playlist, onConfirm, onCancel) {
+        const modal = document.getElementById('playlist-import-modal');
+        const nameEl = document.getElementById('playlist-modal-name');
+        const countEl = document.getElementById('playlist-modal-count');
+        const closeBtn = document.getElementById('btn-close-playlist-modal');
+        const cancelBtn = document.getElementById('btn-cancel-playlist-import');
+        const confirmBtn = document.getElementById('btn-confirm-playlist-import');
+
+        if (!modal || !nameEl || !countEl) return;
+
+        nameEl.textContent = playlist.title;
+        countEl.textContent = `${playlist.videoCount} videos detected`;
+
+        const closeModal = () => {
+            modal.style.display = 'none';
+        };
+
+        confirmBtn.onclick = () => {
+            closeModal();
+            if (onConfirm) onConfirm();
+        };
+
+        closeBtn.onclick = closeModal;
+        modal.onclick = (e) => { if (e.target === modal) closeModal(); };
+
+        modal.style.display = 'flex';
+    }
+
+    /**
+     * Shows a generic confirmation modal
+     */
+    function showConfirmModal(title, message, onConfirm, onCancel, confirmText = 'Delete') {
+        const modal = document.getElementById('confirm-modal');
+        const titleEl = document.getElementById('confirm-modal-title');
+        const msgEl = document.getElementById('confirm-modal-message');
+        const closeBtn = document.getElementById('btn-close-confirm-modal');
+        const cancelBtn = document.getElementById('btn-cancel-confirm');
+        const confirmBtn = document.getElementById('btn-confirm-action');
+
+        if (!modal || !titleEl || !msgEl) return;
+
+        titleEl.textContent = title;
+        msgEl.textContent = message;
+        confirmBtn.textContent = confirmText;
+
+        const closeModal = () => {
+            modal.style.display = 'none';
+        };
+
+        confirmBtn.onclick = () => {
+            closeModal();
+            if (onConfirm) onConfirm();
+        };
+
+        cancelBtn.onclick = () => {
+            closeModal();
+            if (onCancel) onCancel();
+        };
+
+        closeBtn.onclick = closeModal;
+        modal.onclick = (e) => { if (e.target === modal) closeModal(); };
+
+        modal.style.display = 'flex';
+    }
+
+    async function importPlaylistToGroup(playlist) {
+        // 1. Create/Find Group
+        let groupName = playlist.title;
+        if (!favoriteGroupsList.includes(groupName)) {
+            favoriteGroupsList.push(groupName);
+            await chrome.storage.sync.set({ 'favorite_groups': favoriteGroupsList });
+        }
+        updateFavGroupUI();
+
+        // 2. Import Videos
+        const all = await chrome.storage.sync.get(null);
+        const updates = {};
+        const newOrder = [];
+
+        for (const v of playlist.videos) {
+            const videoKey = `v_${v.id}_${Date.now()}`;
+            // Check if already exists (simplistic check by ID)
+            let existingKey = Object.keys(all).find(k => k.startsWith(`v_${v.id}`) && all[k].isSaved);
+
+            if (existingKey) {
+                const existing = all[existingKey];
+                if (!existing.favoriteGroups) existing.favoriteGroups = [];
+                if (!existing.favoriteGroups.includes(groupName)) {
+                    existing.favoriteGroups.push(groupName);
+                    updates[existingKey] = existing;
+                }
+                newOrder.push(existingKey);
+            } else {
+                const newData = createEmptyData(v.id, v.title);
+                newData.thumbnail = v.thumbnail;
+                newData.isSaved = true;
+                newData.favoriteGroups = [groupName];
+                newData.createdAt = Date.now();
+                newData.updatedAt = Date.now();
+                updates[videoKey] = newData;
+                newOrder.push(videoKey);
+                // Also update local 'all' to avoid duplicates in same import
+                all[videoKey] = newData;
+            }
+        }
+
+        // 3. Save Order
+        favoriteGroupOrders[groupName] = newOrder;
+        updates['favorite_group_orders'] = favoriteGroupOrders;
+
+        await chrome.storage.sync.set(updates);
+
+        // Switch to the new group
+        const selector = document.getElementById('fav-group-selector');
+        if (selector) {
+            selector.value = groupName;
+            currentFavGroup = groupName;
+            switchView('favorites');
+            loadFavorites();
+        }
+
+        log(`Imported ${playlist.videoCount} videos to "${groupName}"`, "success");
+    }
+
+    async function showFavGroupPicker(videoKey) {
+        const modal = document.getElementById('fav-group-picker-modal');
+        const body = document.getElementById('fav-picker-body');
+        if (!modal || !body) return;
+
+        const all = await chrome.storage.sync.get(videoKey);
+        const video = all[videoKey];
+        if (!video) return;
+
+        const currentGroups = video.favoriteGroups || [];
+        if (video.isDefault && !currentGroups.includes("Default")) currentGroups.push("Default");
+
+        // Clear and Populate
+        body.innerHTML = '';
+        favoriteGroupsList.forEach(groupName => {
+            const item = document.createElement('label');
+            item.className = 'fav-group-item';
+            const checked = currentGroups.includes(groupName) ? 'checked' : '';
+            item.innerHTML = `
+                <input type="checkbox" value="${groupName}" ${checked}>
+                <span>${groupName}</span>
+            `;
+            body.appendChild(item);
+        });
+
+        // Show Modal
+        modal.style.display = 'flex';
+
+        // Setup Buttons (One-time or re-bind)
+        const closeBtn = document.getElementById('close-fav-picker');
+        const saveBtn = document.getElementById('save-fav-picker');
+
+        const closeModal = () => modal.style.display = 'none';
+
+        closeBtn.onclick = closeModal;
+        modal.onclick = (e) => { if (e.target === modal) closeModal(); };
+
+        saveBtn.onclick = async () => {
+            const checkedInputs = body.querySelectorAll('input:checked');
+            const newGroups = Array.from(checkedInputs).map(input => input.value);
+
+            video.favoriteGroups = newGroups;
+            // Also update isDefault for backward compatibility if "Default" is selected
+            video.isDefault = newGroups.includes("Default");
+
+            await chrome.storage.sync.set({ [videoKey]: video });
+
+            // If this is the current video, sync its state
+            if (videoKey === currentStorageKey) {
+                currentVideoData.favoriteGroups = newGroups;
+                currentVideoData.isDefault = video.isDefault;
+                updateHeader();
+            }
+
+            loadLibrary();
+            loadFavorites();
+            closeModal();
+        };
+    }
+
+    // --- Batch Actions Logic ---
+    function updateBatchUI() {
+        const batchBar = document.getElementById('lib-batch-actions');
+        const countSpan = document.getElementById('lib-selection-count');
+        const checkboxes = document.querySelectorAll('.item-select-checkbox:checked');
+        const allCheckboxes = document.querySelectorAll('.item-select-checkbox');
+        const selectAll = document.getElementById('lib-select-all');
+
+        if (!batchBar || !countSpan) return;
+
+        const count = checkboxes.length;
+        if (count > 0) {
+            batchBar.style.display = 'flex';
+            countSpan.textContent = `${count} selected`;
+        } else {
+            batchBar.style.display = 'none';
+        }
+
+        if (selectAll && allCheckboxes.length > 0) {
+            selectAll.checked = (count === allCheckboxes.length);
+        }
+    }
+
+    document.getElementById('lib-select-all')?.addEventListener('change', (e) => {
+        const checked = e.target.checked;
+        document.querySelectorAll('.item-select-checkbox').forEach(cb => {
+            cb.checked = checked;
+        });
+        updateBatchUI();
+    });
+
+    document.getElementById('btn-batch-add-fav')?.addEventListener('click', async () => {
+        const selectedKeys = Array.from(document.querySelectorAll('.item-select-checkbox:checked')).map(cb => cb.dataset.key);
+        if (selectedKeys.length === 0) return;
+
+        showBatchFavGroupPicker(selectedKeys);
+    });
+
+    document.getElementById('btn-batch-delete')?.addEventListener('click', async () => {
+        const selectedKeys = Array.from(document.querySelectorAll('.item-select-checkbox:checked')).map(cb => cb.dataset.key);
+        if (selectedKeys.length === 0) return;
+
+        showConfirmModal(
+            "Batch Delete",
+            `Delete ${selectedKeys.length} selected videos and all their markers? This cannot be undone.`,
+            async () => {
+                await chrome.storage.sync.remove(selectedKeys);
+
+                // If current video was deleted, reset state
+                if (selectedKeys.includes(currentStorageKey)) {
+                    resetInternalState();
+                    showStandby('HOME');
+                }
+
+                log(`Deleted ${selectedKeys.length} items`, "success");
+                loadLibrary();
+                loadFavorites();
+                updateBatchUI();
+            }
+        );
+    });
+
+    async function showBatchFavGroupPicker(videoKeys) {
+        const modal = document.getElementById('fav-group-picker-modal');
+        const body = document.getElementById('fav-picker-body');
+        const title = modal?.querySelector('.modal-title');
+        if (!modal || !body) return;
+
+        if (title) title.textContent = `Set Groups for ${videoKeys.length} items`;
+
+        // Clear and Populate (Start with all unchecked for batch)
+        body.innerHTML = '';
+        favoriteGroupsList.forEach(groupName => {
+            const item = document.createElement('label');
+            item.className = 'fav-group-item';
+            item.innerHTML = `
+                <input type="checkbox" value="${groupName}">
+                <span>${groupName}</span>
+            `;
+            body.appendChild(item);
+        });
+
+        // Show Modal
+        modal.style.display = 'flex';
+
+        const closeBtn = document.getElementById('close-fav-picker');
+        const saveBtn = document.getElementById('save-fav-picker');
+        const closeModal = () => {
+            modal.style.display = 'none';
+            if (title) title.textContent = 'Set Favorite Groups'; // Reset title
+        };
+
+        closeBtn.onclick = closeModal;
+        modal.onclick = (e) => { if (e.target === modal) closeModal(); };
+
+        saveBtn.onclick = async () => {
+            const checkedInputs = body.querySelectorAll('input:checked');
+            const newGroups = Array.from(checkedInputs).map(input => input.value);
+            const isSetDefault = newGroups.includes("Default");
+
+            const allData = await chrome.storage.sync.get(videoKeys);
+            const updates = {};
+
+            videoKeys.forEach(key => {
+                const video = allData[key];
+                if (video) {
+                    video.favoriteGroups = newGroups;
+                    video.isDefault = isSetDefault;
+                    updates[key] = video;
+
+                    // Sync current video state if it's in the batch
+                    if (key === currentStorageKey) {
+                        currentVideoData.favoriteGroups = newGroups;
+                        currentVideoData.isDefault = isSetDefault;
+                        updateHeader();
+                    }
+                }
+            });
+
+            await chrome.storage.sync.set(updates);
+
+            loadLibrary();
+            loadFavorites();
+            closeModal();
+            updateBatchUI();
+            // Deselect all after batch operation
+            document.querySelectorAll('.item-select-checkbox').forEach(cb => cb.checked = false);
+            updateBatchUI();
+        };
+    }
+
     // --- Auto Detect Button (Force Sync) ---
     document.getElementById('btn-detect-video')?.addEventListener('click', async () => {
         // Visual Feedback
@@ -860,6 +1434,11 @@ try {
         currentVideoData.isDefault = newValue;
 
         if (newValue) {
+            if (!currentVideoData.favoriteGroups) currentVideoData.favoriteGroups = [];
+            if (!currentVideoData.favoriteGroups.includes("Default")) {
+                currentVideoData.favoriteGroups.push("Default");
+            }
+
             // Unset others
             const all = await chrome.storage.sync.get(null);
             const related = Object.keys(all).filter(k => k.startsWith('v_' + currentVideoId));
@@ -873,9 +1452,14 @@ try {
             if (Object.keys(updates).length > 0) {
                 await chrome.storage.sync.set(updates);
             }
+        } else {
+            if (currentVideoData.favoriteGroups) {
+                currentVideoData.favoriteGroups = currentVideoData.favoriteGroups.filter(g => g !== "Default");
+            }
         }
 
         saveData();
+        loadFavorites(); // Refresh favorites list if visible
     });
 
     // --- Core Data Logic ---
@@ -900,6 +1484,9 @@ try {
 
         updateHeader();
         renderBookmarks();
+
+        // Fix: Clear/Update playlist highlight for unsaved sessions
+        if (isPlaylistMode) renderPlayerPlaylist();
     }
 
     // 2. Load Specific Profile (Connected)
@@ -919,6 +1506,9 @@ try {
             renderBookmarks();
             loadLibrary();
             loadFavorites();
+
+            // Fix: Ensure playlist highlight is updated when switching profiles
+            if (isPlaylistMode) renderPlayerPlaylist();
         }
     }
 
@@ -948,6 +1538,9 @@ try {
         }
 
         if (!currentStorageKey) {
+            // New save: check capacity first
+            await cleanupOldUnfavoriteItems();
+
             currentStorageKey = `v_${currentVideoId}_${Date.now()}`;
             currentVideoData.isSaved = true;
             currentVideoData.createdAt = Date.now();
@@ -1020,13 +1613,16 @@ try {
 
     document.getElementById('toggle-library-save')?.addEventListener('click', async () => {
         if (currentVideoData.isSaved) {
-            if (confirm("Remove this session from Library?")) {
-                // Delete
-                await secureRemove(currentStorageKey);
-                initNewVideoSession(currentVideoId, { title: currentVideoData.title, thumbnail: currentVideoData.thumbnail });
-                loadLibrary();
-                loadFavorites();
-            }
+            showConfirmModal(
+                "Remove Save",
+                "Remove this session from your Library? This will delete all markers for this profile.",
+                async () => {
+                    await secureRemove(currentStorageKey);
+                    initNewVideoSession(currentVideoId, { title: currentVideoData.title, thumbnail: currentVideoData.thumbnail });
+                    loadLibrary();
+                    loadFavorites();
+                }
+            );
         } else {
             // Check for 10-video limit if not PRO
             if (!isPro()) {
@@ -1477,21 +2073,266 @@ try {
         const container = document.getElementById('favorites-list');
         if (!container) return;
         container.innerHTML = 'Loading...';
-        const all = await chrome.storage.sync.get(null);
+
+        const storageData = await chrome.storage.sync.get(null);
+        favoriteGroupOrders = storageData.favorite_group_orders || {};
+
         let items = [];
-        Object.keys(all).forEach(key => { if (key.startsWith('v_') && all[key].isSaved && all[key].isDefault) items.push({ ...all[key], _key: key }); });
+        const activeGroup = document.getElementById('fav-group-selector')?.value || currentFavGroup;
+
+        Object.keys(storageData).forEach(key => {
+            if (key.startsWith('v_') && storageData[key].isSaved) {
+                const video = storageData[key];
+                let isMatch = false;
+
+                const favGroups = video.favoriteGroups || [];
+                if (video.isDefault && !favGroups.includes("Default")) {
+                    favGroups.push("Default");
+                }
+
+                if (favGroups.includes(activeGroup)) isMatch = true;
+                if (isMatch) items.push({ ...video, _key: key });
+            }
+        });
 
         if (items.length === 0) {
-            container.innerHTML = '<p style="padding:20px;text-align:center;color:#666">No favorite videos set.</p>';
+            container.innerHTML = `<p style="padding:20px;text-align:center;color:#666">No videos in "${activeGroup}" group.</p>`;
             return;
         }
 
-        items.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+        // Apply Custom Sort
+        const order = favoriteGroupOrders[activeGroup];
+        if (order && Array.isArray(order)) {
+            // Sort items based on their position in the order list
+            items.sort((a, b) => {
+                const idxA = order.indexOf(a._key);
+                const idxB = order.indexOf(b._key);
+                // If item not in order list, push to bottom
+                if (idxA === -1 && idxB === -1) return (b.updatedAt || 0) - (a.updatedAt || 0);
+                if (idxA === -1) return 1;
+                if (idxB === -1) return -1;
+                return idxA - idxB;
+            });
+        } else {
+            // Default sort by updatedAt
+            items.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+            // Save initial order
+            favoriteGroupOrders[activeGroup] = items.map(i => i._key);
+            await chrome.storage.sync.set({ 'favorite_group_orders': favoriteGroupOrders });
+        }
+
+        browsedGroupItems = items; // Cache for starting a playlist
         renderList(container, items);
+    }
+
+    async function moveFavoriteItem(key, direction) {
+        const activeGroup = document.getElementById('fav-group-selector')?.value || currentFavGroup;
+        const order = favoriteGroupOrders[activeGroup];
+        if (!order) return;
+
+        const idx = order.indexOf(key);
+        if (idx === -1) return;
+
+        const newIdx = idx + direction;
+        if (newIdx < 0 || newIdx >= order.length) return;
+
+        // Swap
+        const temp = order[idx];
+        order[idx] = order[newIdx];
+        order[newIdx] = temp;
+
+        favoriteGroupOrders[activeGroup] = order;
+        await chrome.storage.sync.set({ 'favorite_group_orders': favoriteGroupOrders });
+        loadFavorites();
+    }
+
+    function togglePlaylist() {
+        isPlaylistMode = !isPlaylistMode;
+        const btn = document.getElementById('btn-play-group');
+        const prevBtn = document.getElementById('prev-video-btn');
+        const nextBtn = document.getElementById('next-video-btn');
+        const playlistTab = document.getElementById('tab-playlist');
+
+        // Specialized UI elements to hide during Group Play
+        const sessionUI = [
+            document.getElementById('jump-loop'),
+            document.getElementById('loop-toggle-btn'),
+            document.getElementById('clear-loop'),
+            document.getElementById('main-speed-badge'),
+            document.getElementById('restart-btn'),
+            document.querySelector('.loop-inputs-merged'),
+            document.getElementById('marker-a'),
+            document.getElementById('marker-b')
+        ];
+
+        if (!btn) return;
+
+        const playerView = document.getElementById('view-player');
+        if (playerView) playerView.classList.toggle('playlist-mode-active', isPlaylistMode);
+
+        if (isPlaylistMode) {
+            if (prevBtn) prevBtn.style.display = 'flex';
+            if (nextBtn) nextBtn.style.display = 'flex';
+            if (playlistTab) playlistTab.style.display = 'block';
+
+            // Lock in the current browsed group as our active playlist
+            currentPlaylistItems = [...browsedGroupItems];
+
+            // Hide Marker-specific tools
+            sessionUI.forEach(el => { if (el) el.style.display = 'none'; });
+
+            log("Group Playlist Mode: Active", "success");
+
+            // Switch to Player view and Playlist tab
+            switchView('player');
+            switchSubPanel('playlist');
+            renderPlayerPlaylist();
+
+            // If current video is not in group, start first one
+            const isInGroup = currentPlaylistItems.some(i => i.id === currentVideoId);
+            if (!isInGroup && currentPlaylistItems.length > 0) {
+                openVideo(currentPlaylistItems[0]);
+            }
+        } else {
+            if (prevBtn) prevBtn.style.display = 'none';
+            if (nextBtn) nextBtn.style.display = 'none';
+            if (playlistTab) playlistTab.style.display = 'none';
+
+            // Restore Marker/Session UI
+            sessionUI.forEach(el => { if (el) el.style.display = ''; });
+
+            // Switch back to Markers tab if we were on Playlist tab
+            const activeTab = document.querySelector('.player-tabs .tab-btn.active');
+            if (activeTab && activeTab.id === 'tab-playlist') {
+                switchSubPanel('markers');
+            }
+
+            log("Group Playlist Mode: Stopped", "info");
+        }
+    }
+
+    async function handleVideoEnded() {
+        if (!isPlaylistMode || currentPlaylistItems.length === 0) return;
+        await playNextVideo();
+        // Removed renderPlayerPlaylist() here as it triggers too early (before navigation completes).
+        // The highlight will be updated by VIDEO_METADATA handler after navigation.
+    }
+
+    function renderPlayerPlaylist() {
+        const container = document.getElementById('player-playlist-items');
+        if (!container) return;
+
+        // Update Title
+        const titleEl = document.getElementById('playlist-group-title');
+        if (titleEl) {
+            const activeGroupName = document.getElementById('fav-group-selector')?.value || 'Playlist';
+            titleEl.textContent = `Group: ${activeGroupName}`;
+        }
+
+        container.innerHTML = '';
+
+        if (currentPlaylistItems.length === 0) {
+            container.innerHTML = '<p style="padding:20px;text-align:center;color:#666">No videos in group.</p>';
+            return;
+        }
+
+        currentPlaylistItems.forEach((v, index) => {
+            const el = document.createElement('div');
+            el.className = 'library-item';
+
+            // Robust highlighting: match by key OR by Video ID as fallback
+            const isActive = (currentStorageKey && v._key === currentStorageKey) ||
+                (!currentStorageKey && v.id === currentVideoId);
+            if (isActive) el.classList.add('active');
+
+            el.innerHTML = `
+                <div class="thumbnail-wrapper" style="width: 80px; height: 45px; flex-shrink: 0;">
+                    <img src="${v.thumbnail || 'https://via.placeholder.com/120x68'}" class="video-thumbnail" style="width:100%; height:100%; object-fit:cover; border-radius:4px;">
+                    <div style="position:absolute; bottom:2px; right:2px; background:rgba(0,0,0,0.8); color:#fff; font-size:9px; padding:1px 3px; border-radius:2px;">${index + 1}</div>
+                </div>
+                <div class="video-info" style="margin-left:8px; overflow:hidden;">
+                    <div class="video-title" style="font-size:11px; line-height:1.2; max-height:2.4em; overflow:hidden; font-weight:500;">${v.title || 'Untitled'}</div>
+                    <div class="video-meta" style="font-size:9px; color:#888; margin-top:2px;">${v.favoriteGroups ? v.favoriteGroups.join(', ') : ''}</div>
+                </div>
+            `;
+
+            el.onclick = () => {
+                if (v._key !== currentStorageKey) {
+                    openVideo(v);
+                }
+            };
+            container.appendChild(el);
+
+            // Auto-scroll to active item
+            if (v._key === currentStorageKey) {
+                setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+            }
+        });
+    }
+
+    async function playNextVideo() {
+        if (currentPlaylistItems.length === 0) return;
+
+        // Find current index by Key or ID fallback
+        let currentIndex = currentPlaylistItems.findIndex(i => i._key === currentStorageKey);
+        if (currentIndex === -1 && currentVideoId) {
+            currentIndex = currentPlaylistItems.findIndex(i => i.id === currentVideoId);
+        }
+
+        if (currentIndex !== -1 && currentIndex < currentPlaylistItems.length - 1) {
+            const nextVideo = currentPlaylistItems[currentIndex + 1];
+            log(`Playlist: Moving to next video (${currentIndex + 2}/${currentPlaylistItems.length})`, "info");
+            openVideo(nextVideo);
+        } else {
+            log("Playlist finished.", "success");
+            if (isPlaylistMode) togglePlaylist(); // Stop if at end
+        }
+    }
+
+    async function playPrevVideo() {
+        if (currentPlaylistItems.length === 0) return;
+
+        let currentIndex = currentPlaylistItems.findIndex(i => i._key === currentStorageKey);
+        if (currentIndex === -1 && currentVideoId) {
+            currentIndex = currentPlaylistItems.findIndex(i => i.id === currentVideoId);
+        }
+
+        if (currentIndex > 0) {
+            const prevVideo = currentPlaylistItems[currentIndex - 1];
+            log(`Playlist: Moving to previous video (${currentIndex}/${currentPlaylistItems.length})`, "info");
+            openVideo(prevVideo);
+        } else {
+            log("Already at the first video.", "info");
+        }
+    }
+
+    async function openVideo(v) {
+        const vid = v.id || v.videoId || (v._key ? v._key.split('_')[1] : null);
+        if (!vid) return;
+
+        showStandby(false);
+        switchView('player');
+
+        // Respect current playing state if possible
+        const isCurrentlyPlaying = true; // Force play for playlist
+
+        chrome.storage.local.set({
+            [`pending_nav_${vid}`]: v._key,
+            'playback_intent': { value: isCurrentlyPlaying, ts: Date.now() }
+        });
+
+        if (connectedTabId) {
+            chrome.tabs.update(connectedTabId, { url: `https://youtube.com/watch?v=${vid}`, active: true });
+        } else {
+            const nt = await chrome.tabs.create({ url: `https://youtube.com/watch?v=${vid}` });
+            connectedTabId = nt.id;
+        }
+        establishConnection(true);
     }
 
     function renderList(container, items) {
         container.innerHTML = '';
+        container.classList.toggle('edit-mode', isLibraryEditMode);
 
         // Safety check for monetization status
         let paid = false;
@@ -1525,21 +2366,55 @@ try {
                 metaLabel = `<span style="color:#ffca28; font-weight:bold;">★</span> ${dateStr}`;
             }
 
+            // Favorite Group Badge
+            let favBadge = '';
+            if (v.favoriteGroups && v.favoriteGroups.length > 0) {
+                favBadge = `<span style="font-size:9px; color:var(--accent-color); background:rgba(62,166,255,0.1); padding:0 4px; border-radius:4px; margin-left:4px;">${v.favoriteGroups[0]}${v.favoriteGroups.length > 1 ? '+' : ''}</span>`;
+            }
+
+            let sortButtons = '';
+            if (isLibraryEditMode && container.id === 'favorites-list') {
+                sortButtons = `
+                    <div style="display:flex; flex-direction:column; gap:2px; margin-right:4px;">
+                        <button class="sort-up-btn" style="background:none; border:none; padding:0; color:#888; cursor:pointer; font-size:10px;" title="Move Up">▲</button>
+                        <button class="sort-down-btn" style="background:none; border:none; padding:0; color:#888; cursor:pointer; font-size:10px;" title="Move Down">▼</button>
+                    </div>
+                `;
+            }
+
             el.innerHTML = `
-                <img src="${thumbSrc}" class="library-thumb" onerror="this.style.display='none'">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <input type="checkbox" class="item-select-checkbox" data-key="${v._key}" style="cursor:pointer; width:14px; height:14px; accent-color:var(--accent-color);">
+                    ${sortButtons}
+                    <img src="${thumbSrc}" class="library-thumb" onerror="this.style.display='none'">
+                </div>
                 <div class="library-info">
                     <div class="library-title" title="${v.title}">
                         ${v.title || 'Untitled'}
                     </div>
                     <div class="library-meta" style="display:flex; justify-content:space-between; align-items:center;">
-                        <span style="font-size:10px; color:#888;">${metaLabel} • ${count} markers</span>
-                        <button class="icon-btn small-action export-item-btn" title="Export" style="width:20px;height:20px;font-size:10px;">⬇</button>
+                        <span style="font-size:10px; color:#888;">${metaLabel}${favBadge} • ${count} markers</span>
+                        <div style="display:flex; gap:4px;">
+                            <button class="icon-btn small-action set-fav-groups-btn" title="Add to Favorite Groups" style="width:20px;height:20px;font-size:10px;">★</button>
+                            <button class="icon-btn small-action export-item-btn" title="Export" style="width:20px;height:20px;font-size:10px;">⬇</button>
+                        </div>
                     </div>
                 </div>
                 <button class="delete-btn">×</button>
             `;
 
+            if (sortButtons) {
+                el.querySelector('.sort-up-btn').addEventListener('click', (e) => { e.stopPropagation(); moveFavoriteItem(v._key, -1); });
+                el.querySelector('.sort-down-btn').addEventListener('click', (e) => { e.stopPropagation(); moveFavoriteItem(v._key, 1); });
+            }
+
+            el.querySelector('.item-select-checkbox').addEventListener('click', (e) => {
+                e.stopPropagation();
+                updateBatchUI();
+            });
+
             el.addEventListener('click', async (e) => {
+                if (isLibraryEditMode) return;
                 if (e.target.tagName !== 'BUTTON') {
                     if (isGated) {
                         alert('This video is locked. Free version is limited to 10 videos. Please upgrade to Pro in the Advanced panel.');
@@ -1561,7 +2436,7 @@ try {
                         chrome.storage.local.set({
                             [`pending_nav_${vid}`]: v._key,
                             'playback_intent': {
-                                value: isCurrentlyPlaying,
+                                value: true,
                                 ts: Date.now()
                             }
                         });
@@ -1611,19 +2486,26 @@ try {
 
             el.querySelector('.delete-btn').addEventListener('click', async (e) => {
                 e.stopPropagation();
-                if (confirm('Delete this save?')) {
-                    await secureRemove(v._key);
-                    const all = await chrome.storage.sync.get(null);
-                    if (currentStorageKey === v._key) {
-                        initNewVideoSession(currentVideoId, { title: v.title, thumbnail: v.thumbnail });
+                showConfirmModal(
+                    "Delete Save",
+                    `Delete this save for "${v.title || 'Untitled'}"? This action cannot be undone.`,
+                    async () => {
+                        await secureRemove(v._key);
+                        if (currentStorageKey === v._key) {
+                            initNewVideoSession(currentVideoId, { title: v.title, thumbnail: v.thumbnail });
+                        }
+                        loadLibrary();
+                        loadFavorites();
                     }
-                    loadLibrary();
-                    loadFavorites();
-                }
+                );
             });
             el.querySelector('.export-item-btn').addEventListener('click', (e) => {
                 e.stopPropagation();
                 exportVideoFull(v);
+            });
+            el.querySelector('.set-fav-groups-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                showFavGroupPicker(v._key);
             });
             container.appendChild(el);
         });
@@ -1633,6 +2515,12 @@ try {
     // --- State Sync (Multi-Window) ---
     chrome.storage.onChanged.addListener((changes, namespace) => {
         if (namespace !== 'sync') return;
+
+        if (changes.favorite_groups) {
+            favoriteGroupsList = changes.favorite_groups.newValue || ["Default"];
+            updateFavGroupUI();
+            loadFavorites();
+        }
 
         let shouldRefreshLib = false;
         let shouldRefreshFav = false;
@@ -1722,7 +2610,7 @@ try {
         if (!isMatch) {
             const isConnecting = currentVideoData && currentVideoData.title === "Connecting...";
             const isTabActive = sender.tab && sender.tab.active;
-            const isYT = sender.tab && (sender.tab.url.includes('youtube.com/watch') || sender.tab.url.includes('/shorts/') || sender.tab.url.includes('/v/'));
+            const isYT = sender.tab && (sender.tab.url.includes('youtube.com/watch') || sender.tab.url.includes('youtube.com/playlist') || sender.tab.url.includes('/shorts/') || sender.tab.url.includes('/v/'));
 
             if (isConnecting && isTabActive && isYT) {
                 console.log("[YT Study] Discovery Latch: Auto-binding to", sender.tab.id);
@@ -1752,6 +2640,9 @@ try {
                 await loadStorageFavorite(localData[pendingKey]);
                 chrome.storage.local.remove(pendingKey); // Consume the token
                 isSyncing = false;
+
+                // Explicitly refresh playlist UI here because we return early
+                if (isPlaylistMode) renderPlayerPlaylist();
                 return; // Priority handled
             }
 
@@ -1804,6 +2695,9 @@ try {
                     currentVideoData.thumbnail = d.thumbnail || currentVideoData.thumbnail;
                     updateHeader();
                 }
+
+                // If in Playlist Mode, refresh the playlist UI to show current video highlight
+                if (isPlaylistMode) renderPlayerPlaylist();
             }
             // Command Guard: Ignore status updates for a window after user action (seek/play)
             // This prevents "pulse rollback" where the UI jumps back to old time before seek completes
@@ -1859,6 +2753,9 @@ try {
             if (loopEnd) loopEnd.value = (msg.end !== null) ? formatTime(msg.end) : '0:00';
 
             updateLoopVisuals();
+        }
+        else if (msg.action === 'VIDEO_ENDED') {
+            handleVideoEnded();
         }
         else if (msg.action === 'TIME_UPDATE') {
             // Only update time if it matches current video or if we are still uninitialized
@@ -1957,19 +2854,27 @@ try {
             }
         } else if (key === '[' || key === '{') {
             e.preventDefault();
-            if (e.shiftKey || key === '{') {
-                sendMessage('JUMP_LOOP_START');
-            } else {
-                sendMessage('SET_LOOP_START');
+            if (e.altKey) {
+                playPrevVideo();
+            } else if (!isPlaylistMode) {
+                if (e.shiftKey || key === '{') {
+                    sendMessage('JUMP_LOOP_START');
+                } else {
+                    sendMessage('SET_LOOP_START');
+                }
             }
         } else if (key === ']' || key === '}') {
             e.preventDefault();
-            if (e.shiftKey || key === '}') {
-                currentLoopEnabled = !currentLoopEnabled;
-                sendMessage('TOGGLE_LOOP', { enabled: currentLoopEnabled });
-                updateLoopVisuals();
-            } else {
-                sendMessage('SET_LOOP_END');
+            if (e.altKey) {
+                playNextVideo();
+            } else if (!isPlaylistMode) {
+                if (e.shiftKey || key === '}') {
+                    currentLoopEnabled = !currentLoopEnabled;
+                    sendMessage('TOGGLE_LOOP', { enabled: currentLoopEnabled });
+                    updateLoopVisuals();
+                } else {
+                    sendMessage('SET_LOOP_END');
+                }
             }
         } else if (key === 'a') {
             e.preventDefault();
@@ -2334,26 +3239,66 @@ try {
     async function updateStorageUsage() {
         if (!chrome || !chrome.storage || !chrome.storage.sync || !chrome.storage.sync.getBytesInUse) return;
 
-        const usageBar = document.getElementById('sync-usage-bar');
-        const usageText = document.getElementById('sync-usage-text');
-        if (!usageBar || !usageText) return;
+        const bars = [document.getElementById('sync-usage-bar'), document.getElementById('fav-sync-usage-bar')];
+        const texts = [document.getElementById('sync-usage-text'), document.getElementById('fav-sync-usage-text')];
 
         chrome.storage.sync.getBytesInUse(null, (bytes) => {
             const quota = chrome.storage.sync.QUOTA_BYTES || 102400;
             const percent = Math.min(100, Math.ceil((bytes / quota) * 100));
 
-            usageBar.style.width = percent + '%';
-            usageText.textContent = `${percent}% Used`;
+            bars.forEach(bar => {
+                if (bar) {
+                    bar.style.width = percent + '%';
+                    if (percent < 70) bar.style.backgroundColor = 'var(--success-color)';
+                    else if (percent < 90) bar.style.backgroundColor = 'var(--warning-color)';
+                    else bar.style.backgroundColor = 'var(--danger-color)';
+                }
+            });
 
-            // Color Coding
-            if (percent < 70) {
-                usageBar.style.backgroundColor = 'var(--success-color)';
-            } else if (percent < 90) {
-                usageBar.style.backgroundColor = 'var(--warning-color)';
-            } else {
-                usageBar.style.backgroundColor = 'var(--danger-color)';
-            }
+            texts.forEach(text => {
+                if (text) text.textContent = `${percent}% Used`;
+            });
         });
+    }
+
+    /**
+     * Auto-cleanup Library items (Limit: 200)
+     * Rule: Deletes oldest items that are NOT in any Favorite Group
+     */
+    async function cleanupOldUnfavoriteItems() {
+        try {
+            const all = await chrome.storage.sync.get(null);
+            const items = [];
+
+            Object.keys(all).forEach(key => {
+                if (key.startsWith('v_')) {
+                    const video = all[key];
+                    const inFav = video.favoriteGroups && video.favoriteGroups.length > 0;
+                    items.push({ key, updatedAt: video.updatedAt || 0, inFav });
+                }
+            });
+
+            if (items.length < 200) return;
+
+            // Sort by age (oldest first)
+            items.sort((a, b) => a.updatedAt - b.updatedAt);
+
+            // Filter out favorites
+            const candidates = items.filter(i => !i.inFav);
+
+            // If we have more than 200 total items, start deleting candidates from oldest
+            let toDelete = items.length - 200 + 1; // Delete one extra space for the current new video
+            if (toDelete <= 0) return;
+
+            const selectedForDeletion = candidates.slice(0, toDelete).map(c => c.key);
+
+            if (selectedForDeletion.length > 0) {
+                console.log(`[YT Study] Auto-cleanup: Removing ${selectedForDeletion.length} oldest un-favorited items.`);
+                await chrome.storage.sync.remove(selectedForDeletion);
+            }
+        } catch (e) {
+            console.error("Cleanup failed", e);
+        }
     }
 
 } catch (e) { console.error(e); }

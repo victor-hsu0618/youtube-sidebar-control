@@ -16,40 +16,72 @@ async function initMonetization() {
     try {
         console.log('[YT Study] Monetization: Initializing Cloud Mode...');
 
-        // 1. Get User Identity
-        if (chrome.identity && chrome.identity.getProfileUserInfo) {
-            chrome.identity.getProfileUserInfo({ accountStatus: 'ANY' }, (userInfo) => {
-                if (chrome.runtime.lastError) {
-                    console.warn('[YT Study] Identity Error:', chrome.runtime.lastError.message);
-                    checkLocalStatus();
-                    return;
-                }
+        // Initial UI display sync
+        updateAccountDisplay();
 
-                userStatus.email = userInfo.email || null;
-                if (!userStatus.email && userInfo.id) {
-                    userStatus.email = "User-" + userInfo.id.substring(0, 8);
-                }
-
-                updateAccountDisplay();
-                console.log('[YT Study] Account identified:', userStatus.email || 'Guest');
-
-                // 2. Load Status from Sync Storage first (Performance)
-                checkLocalStatus().then(() => {
-                    // Force immediate UI sync
-                    if (typeof updateSubscriptionUI === 'function') updateSubscriptionUI();
-
-                    // 3. Optional: Background verify if still FREE but we have email
-                    if (!userStatus.paid && userStatus.email) {
-                        verifyWithCloud();
+        const fetchIdentity = () => {
+            if (chrome.identity && chrome.identity.getProfileUserInfo) {
+                chrome.identity.getProfileUserInfo({ accountStatus: 'ANY' }, (userInfo) => {
+                    if (chrome.runtime.lastError) {
+                        console.warn('[YT Study] Identity Error:', chrome.runtime.lastError.message);
+                        if (!userStatus.email) userStatus.email = null;
+                        updateAccountDisplay();
+                        checkLocalStatus();
+                        return;
                     }
+
+                    userStatus.email = userInfo.email || null;
+                    if (!userStatus.email && userInfo.id) {
+                        userStatus.email = "User-" + userInfo.id.substring(0, 8);
+                    }
+
+                    console.log('[YT Study] Account identified:', userStatus.email || 'Guest');
+                    updateAccountDisplay();
+
+                    checkLocalStatus().then(() => {
+                        if (!userStatus.paid && userStatus.email && !userStatus.email.startsWith('User-')) {
+                            verifyWithCloud('', false);
+                        }
+                    });
                 });
-            });
-        } else {
-            console.warn('[YT Study] chrome.identity not available');
-            checkLocalStatus();
+            } else {
+                userStatus.email = null;
+                updateAccountDisplay();
+                checkLocalStatus();
+            }
+        };
+
+        // 1. Immediate call
+        fetchIdentity();
+
+        // 2. Retry after 2s
+        setTimeout(fetchIdentity, 2000);
+
+        // 3. HARD TIMEOUT: If still "Detecting" after 5s, force a fail-safe display
+        setTimeout(() => {
+            const display = document.getElementById('user-account-display');
+            if (display && display.textContent.includes('Detecting')) {
+                console.log('[YT Study] Identity hard timeout reached.');
+                userStatus.email = null;
+                updateAccountDisplay();
+            }
+        }, 5000);
+
+        // 4. Attach Click Event for Manual Retry
+        const display = document.getElementById('user-account-display');
+        if (display) {
+            display.style.cursor = 'pointer';
+            display.title = 'Click to manually refresh account identity';
+            display.onclick = () => {
+                display.textContent = 'Account: Refreshing...';
+                fetchIdentity();
+            };
         }
+
     } catch (err) {
         console.error('[YT Study] Monetization init error:', err);
+        userStatus.email = null;
+        updateAccountDisplay();
         checkLocalStatus();
     }
 }
@@ -75,8 +107,9 @@ function updateAccountDisplay() {
 /**
  * Verify Status with Google Sheets
  */
-async function verifyWithCloud(code = '') {
+async function verifyWithCloud(code = '', showFeedback = true) {
     if (!userStatus.email) {
+        if (showFeedback) alert('Please sign in to Chrome browser first.');
         console.warn('[YT Study] Cannot verify without email');
         return;
     }
@@ -85,10 +118,16 @@ async function verifyWithCloud(code = '') {
     if (typeof updateSubscriptionUI === 'function') updateSubscriptionUI();
 
     try {
+        console.log('[YT Study] Cloud: Verifying...', userStatus.email, code ? '(with code)' : '(check only)');
         const url = `${CLOUD_API_URL}?email=${encodeURIComponent(userStatus.email)}&code=${encodeURIComponent(code)}`;
-        const response = await fetch(url);
 
-        // Robust handling for GAS redirects and non-JSON responses
+        // Use a timeout for the fetch
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+        const response = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
+
         const text = await response.text();
         console.log('[YT Study] Cloud: Raw response length:', text.length);
 
@@ -96,26 +135,27 @@ async function verifyWithCloud(code = '') {
             const data = JSON.parse(text);
             if (data.status === 'PRO') {
                 console.log('[YT Study] Cloud Verification SUCCESS');
-                chrome.storage.sync.set({ 'pro_activated': true });
+                await chrome.storage.sync.set({ 'pro_activated': true });
                 userStatus.paid = true;
-                if (code) alert('Success! Pro features activated for ' + userStatus.email);
+                if (code && showFeedback) alert('Success! Pro features activated for ' + userStatus.email);
+                else if (showFeedback && !code) alert('Your Pro status has been verified!');
             } else {
-                console.log('[YT Study] Cloud Verification: User is FREE. Clearing local status.');
-                chrome.storage.sync.remove(['pro_activated']);
+                console.log('[YT Study] Cloud Verification: User is FREE.');
+                await chrome.storage.sync.remove(['pro_activated']);
                 userStatus.paid = false;
-                if (code) alert('Invalid code or account not authorized.');
+                if (code && showFeedback) alert('Activation code is invalid or has expired.');
+                else if (showFeedback && !code) alert('No active Pro subscription found for this account.');
             }
         } catch (jsonErr) {
-            console.error('[YT Study] Cloud: Failed to parse JSON. Response was likely HTML.');
-            console.log('[YT Study] Raw Response (first 200 chars):', text.substring(0, 200));
-
-            if (text.includes('google-signin') || text.includes('Service Login')) {
-                console.error('[YT Study] Error: Apps Script requires login. Please set "Who has access" to "Anyone" in GAS deployment.');
-            }
-            throw new Error("Invalid response format from server");
+            console.error('[YT Study] Cloud: Parse Error.', jsonErr);
+            if (showFeedback) alert('Server communication error. Please try again later.');
         }
     } catch (err) {
         console.error('[YT Study] Cloud verification failed:', err);
+        if (showFeedback) {
+            if (err.name === 'AbortError') alert('Verification timeout. Please check your internet connection.');
+            else alert('Cloud connection failed. Error: ' + err.message);
+        }
     } finally {
         userStatus.isVerifying = false;
         if (typeof updateSubscriptionUI === 'function') updateSubscriptionUI();
@@ -131,9 +171,12 @@ function upgradeToPro() {
         return;
     }
 
-    const code = prompt('Enter your Activation Code (provided by author):');
-    if (code !== null) {
-        verifyWithCloud(code);
+    const choice = confirm('Do you have an activation code?\n\nOK: Enter code\nCancel: Just re-verify current account');
+    if (choice) {
+        const code = prompt('Enter your Activation Code (provided by author):');
+        if (code) verifyWithCloud(code, true);
+    } else {
+        verifyWithCloud('', true);
     }
 }
 

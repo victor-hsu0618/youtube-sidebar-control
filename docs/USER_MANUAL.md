@@ -37,9 +37,11 @@ After launching the Extension, you will see the main screen. The sidebar is desi
 On the right side of the top title bar is a **↗️ Arrow Button**. Click to detach the window (Pop-out). 
 
 ### 🟢 Status Indicator
-Next to the **v2.5.1** badge, you will see a small circular indicator:
+Next to the **v3.0.0** badge, you will see a status indicator:
 - **Green**: Extension is actively connected to the YouTube video.
-- **Grey**: extension is in Standby mode (saving resources).
+- **Grey**: Extension is in Standby mode.
+- **[New] Group Play Banner**: A green banner appears at the top when Group Play mode is active.
+- **[New] Mode Border**: The whole player面板 highlights with a green border during playlist playback.
 
 ---
 
@@ -102,13 +104,28 @@ Marker function allows you to take notes on the video timeline and jump back at 
 ![Markers Area Screenshot](images/bookmarks.png)
 *(Suggested Screenshot: Markers area, including several created markers)*
 
-*   **Add Marker**: Click `+ Add "Now" to Current Marker Group` to create a marker at the current time.
-*   **Follow Playback**: Toggle the "Follow" switch to auto-scroll the list to the current marker. This setting is **permanently saved** to your favorite.
+*   **Add Marker**: Click `+ Add Marker (A)` to create a marker at the current time.
+*   **Follow Playback**: Toggle the "Follow" switch to auto-scroll the list to the current marker.
 *   **Group Management (Groups)**:
     *   Select group via dropdown menu (e.g., `Default`, `Study`).
-    *   Notes of different natures can be stored separately.
-*   **Click to Jump**: Click on a marker in the list, video will immediately jump to that timestamp.
-*   **Import/Export**: Use the download/upload icons at the top to back up your marker data (JSON format).
+*   **[New] Hotkey R**: Press **`R`** to instantly restart the most recently active marker.
+*   **Import/Export**: Use the icons in the title bar to back up your data (JSON format).
+
+---
+
+## 5. Group Play & Playlists (New in v3.0)
+
+Group Play allows you to treat a Favorite Group as a sequential playlist.
+
+### How to use:
+1.  **Start Group Play**: Go to the **Favorites** tab, select a folder, and click **▶ Play Group**.
+2.  **Navigation**: The interface transitions into "Playlist Mode" with a green header. Use the **Prev/Next** buttons (visible only in this mode) to switch videos.
+3.  **Automatic Next**: When a video ends, the next one in the group will load automatically.
+4.  **Integrated Scraper**: 
+    *   Open a YouTube Playlist page.
+    *   Go to **Favorites -> Manage Groups (Gear icon)**.
+    *   Click **Detect & Import YouTube Playlist**.
+    *   The extension will scrape all titles/IDs and create a new group for you.
 
 ---
 
@@ -155,7 +172,9 @@ YouTube Study Companion supports a wide range of keyboard shortcuts. Click the *
 ### Markers & Navigation
 *   **A**: Add a new marker at current time.
 *   **S**: Toggle "Follow Playback" mode.
-*   **↑ / ↓**: Navigate sequentially through markers (automatically seeks and disables Follow mode for manual browsing).
+*   **R**: Restart the active marker.
+*   **Alt+[ / Alt+]**: Prev / Next Video (Only in Group Play mode).
+*   **↑ / ↓**: Navigate sequentially through markers.
 
 ---
 
