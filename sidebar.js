@@ -555,42 +555,41 @@ try {
         console.log("Locked to Tab ID:", connectedTabId);
     }
 
+    let lastTabValidationTime = 0;
     async function sendMessage(action, payload = {}, retryCount = 0) {
-        log(`Command: ${action}`);
+        // Command logging removed to avoid ReferenceError
         try {
             let targetTabId = null;
 
-            // Fast path: Validate cached connection first
-            if (connectedTabId) {
+            // Fast path: Use cached ID if validated recently (< 5s)
+            if (connectedTabId && (Date.now() - lastTabValidationTime < 5000)) {
+                targetTabId = connectedTabId;
+            }
+            else if (connectedTabId) {
                 try {
-                    // Quick validation: try to get tab info
                     const tab = await chrome.tabs.get(connectedTabId);
-                    // Inclusive matching for video and playlist pages
                     const isYT = tab && tab.url && (tab.url.includes('youtube.com/watch') || tab.url.includes('youtube.com/playlist') || tab.url.includes('/shorts/') || tab.url.includes('/v/'));
                     if (isYT) {
                         targetTabId = connectedTabId;
+                        lastTabValidationTime = Date.now();
                     } else {
-                        // Cached tab is no longer valid
                         connectedTabId = null;
                     }
                 } catch (e) {
-                    // Tab doesn't exist anymore
                     connectedTabId = null;
                 }
             }
 
-            // Optimized single query for both active and any YouTube tab
+            // Fallback: Query for target tab
             if (!targetTabId) {
                 const queryOptions = { url: ["*://*.youtube.com/watch*", "*://*.youtube.com/playlist*", "*://*.youtube.com/shorts*", "*://*.youtube.com/v/*"] };
                 const tabs = await chrome.tabs.query(queryOptions);
                 if (tabs.length > 0) {
-                    // Prefer active tab in current window
                     const currentWindow = await chrome.windows.getCurrent();
                     const activeTab = tabs.find(t => t.active && t.windowId === currentWindow.id);
-                    // Fall back to any active tab
                     const anyActiveTab = tabs.find(t => t.active);
-                    // Fall back to first available tab
                     targetTabId = (activeTab || anyActiveTab || tabs[0]).id;
+                    lastTabValidationTime = Date.now();
                 }
             }
 
@@ -604,33 +603,21 @@ try {
             statusIndicator.classList.add('connected');
             statusIndicator.title = `Connected to Tab: ${targetTabId}`;
 
-            // Send message and AWAIT response (Confirmation)
+            // Send message
             const response = await chrome.tabs.sendMessage(targetTabId, { action, ...payload });
 
             if (response && response.success) {
-                log(`Confirmed: ${action}`, 'success');
                 return response;
             } else {
                 throw new Error(response ? response.error : 'No response');
             }
 
         } catch (error) {
-            log(`Retry ${retryCount + 1}: ${action} (${error.message})`, 'error');
-
-            // Invalidate cache on error
-            if (error.message.includes('Could not establish connection') ||
-                error.message.includes('Receiving end does not exist')) {
-                connectedTabId = null;
-            }
-
-            if (retryCount < 2) { // 3 tries total
-                // Faster retry delays: 20ms, 40ms instead of 50ms, 100ms
-                const delay = 20 * (retryCount + 1);
+            if (retryCount < 2) {
+                const delay = 30 * (retryCount + 1);
                 await new Promise(r => setTimeout(r, delay));
                 return sendMessage(action, payload, retryCount + 1);
             }
-
-            log(`FATAL: ${action} failed after retries`, 'error');
             statusIndicator.classList.remove('connected');
             connectedTabId = null;
             throw error;
@@ -639,8 +626,8 @@ try {
 
     // --- Logic ---
     function updatePlayPauseIcon(playing) {
-        // Command Guard: Ignore status updates for 200ms after user action to prevent flickering
-        if (Date.now() - lastCommandSentTime < 200) return;
+        // Command Guard: Ignore status updates for 100ms after user action to prevent flickering
+        if (Date.now() - lastCommandSentTime < 100) return;
 
         isCurrentlyPlaying = playing;
         if (playPauseBtn) {
@@ -656,10 +643,7 @@ try {
     if (playPauseBtn) {
         playPauseBtn.addEventListener('click', async () => {
             // Prevent rapid clicks
-            if (isProcessingPlayPause) {
-                log("Play/Pause already processing, ignoring click", "info");
-                return;
-            }
+            if (isProcessingPlayPause) return;
 
             // Clear any pending debounce
             if (playPauseDebounceTimer) {
@@ -667,38 +651,34 @@ try {
             }
 
             isProcessingPlayPause = true;
-            log("Play/Pause clicked", "info");
             lastCommandSentTime = Date.now();
 
             const originalState = isCurrentlyPlaying;
             const nextPlayingState = !isCurrentlyPlaying;
-            const action = nextPlayingState ? 'PLAY_VIDEO' : 'PAUSE_VIDEO';
+            const action = 'TOGGLE_PLAY_PAUSE';
 
-            // Optimistic update for immediate feedback (will be confirmed by storage listener)
+            // Visual feedback: brief flash
+            playPauseBtn.style.opacity = '0.7';
+            setTimeout(() => { if (playPauseBtn) playPauseBtn.style.opacity = '1'; }, 50);
+
+            // Optimistic update for immediate feedback
             isCurrentlyPlaying = nextPlayingState;
             playPauseBtn.innerHTML = isCurrentlyPlaying ? ICON_PAUSE : ICON_PLAY;
             syncMarkersUI(true);
 
             try {
-                const res = await sendMessage(action);
-                if (!res || !res.success) throw new Error(res ? res.error : "Failed");
-                log(`${action} Success`, "success");
-                // Note: Actual UI update will come from storage listener automatically
-            } catch (err) {
-                log(`${action} failed: ${err.message}. Reverting UI.`, "error");
-                // Revert if it fails (storage won't update, so we need manual revert)
-                isCurrentlyPlaying = originalState;
-                playPauseBtn.innerHTML = isCurrentlyPlaying ? ICON_PAUSE : ICON_PLAY;
-                syncMarkersUI(true);
-
-                // Visual feedback for error
-                playPauseBtn.style.opacity = '0.5';
-                setTimeout(() => { playPauseBtn.style.opacity = '1'; }, 200);
+                // We DON'T await this to prevent UI blocking, 
+                // but we catch errors for revert logic
+                sendMessage(action).catch(err => {
+                    console.error('[YT Study] Toggle failed:', err);
+                    isCurrentlyPlaying = originalState;
+                    if (playPauseBtn) playPauseBtn.innerHTML = isCurrentlyPlaying ? ICON_PAUSE : ICON_PLAY;
+                    syncMarkersUI(true);
+                });
             } finally {
-                // Reset processing flag after a short delay to prevent accidental double-clicks
                 playPauseDebounceTimer = setTimeout(() => {
                     isProcessingPlayPause = false;
-                }, 100); // Reduced from 150ms since storage sync is now instant
+                }, 50);
             }
         });
     }

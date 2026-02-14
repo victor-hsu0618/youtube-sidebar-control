@@ -421,6 +421,67 @@ function executeCommand(action, value) {
     }
 }
 
+// Simulate a Space key press on the player to toggle play/pause
+function triggerSpaceKey() {
+    const moviePlayer = document.getElementById('movie_player');
+    const video = document.querySelector('video');
+    const target = moviePlayer || video || document.body;
+
+    if (target) {
+        const eventParams = {
+            bubbles: true,
+            cancelable: true,
+            view: window,
+            key: ' ',
+            code: 'Space',
+            keyCode: 32,
+            which: 32,
+            composed: true
+        };
+
+        // Dispatch to target and also document as fallback
+        target.dispatchEvent(new KeyboardEvent('keydown', eventParams));
+        document.dispatchEvent(new KeyboardEvent('keydown', eventParams));
+
+        setTimeout(() => {
+            target.dispatchEvent(new KeyboardEvent('keyup', eventParams));
+            document.dispatchEvent(new KeyboardEvent('keyup', eventParams));
+        }, 10);
+
+        console.log('[YT Study] Triggered Space key event');
+    }
+}
+
+// Robust toggle that tries multiple methods
+function robustToggle() {
+    // Method 1: Click the native YouTube Play Button (Highest reliability)
+    const nativePlayBtn = document.querySelector('.ytp-play-button');
+    if (nativePlayBtn) {
+        console.log('[YT Study] Toggling via native button click');
+        nativePlayBtn.click();
+        return;
+    }
+
+    // Method 2: Use API if available
+    const player = document.getElementById('movie_player');
+    if (player && typeof player.togglePlay === 'function') {
+        console.log('[YT Study] Toggling via player.togglePlay()');
+        player.togglePlay();
+        return;
+    }
+
+    // Method 3: Direct video element control fallback
+    const videoEl = document.querySelector('video');
+    if (videoEl) {
+        console.log('[YT Study] Toggling via video element');
+        if (videoEl.paused) videoEl.play().catch(() => { });
+        else videoEl.pause();
+    }
+
+    // Method 4: Space key as backup
+    triggerSpaceKey();
+}
+
 // Messages
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     // Optimized Emergency Detection: Check if video is null or disconnected (detached from DOM)
@@ -441,7 +502,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     try {
         switch (msg.action) {
             case 'TOGGLE_PLAYBACK':
-                if (video) video.paused ? executeCommand('PLAY') : executeCommand('PAUSE');
+                robustToggle();
+                sendResponse({ success: true });
+                break;
+            case 'TOGGLE_PLAY_PAUSE':
+                robustToggle();
                 sendResponse({ success: true });
                 break;
             case 'PLAY_VIDEO':
