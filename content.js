@@ -26,7 +26,11 @@ function getActiveVideoId() {
         id = parts[2];
     }
 
-    // Check player for source of truth if available
+    // Trust URL over player by default during SPA navigation as player state lags
+    if (id) return id;
+
+    // Check player for source of truth if available ONLY as a fallback 
+    // (e.g. for embedded players or homepage mini-players)
     try {
         const player = document.getElementById('movie_player');
         if (player && typeof player.getVideoData === 'function') {
