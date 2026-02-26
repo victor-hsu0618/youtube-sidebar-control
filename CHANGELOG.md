@@ -4,11 +4,14 @@
 
 All notable changes to the **YouTube Study Companion** project will be documented in this file.
 
+## [3.0.2] - 2026-02-26
+### Added
+- **Tab Awareness**: Video title now highlights in Amber (hidden tab) or Blue (remote/pop-out) to prevent mis-clicks.
+
 ## [3.0.1] - 2026-02-26
 ### Added
 - **Group Management (New UI)**: Explicitly separated Favorites into "Manage Groups" and "Group Play".
 - **Numerical Sorting**: Reorder favorite items precisely by entering index numbers in the sort field.
-- **Tab Awareness**: Video title now highlights in Amber (hidden tab) or Blue (remote/pop-out) to prevent mis-clicks.
 - **Batch Actions**: Added checkboxes to Library and Favorites for bulk deletion/movement.
 - **Visual Polish**: Replaced all old screenshots with high-resolution v3.0.1 versions.
 
