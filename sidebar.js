@@ -19,6 +19,18 @@ function log(msg, type = 'info') {
 console.log("[YT Study] Extension ID:", chrome.runtime.id);
 log(`Instance ID: ${chrome.runtime.id.substring(0, 8)}...`, 'info');
 
+// Set app version from manifest
+try {
+    const manifest = chrome.runtime.getManifest();
+    const versionBadge = document.getElementById('app-version-badge');
+    if (versionBadge && manifest) {
+        const vName = manifest.version_name || manifest.version;
+        versionBadge.textContent = 'v' + vName;
+    }
+} catch (e) {
+    console.error("[YT Study] Failed to read version from manifest:", e);
+}
+
 // Initialize Monetization
 if (typeof initMonetization === 'function') {
     initMonetization();
