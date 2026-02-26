@@ -31,7 +31,7 @@ After launching the Extension, you will see the main screen. The sidebar is desi
 *   **Library**: View history of saved sessions. Free users are limited to **10 saved videos** here.
 *   **Favorites**: Quick access to starred/default sessions.
 
-![Interface Overview Screenshot](images/interface_overview.png)
+![Interface Overview Screenshot](images/screenshot/v3.0.1/Favorites-UI-v3.0.1.png)
 *(Suggested Screenshot: Full screen after opening Sidebar)*
 
 On the right side of the top title bar is a **↗️ Arrow Button**. Click to detach the window (Pop-out). 
@@ -63,7 +63,7 @@ YouTube Study Companion now supports cloud-linked account binding.
 
 At the top of the Player tab, you have full control over video playback.
 
-![Player Controls Screenshot](images/player_controls.png)
+![Player Controls Screenshot](images/screenshot/v3.0.1/Play-Advance-UI-v3.0.1.png)
 *(Suggested Screenshot: Upper part of Player tab, including progress bar and play buttons)*
 
 ### Feature Explanation:
@@ -133,7 +133,7 @@ Group Play allows you to treat a Favorite Group as a sequential playlist.
 
 This is a powerful feature allowing you to save multiple different "learning contexts" for the **same video**.
 
-![Library Screenshot](images/library.png)
+![Library Screenshot](images/screenshot/v3.0.1/Library-UI-v3.0.1.png)
 *(Suggested Screenshot: Library tab)*
 
 ### What is a "Video Favorite"?

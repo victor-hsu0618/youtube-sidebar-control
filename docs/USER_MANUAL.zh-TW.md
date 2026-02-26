@@ -31,7 +31,7 @@
 *   **Library (影片庫)**：檢視所有您儲存過收藏的影片歷史紀錄。對於免費版用戶，此處限額儲存 **10 部影片**。
 *   **Favorites (我的最愛)**：快速存取您標記為「星號/預設」的常用收藏。
 
-![介面總覽截圖](images/interface_overview.png)
+![介面總覽截圖](images/screenshot/v3.0.1/Favorites-UI-v3.0.1.png)
 *(建議截圖：開啟 Sidebar 後的完整畫面)*
 
 上方標題列右側有一個 **↗️ 箭頭按鈕**，點擊可將視窗獨立出來（Pop-out）。
@@ -63,7 +63,7 @@ YouTube Study Companion 現在支援雲端帳號綁定。
 
 在 Player 分頁的最上方，您可以完全掌控影片播放。
 
-![播放控制區截圖](images/player_controls.png)
+![播放控制區截圖](images/screenshot/v3.0.1/Play-Advance-UI-v3.0.1.png)
 *(建議截圖：Player 分頁上半部，包含進度條與播放按鈕)*
 
 ### 功能說明：
@@ -133,7 +133,7 @@ YouTube Study Companion 現在支援雲端帳號綁定。
 
 這是一個強大的功能，允許您為**同一部影片**儲存多個不同的「學習情境」。
 
-![影片庫截圖](images/library.png)
+![影片庫截圖](images/screenshot/v3.0.1/Library-UI-v3.0.1.png)
 *(建議截圖：Library 分頁)*
 
 ### 什麼是「影片收藏 (Favorite)」？
