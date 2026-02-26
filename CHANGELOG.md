@@ -4,7 +4,7 @@
 
 All notable changes to the **YouTube Study Companion** project will be documented in this file.
 
-## [3.0.1-beta] - 2026-02-26
+## [3.0.1] - 2026-02-26
 ### Added
 - **Group Management (New UI)**: Explicitly separated Favorites into "Manage Groups" and "Group Play".
 - **Numerical Sorting**: Reorder favorite items precisely by entering index numbers in the sort field.

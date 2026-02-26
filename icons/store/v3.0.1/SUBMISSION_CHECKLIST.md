@@ -1,4 +1,4 @@
-# Chrome Web Store Submission Assets (v3.0.1 Beta)
+# Chrome Web Store Submission Assets (v3.0.1)
 
 All assets have been organized in `icons/store/v3.0.1/`.
 
@@ -30,7 +30,7 @@ The following screenshots have been prepared at 1280x800 or normalized for verti
 **Master Your Learning Journey with YouTube Study Companion!**  
 The ultimate sidebar tool for students, researchers, and power learners.  
 
-**What's New in v3.0.1 (Beta):**  
+**What's New in v3.0.1:**  
 - **🎬 Group Play System**: Turn any folder into a seamless learning playlist. 
 - **📦 Batch Management**: Delete or move multiple markers at once. 
 - **🔢 Numerical Sorting**: Precise control over your bookmark sequence. 
@@ -41,7 +41,7 @@ The ultimate sidebar tool for students, researchers, and power learners.
 **YouTube Study Companion - 您的專業學習助手！**  
 專為學生、研究人員與高效學習者量身打造的側邊欄工具。  
 
-**v3.0.1 (Beta) 更新重點：**  
+**v3.0.1 更新重點：**  
 - **🎬 群組播放系統**：將任何資料夾轉換為無縫學習播放清單。  
 - **📦 批次管理功能**：一次刪除或移動多個標記。  
 - **🔢 序號精準排序**：直接輸入數字，精確掌控標記順序。  
