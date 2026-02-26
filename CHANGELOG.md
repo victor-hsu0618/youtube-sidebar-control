@@ -4,6 +4,17 @@
 
 All notable changes to the **YouTube Study Companion** project will be documented in this file.
 
+## [3.0.1-beta] - 2026-02-26
+### Added
+- **Group Management (New UI)**: Explicitly separated Favorites into "Manage Groups" and "Group Play".
+- **Numerical Sorting**: Reorder favorite items precisely by entering index numbers in the sort field.
+- **Batch Actions**: Added checkboxes to Library and Favorites for bulk deletion/movement.
+- **Visual Polish**: Replaced all old screenshots with high-resolution v3.0.1 versions.
+
+### Fixed
+- **UI Layout (v3.0.1)**: Speed controls are now correctly hidden during Group Play mode.
+- **Storage Sync**: Fixed desync issues when reordering items across multiple groups.
+
 ## [3.0.0-beta] - 2026-02-13
 ### Added
 - **Group Play (Playlist Mode)**: Automatic sequential playback of all videos within a Favorite Group.
