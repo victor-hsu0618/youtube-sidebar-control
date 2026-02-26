@@ -263,8 +263,15 @@ header {
 }
 
 .current-title.detached {
-  color: var(--warning-color); /* Highlight with warning color when tab is not active */
-  opacity: 0.8;
+  color: var(--warning-color);
+  /* Amber: Warning tab is hidden in SAME window */
+  opacity: 0.9;
+}
+
+.current-title.remote {
+  color: var(--accent-color);
+  /* Blue: Info/Success for remote window control */
+  opacity: 1;
 }
 
 .video-meta-actions {

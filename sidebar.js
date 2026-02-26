@@ -3475,21 +3475,35 @@ try {
      */
     async function checkActiveTabDetach() {
         if (!connectedTabId) {
-            document.getElementById('current-video-title')?.classList.remove('detached');
+            const titleEl = document.getElementById('current-video-title');
+            titleEl?.classList.remove('detached', 'remote');
             return;
         }
 
         try {
-            const [t] = await chrome.tabs.query({ active: true, currentWindow: true });
+            const currentWin = await chrome.windows.getCurrent();
+            const controlledTab = await chrome.tabs.get(connectedTabId);
+            const [activeInCurrent] = await chrome.tabs.query({ active: true, currentWindow: true });
+
             const titleEl = document.getElementById('current-video-title');
             if (!titleEl) return;
 
-            if (t && t.id !== connectedTabId) {
-                titleEl.classList.add('detached');
-                titleEl.title = "Current Tab: Not Active (Controlled Tab is hidden)";
-            } else {
+            // Step 1: Same Window Check (Side Panel Usage)
+            if (controlledTab.windowId === currentWin.id) {
+                titleEl.classList.remove('remote');
+                if (activeInCurrent && activeInCurrent.id !== connectedTabId) {
+                    titleEl.classList.add('detached'); // Amber
+                    titleEl.title = "Warning: Controlled Video is on a hidden tab in this window.";
+                } else {
+                    titleEl.classList.remove('detached');
+                    titleEl.title = currentVideoData?.title || "";
+                }
+            }
+            // Step 2: Different Window Check (Pop-out / Dual Monitor Usage)
+            else {
                 titleEl.classList.remove('detached');
-                titleEl.title = currentVideoData?.title || "";
+                titleEl.classList.add('remote'); // Blue
+                titleEl.title = "Connected to Video in another window (Remote Mode)";
             }
         } catch (e) {
             console.warn("[YT Study] Detach check failed:", e);
