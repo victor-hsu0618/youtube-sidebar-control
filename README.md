@@ -36,6 +36,7 @@ This project is a browser extension, currently supporting Chrome and Edge browse
 ### 2. ⚡ Zero-Latency Interaction
 - **Hybrid Architecture**: Uses `chrome.storage.session` and `MutationObserver` for instant UI feedback (<5ms).
 - **Persistent Pop-out**: Seamlessly switch between Sidebar and independent Pop-out windows without losing state.
+- **Smart Tab Awareness**: Color-coded video title highlighting (Amber/Blue) helps you distinguish between hidden tabs and remote control sessions.
 
 ## 🌟 Core Features (Legacy v2.x)
 

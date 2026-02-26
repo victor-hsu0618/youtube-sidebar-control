@@ -34,6 +34,7 @@ The ultimate sidebar tool for students, researchers, and power learners.
 - **🎬 Group Play System**: Turn any folder into a seamless learning playlist. 
 - **📦 Batch Management**: Delete or move multiple markers at once. 
 - **🔢 Numerical Sorting**: Precise control over your bookmark sequence. 
+- **🎯 Smart Awareness**: Color-coded title highlights to prevent same-window mis-clicks.
 - **📚 Integrated Library**: Manage all your video notes from one central dashboard. 
 - **⚡ Pro Controls**: AB-Loop, 0.05x speed precision, and frame-by-frame seeking.
 
@@ -45,5 +46,6 @@ The ultimate sidebar tool for students, researchers, and power learners.
 - **🎬 群組播放系統**：將任何資料夾轉換為無縫學習播放清單。  
 - **📦 批次管理功能**：一次刪除或移動多個標記。  
 - **🔢 序號精準排序**：直接輸入數字，精確掌控標記順序。  
+- **🎯 智慧狀態偵測**：新增標題色彩高亮提醒，避免分頁切換時產生誤操作。
 - **📚 影片庫儀表板**：在統一介面管理所有影片的學習筆記。  
 - **⚡ 專業級控制**：AB 循環、0.05x 極速微調、與逐格預覽功能。

@@ -41,7 +41,10 @@ Next to the **v3.0.0** badge, you will see a status indicator:
 - **Green**: Extension is actively connected to the YouTube video.
 - **Grey**: Extension is in Standby mode.
 - **[New] Group Play Banner**: A green banner appears at the top when Group Play mode is active.
-- **[New] Mode Border**: The whole player面板 highlights with a green border during playlist playback.
+- **[New] Mode Border**: The whole player panel highlights with a green border during playlist playback.
+- **[New] Color-coded Title Highlight**: 
+    - **Amber Title**: Indicates the video is on a hidden tab in the current window.
+    - **Blue Title**: Indicates the video is in a different window (Pop-out or Dual Monitor mode).
 
 ---
 
