@@ -144,6 +144,8 @@ When you click the heart icon `❤️` in the title bar, you are actually saving
 ### Operation:
 *   **Library Tab**: Lists all saved videos.
 *   **Favorites Tab**: Shows only favorites you have marked with a "Star".
+*   **[New] Batch Management**: In Edit mode, select multiple items to delete them at once or move them to a different group collectively.
+*   **[New] Numerical Index Sorting**: Precisely reorder your items within a group by entering the target index number in the sort field.
 *   **Clone Session**: In the Player page, click `Clone` button to copy the current favorite and create a new version.
 *   **Set as Default**: Set a favorite as the "Default" for that video; this setting loads automatically next time you open the video.
 
