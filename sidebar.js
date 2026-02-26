@@ -143,6 +143,8 @@ try {
     let currentPlaylistItems = [];
     let browsedGroupItems = []; // For Favorites view browsing
     let detectedPlaylist = null;
+    let lastActiveTabId = null; // Track current global active tab for detach detection
+
 
     function createEmptyData(id = null, title = "Unknown") {
         return {
@@ -3370,6 +3372,8 @@ try {
 
         // Update UI via central renderers
         updateHeader();
+        checkActiveTabDetach(); // Ensure state is checked on reset
+
 
         // Clear times and lists
         document.getElementById('time-current').textContent = "--:--";
@@ -3427,6 +3431,7 @@ try {
                     await sendMessage('GET_STATUS');
                     console.log('[YT Study] Connected to tab', connectedTabId);
                     refreshInitialState(); // Sync UI after connection
+                    checkActiveTabDetach(); // Immediate check after connection
                 } catch (e) {
                     if (attempt < 15) {
                         // Faster initial retry (50ms) for first 3 attempts, then backoff
@@ -3464,6 +3469,46 @@ try {
     }
 
     establishConnection();
+
+    /**
+     * Tab Detach Logic: Highlight title if user switches away from controlled tab
+     */
+    async function checkActiveTabDetach() {
+        if (!connectedTabId) {
+            document.getElementById('current-video-title')?.classList.remove('detached');
+            return;
+        }
+
+        try {
+            const [t] = await chrome.tabs.query({ active: true, currentWindow: true });
+            const titleEl = document.getElementById('current-video-title');
+            if (!titleEl) return;
+
+            if (t && t.id !== connectedTabId) {
+                titleEl.classList.add('detached');
+                titleEl.title = "Current Tab: Not Active (Controlled Tab is hidden)";
+            } else {
+                titleEl.classList.remove('detached');
+                titleEl.title = currentVideoData?.title || "";
+            }
+        } catch (e) {
+            console.warn("[YT Study] Detach check failed:", e);
+        }
+    }
+
+    // Monitor Tab Switching
+    chrome.tabs.onActivated.addListener(() => {
+        // Slight delay to allow tab state to settle
+        setTimeout(checkActiveTabDetach, 100);
+    });
+
+    // Monitor Window Focus (Handle multi-window setups)
+    chrome.windows.onFocusChanged.addListener((winId) => {
+        if (winId !== chrome.windows.ID_NONE) {
+            setTimeout(checkActiveTabDetach, 100);
+        }
+    });
+
 
     /* --- Storage Usage Monitoring --- */
     async function updateStorageUsage() {
