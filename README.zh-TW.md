@@ -1,6 +1,6 @@
 [English](README.md) | [繁體中文](README.zh-TW.md)
 
-# YouTube Study Companion v3.0.0 (Beta)
+# YouTube Study Companion v3.0.1 (Beta)
 
 專業的 YouTube 播放控制與學習工具。將您的 YouTube 體驗轉變為強大的學習和筆記工作站。
 
