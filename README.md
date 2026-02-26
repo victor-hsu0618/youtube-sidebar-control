@@ -49,7 +49,9 @@ This project is a browser extension, currently supporting Chrome and Edge browse
 - **Marker Follow**: Auto-scroll to keep the current marker in view.
 - **Hotkeys**: Full support for `A` (Add Marker) and `R` (Restart Marker).
 
-### 5. 💎 Pro Cloud Verification
+### 5. 💎 Pro Verification & Limits
+- **Free Version Limits**: Maximum of 10 saved videos in the Library, and 10 markers per video.
+- **Pro Version (Unlimited)**: Unlimited video saves, unlimited markers, and unrestricted features.
 - **Account Binding**: Automatically detects your Google Account Email.
 - **Cloud Authorization**: Permissions follow your account across devices via cloud sync.
 
