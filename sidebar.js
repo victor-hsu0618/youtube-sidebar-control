@@ -1352,16 +1352,18 @@ try {
 
     // --- Batch Actions Logic ---
     function updateBatchUI() {
-        const batchBar = document.getElementById('lib-batch-actions');
-        const countSpan = document.getElementById('lib-selection-count');
+        const isFavView = views.favorites?.style.display === 'flex';
+        const batchBar = document.getElementById(isFavView ? 'fav-batch-actions' : 'lib-batch-actions');
+        const countSpan = document.getElementById(isFavView ? 'fav-selection-count' : 'lib-selection-count');
+        const selectAll = document.getElementById(isFavView ? 'fav-select-all' : 'lib-select-all');
+
         const checkboxes = document.querySelectorAll('.item-select-checkbox:checked');
         const allCheckboxes = document.querySelectorAll('.item-select-checkbox');
-        const selectAll = document.getElementById('lib-select-all');
 
         if (!batchBar || !countSpan) return;
 
         const count = checkboxes.length;
-        if (count > 0) {
+        if (count > 0 && isLibraryEditMode) {
             batchBar.style.display = 'flex';
             countSpan.textContent = `${count} selected`;
         } else {
@@ -1375,20 +1377,27 @@ try {
 
     document.getElementById('lib-select-all')?.addEventListener('change', (e) => {
         const checked = e.target.checked;
-        document.querySelectorAll('.item-select-checkbox').forEach(cb => {
-            cb.checked = checked;
-        });
+        document.querySelectorAll('.item-select-checkbox').forEach(cb => cb.checked = checked);
         updateBatchUI();
     });
 
-    document.getElementById('btn-batch-add-fav')?.addEventListener('click', async () => {
-        const selectedKeys = Array.from(document.querySelectorAll('.item-select-checkbox:checked')).map(cb => cb.dataset.key);
-        if (selectedKeys.length === 0) return;
-
-        showBatchFavGroupPicker(selectedKeys);
+    document.getElementById('fav-select-all')?.addEventListener('change', (e) => {
+        const checked = e.target.checked;
+        document.querySelectorAll('.item-select-checkbox').forEach(cb => cb.checked = checked);
+        updateBatchUI();
     });
 
-    document.getElementById('btn-batch-delete')?.addEventListener('click', async () => {
+    document.getElementById('btn-batch-add-fav')?.addEventListener('click', () => {
+        const selectedKeys = Array.from(document.querySelectorAll('.item-select-checkbox:checked')).map(cb => cb.dataset.key);
+        if (selectedKeys.length > 0) showBatchFavGroupPicker(selectedKeys);
+    });
+
+    document.getElementById('btn-fav-batch-add-fav')?.addEventListener('click', () => {
+        const selectedKeys = Array.from(document.querySelectorAll('.item-select-checkbox:checked')).map(cb => cb.dataset.key);
+        if (selectedKeys.length > 0) showBatchFavGroupPicker(selectedKeys);
+    });
+
+    const handleBatchDelete = async () => {
         const selectedKeys = Array.from(document.querySelectorAll('.item-select-checkbox:checked')).map(cb => cb.dataset.key);
         if (selectedKeys.length === 0) return;
 
@@ -1397,20 +1406,20 @@ try {
             `Delete ${selectedKeys.length} selected videos and all their markers? This cannot be undone.`,
             async () => {
                 await chrome.storage.sync.remove(selectedKeys);
-
-                // If current video was deleted, reset state
                 if (selectedKeys.includes(currentStorageKey)) {
                     resetInternalState();
                     showStandby('HOME');
                 }
-
                 log(`Deleted ${selectedKeys.length} items`, "success");
                 loadLibrary();
                 loadFavorites();
                 updateBatchUI();
             }
         );
-    });
+    };
+
+    document.getElementById('btn-batch-delete')?.addEventListener('click', handleBatchDelete);
+    document.getElementById('btn-fav-batch-delete')?.addEventListener('click', handleBatchDelete);
 
     async function showBatchFavGroupPicker(videoKeys) {
         const modal = document.getElementById('fav-group-picker-modal');
@@ -2265,25 +2274,27 @@ try {
         }
 
         // Apply Custom Sort
-        const order = favoriteGroupOrders[activeGroup];
-        if (order && Array.isArray(order)) {
-            // Sort items based on their position in the order list
-            items.sort((a, b) => {
-                const idxA = order.indexOf(a._key);
-                const idxB = order.indexOf(b._key);
-                // If item not in order list, push to bottom
-                if (idxA === -1 && idxB === -1) return (b.updatedAt || 0) - (a.updatedAt || 0);
-                if (idxA === -1) return 1;
-                if (idxB === -1) return -1;
-                return idxA - idxB;
-            });
-        } else {
-            // Default sort by updatedAt
-            items.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-            // Save initial order
-            favoriteGroupOrders[activeGroup] = items.map(i => i._key);
-            await chrome.storage.sync.set({ 'favorite_group_orders': favoriteGroupOrders });
-        }
+        const data = await chrome.storage.sync.get('favorite_group_orders');
+        favoriteGroupOrders = data.favorite_group_orders || {};
+
+        const order = favoriteGroupOrders[activeGroup] || [];
+        const currentKeys = items.map(i => i._key);
+
+        // Filter and sync markers locally without aggressive storage writing
+        let syncedOrder = order.filter(k => currentKeys.includes(k));
+        currentKeys.forEach(k => {
+            if (!syncedOrder.includes(k)) syncedOrder.push(k);
+        });
+
+        // Use the synced order for display
+        items.sort((a, b) => {
+            const idxA = syncedOrder.indexOf(a._key);
+            const idxB = syncedOrder.indexOf(b._key);
+            return idxA - idxB;
+        });
+
+        // Update memory cache for subsequent reorders
+        favoriteGroupOrders[activeGroup] = syncedOrder;
 
         browsedGroupItems = items; // Cache for starting a playlist
         renderList(container, items);
@@ -2307,6 +2318,38 @@ try {
 
         favoriteGroupOrders[activeGroup] = order;
         await chrome.storage.sync.set({ 'favorite_group_orders': favoriteGroupOrders });
+        loadFavorites();
+    }
+
+    async function reorderFavoriteItem(oldIndex, newIndex) {
+        const activeGroup = document.getElementById('fav-group-selector')?.value || currentFavGroup;
+
+        // Always get the latest full order map from sync to avoid overwriting other groups
+        const data = await chrome.storage.sync.get('favorite_group_orders');
+        let allOrders = data.favorite_group_orders || {};
+        let order = allOrders[activeGroup];
+
+        if (!order || !Array.isArray(order) || order.length === 0) return;
+
+        // Bounds check
+        if (newIndex < 0) newIndex = 0;
+        if (newIndex >= order.length) newIndex = order.length - 1;
+
+        if (oldIndex === newIndex) {
+            loadFavorites(); // Reset UI
+            return;
+        }
+
+        // Move item
+        const item = order.splice(oldIndex, 1)[0];
+        order.splice(newIndex, 0, item);
+
+        allOrders[activeGroup] = order;
+        favoriteGroupOrders = allOrders; // Sync memory cache
+
+        await chrome.storage.sync.set({ 'favorite_group_orders': allOrders });
+        console.log(`[YT Study] Favorite Reordered in "${activeGroup}": ${oldIndex + 1} -> ${newIndex + 1}`);
+
         loadFavorites();
     }
 
@@ -2536,12 +2579,16 @@ try {
                 favBadge = `<span style="font-size:9px; color:var(--accent-color); background:rgba(62,166,255,0.1); padding:0 4px; border-radius:4px; margin-left:4px;">${v.favoriteGroups[0]}${v.favoriteGroups.length > 1 ? '+' : ''}</span>`;
             }
 
-            let sortButtons = '';
+            let sortIndexUI = '';
             if (isLibraryEditMode && container.id === 'favorites-list') {
-                sortButtons = `
-                    <div style="display:flex; flex-direction:column; gap:2px; margin-right:4px;">
-                        <button class="sort-up-btn" style="background:none; border:none; padding:0; color:#888; cursor:pointer; font-size:10px;" title="Move Up">▲</button>
-                        <button class="sort-down-btn" style="background:none; border:none; padding:0; color:#888; cursor:pointer; font-size:10px;" title="Move Down">▼</button>
+                const activeGroup = document.getElementById('fav-group-selector')?.value || currentFavGroup;
+                const order = favoriteGroupOrders[activeGroup] || [];
+                const currentIdx = order.indexOf(v._key) + 1; // 1-based
+                sortIndexUI = `
+                    <div style="display:flex; align-items:center; margin-right:6px;">
+                        <input type="text" inputmode="numeric" class="item-sort-index" value="${currentIdx}" 
+                            data-key="${v._key}"
+                            style="width:28px; height:20px; font-size:10px; text-align:center; background:#000; border:1px solid #444; color:var(--accent-color); border-radius:3px; padding:0;">
                     </div>
                 `;
             }
@@ -2549,7 +2596,7 @@ try {
             el.innerHTML = `
                 <div style="display:flex; align-items:center; gap:8px;">
                     <input type="checkbox" class="item-select-checkbox" data-key="${v._key}" style="cursor:pointer; width:14px; height:14px; accent-color:var(--accent-color);">
-                    ${sortButtons}
+                    ${sortIndexUI}
                     <img src="${thumbSrc}" class="library-thumb" onerror="this.style.display='none'">
                 </div>
                 <div class="library-info">
@@ -2568,9 +2615,19 @@ try {
                 <button class="delete-btn">×</button>
             `;
 
-            if (sortButtons) {
-                el.querySelector('.sort-up-btn').addEventListener('click', (e) => { e.stopPropagation(); moveFavoriteItem(v._key, -1); });
-                el.querySelector('.sort-down-btn').addEventListener('click', (e) => { e.stopPropagation(); moveFavoriteItem(v._key, 1); });
+            if (sortIndexUI) {
+                const input = el.querySelector('.item-sort-index');
+                input.onclick = (e) => e.stopPropagation();
+                input.onchange = (e) => {
+                    const newPos = parseInt(e.target.value) - 1;
+                    if (!isNaN(newPos)) reorderFavoriteItem(index, newPos);
+                };
+                input.onkeydown = (e) => {
+                    if (e.key === 'Enter') {
+                        const newPos = parseInt(e.target.value) - 1;
+                        if (!isNaN(newPos)) reorderFavoriteItem(index, newPos);
+                    }
+                };
             }
 
             el.querySelector('.item-select-checkbox').addEventListener('click', (e) => {

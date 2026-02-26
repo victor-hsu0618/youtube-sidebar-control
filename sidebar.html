@@ -380,6 +380,21 @@
             Group</button>
         </div>
 
+        <!-- Batch Action Bar for Favorites -->
+        <div id="fav-batch-actions" class="control-group"
+          style="display:none; margin-bottom:8px; padding:6px; align-items:center; gap:8px; font-size:11px; background:rgba(62,166,255,0.1); border-color:var(--accent-color);">
+          <div style="display:flex; align-items:center; gap:6px; flex:1;">
+            <input type="checkbox" id="fav-select-all" style="cursor:pointer;">
+            <span id="fav-selection-count" style="font-weight:600; color:var(--accent-color);">0 selected</span>
+          </div>
+          <div style="display:flex; gap:4px;">
+            <button id="btn-fav-batch-add-fav" class="action-btn" style="padding:2px 8px; font-size:10px;">Set Favorite
+              Groups</button>
+            <button id="btn-fav-batch-delete" class="secondary-btn"
+              style="padding:2px 8px; font-size:10px; border-color:var(--danger-color); color:var(--danger-color); margin:0;">Delete</button>
+          </div>
+        </div>
+
         <!-- Dynamic Storage Usage in Favorites -->
         <div id="fav-sync-usage-container" class="storage-usage" title="Chrome Sync Storage Usage"
           style="margin-top: 8px; padding: 0 4px;">
