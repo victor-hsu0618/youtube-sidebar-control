@@ -14,12 +14,12 @@
     <header class="compact-nav-bar">
       <div class="nav-controls">
         <div class="brand-assets">
-          <span id="app-version-badge" class="version-badge">v3.0.0 (Beta)</span>
+          <span id="app-version-badge" class="version-badge">v3.0.1 (Beta)</span>
           <div class="status-indicator" id="connection-status" title="Disconnected"></div>
         </div>
         <button id="nav-player" class="nav-btn active">Player</button>
-        <button id="nav-library" class="nav-btn">Library</button>
         <button id="nav-favorites" class="nav-btn">Favorites</button>
+        <button id="nav-library" class="nav-btn">Library</button>
         <button id="nav-popout" class="nav-btn icon-only" title="Pop Out Window">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
             <path
@@ -63,15 +63,19 @@
                 </path>
               </svg>
             </button>
-            <button id="btn-clone-session" class="icon-btn small-btn" title="Clone Session">
+            <button id="btn-clone-session" class="icon-btn small-btn" title="Clone Session" style="display:none;">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
                 <path
                   d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
               </svg>
             </button>
             <button id="toggle-library-save" class="icon-btn small-btn" title="Save to Library">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="m16 6 4 14"></path>
+                <path d="M12 6v14"></path>
+                <path d="M8 8v12"></path>
+                <path d="M4 4v16"></path>
               </svg>
             </button>
           </div>
@@ -157,8 +161,28 @@
               </svg>
               <span class="btn-badge">CLR</span>
             </button>
-            <!-- Speed Badge -->
-            <div id="main-speed-badge" class="mini-speed-badge" title="Speed Control (< / >)">1.0x</div>
+            <!-- Speed Badge (Click to toggle controls) -->
+            <div id="main-speed-badge" class="mini-speed-badge" title="Speed Control (< / >)" style="cursor: pointer;">
+              1.0x</div>
+          </div>
+
+          <!-- Integrated Speed Controls (Collapsible) -->
+          <div id="speed-content" class="accordion-content collapsed"
+            style="border-top: 1px solid rgba(255,255,255,0.05);">
+            <div style="padding: 10px 4px 4px 4px;">
+              <div class="slider-container" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                <button class="icon-btn speed-step-btn" id="speed-down" title="Decrease speed 0.05x">-</button>
+                <input type="range" id="speed-slider" min="0.25" max="3.0" step="0.05" value="1.0"
+                  style="margin-bottom: 0;">
+                <button class="icon-btn speed-step-btn" id="speed-up" title="Increase speed 0.05x">+</button>
+              </div>
+              <div class="presets" style="display: flex; gap: 4px;">
+                <button class="preset-btn" data-speed="0.5" style="font-size: 10px; padding: 4px;">0.5x</button>
+                <button class="preset-btn" data-speed="1.0" style="font-size: 10px; padding: 4px;">1.0x</button>
+                <button class="preset-btn" data-speed="1.5" style="font-size: 10px; padding: 4px;">1.5x</button>
+                <button class="preset-btn" data-speed="2.0" style="font-size: 10px; padding: 4px;">2.0x</button>
+              </div>
+            </div>
           </div>
         </section>
       </div> <!-- End player-top-panel -->
@@ -227,52 +251,31 @@
 
       <div id="panel-controls" class="sub-panel">
         <div class="sub-panel-scroll">
-          <!-- Playback Speed -->
-          <section class="control-group">
-            <div id="speed-header" class="section-header accordion-header" title="Speed Control (< / >)">
-              <div style="display:flex; align-items:center; gap:8px;">
-                <span id="speed-chevron" class="chevron"
-                  style="display:inline-block; transition:transform 0.2s;">▶</span>
-                <h2>Playback Speed</h2>
-              </div>
-              <span id="speed-display" class="value-display">1.0x</span>
-            </div>
-            <div id="speed-content" class="accordion-content collapsed">
-              <div class="slider-container" style="display: flex; align-items: center; gap: 8px;">
-                <button class="icon-btn speed-step-btn" id="speed-down" title="Decrease speed 0.05x">-</button>
-                <input type="range" id="speed-slider" min="0.25" max="3.0" step="0.05" value="1.0">
-                <button class="icon-btn speed-step-btn" id="speed-up" title="Increase speed 0.05x">+</button>
-              </div>
-              <div class="presets">
-                <button class="preset-btn" data-speed="0.5">0.5x</button>
-                <button class="preset-btn" data-speed="1.0">1.0x</button>
-                <button class="preset-btn" data-speed="1.5">1.5x</button>
-                <button class="preset-btn" data-speed="2.0">2.0x</button>
-              </div>
-            </div>
-          </section>
-          <!-- Additional Advanced Diagnostics -->
+          <!-- Advanced Features -->
           <section class="control-group">
             <div class="section-header">
-              <h2>Cloud Sync & Systems</h2>
+              <h2>Advanced Features</h2>
             </div>
             <div style="padding: 10px 4px; display: flex; flex-direction: column; gap: 8px;">
-              <button id="btn-refresh-sync" class="action-btn outline-btn full-width-btn"
-                style="font-size: 11px; padding: 6px;">↻ Refresh Cloud Sync & Diagnostics</button>
-
-              <div id="sync-usage-container" class="storage-usage" title="Chrome Sync Storage Usage"
-                style="margin-top: 4px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2px;">
-                  <span style="font-size: 10px; color: #888;">Cloud Storage Usage</span>
-                  <div id="sync-usage-text" class="storage-text">0% Used</div>
-                </div>
-                <div class="storage-bar-bg">
-                  <div id="sync-usage-bar" class="storage-bar-fill"></div>
-                </div>
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span class="toolbar-label" style="font-size:12px; color:#ddd;">Enable Clone Session</span>
+                <label class="toggle-switch small-toggle">
+                  <input type="checkbox" id="toggle-clone-session">
+                  <span class="slider"></span>
+                </label>
               </div>
+              <p style="font-size:10px; color:#888; margin-top:-4px; line-height:1.4;">Shows a button in the player to
+                duplicate the current video profile.</p>
+            </div>
+          </section>
 
-              <div id="monetization-test-box"
-                style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed #444; display: flex; flex-direction: column; gap: 8px;">
+          <!-- Subscription Status (Standalone) -->
+          <section class="control-group">
+            <div class="section-header">
+              <h2>Subscription Status</h2>
+            </div>
+            <div style="padding: 10px 4px; display: flex; flex-direction: column; gap: 8px;">
+              <div id="monetization-box" style="display: flex; flex-direction: column; gap: 8px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                   <span id="user-account-display"
                     style="font-size: 10px; color: #888; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Account:
@@ -296,67 +299,61 @@
                   </a>
                 </div>
               </div>
+            </div>
+          </section>
 
+          <!-- Local Data Backup -->
+          <section class="control-group">
+            <div class="section-header">
+              <h2>Local Data Backup</h2>
+            </div>
+            <div style="padding: 10px 4px; display: flex; flex-direction: column; gap: 8px;">
+              <button id="btn-global-export" class="action-btn outline-btn full-width-btn"
+                style="font-size: 11px; padding: 6px;">Backup All Data (Export JSON)</button>
+              <button id="btn-global-import" class="action-btn outline-btn full-width-btn"
+                style="font-size: 11px; padding: 6px;">Restore All Data (Import JSON)</button>
+              <input type="file" id="file-global-import" accept=".json" hidden />
+              <p style="font-size:10px; color:#888; text-align:center; line-height: 1.4;">Migrate your markers and
+                video meta to other devices manually.
+              </p>
+            </div>
+          </section>
+
+          <!-- Cloud Sync & Systems (Moved to bottom) -->
+          <section class="control-group">
+            <div class="section-header">
+              <h2>Cloud Sync & Systems</h2>
+            </div>
+            <div style="padding: 10px 4px; display: flex; flex-direction: column; gap: 8px;">
+              <button id="btn-refresh-sync" class="action-btn outline-btn full-width-btn"
+                style="font-size: 11px; padding: 6px;">↻ Refresh Cloud Sync & Diagnostics</button>
+
+              <div id="sync-usage-container" class="storage-usage" title="Chrome Sync Storage Usage"
+                style="margin-top: 4px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2px;">
+                  <span style="font-size: 10px; color: #888;">Cloud Storage Usage</span>
+                  <div id="sync-usage-text" class="storage-text">0% Used</div>
+                </div>
+                <div class="storage-bar-bg">
+                  <div id="sync-usage-bar" class="storage-bar-fill"></div>
+                </div>
+                <div
+                  style="display:flex; justify-content:space-between; align-items:center; margin-top: 8px; font-size: 10px; color: #888; border-top: 1px dashed #333; padding-top: 6px;">
+                  <span>Favorites Items:</span>
+                  <span id="stats-favorites-count" style="color: #ddd;">0</span>
+                </div>
+                <div
+                  style="display:flex; justify-content:space-between; align-items:center; margin-top: 4px; font-size: 10px; color: #888;">
+                  <span>Library Items:</span>
+                  <span id="stats-library-count" style="color: #ddd;">0</span>
+                </div>
+              </div>
             </div>
           </section>
         </div>
       </div>
     </div>
 
-
-    <div id="view-library" style="display: none;">
-      <div class="library-header"
-        style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <h2>Saved Videos</h2>
-          <button id="btn-toggle-edit" class="icon-btn small-btn" title="Toggle Edit Mode"
-            style="border:1px solid #444; border-radius:4px; width:45px; height:20px; font-size:9px; font-weight:700;">Edit</button>
-        </div>
-        <div style="display:flex; gap:8px; align-items:center;">
-          <div class="library-toolbar-actions" style="display:flex; gap:4px;">
-            <button id="btn-global-export" class="secondary-btn"
-              style="margin:0; font-size:10px; padding:2px 6px; width:auto;" title="Backup All Data">Export All</button>
-            <button id="btn-global-import" class="secondary-btn"
-              style="margin:0; font-size:10px; padding:2px 6px; width:auto;" title="Restore All Data">Import
-              All</button>
-            <input type="file" id="file-global-import" accept=".json" hidden />
-          </div>
-          <button id="lib-btn-import" class="action-btn"
-            style="font-size:10px; margin:0; padding:2px 8px; width:auto;">+ Add Video</button>
-          <input type="file" id="lib-file-import" accept=".json" hidden />
-        </div>
-      </div>
-
-      <!-- Batch Action Bar (Initially Hidden) -->
-      <div id="lib-batch-actions" class="control-group"
-        style="display:none; margin-bottom:12px; padding:8px; align-items:center; gap:8px; font-size:11px; background:rgba(62,166,255,0.1); border-color:var(--accent-color);">
-        <div style="display:flex; align-items:center; gap:6px; flex:1;">
-          <input type="checkbox" id="lib-select-all" style="cursor:pointer;">
-          <span id="lib-selection-count" style="font-weight:600; color:var(--accent-color);">0 selected</span>
-        </div>
-        <div style="display:flex; gap:4px;">
-          <button id="btn-batch-add-fav" class="action-btn" style="padding:2px 8px; font-size:10px;">Set Favorite
-            Groups</button>
-          <button id="btn-batch-delete" class="secondary-btn"
-            style="padding:2px 8px; font-size:10px; border-color:var(--danger-color); color:var(--danger-color); margin:0;">Delete</button>
-        </div>
-      </div>
-      <div id="library-list">
-        <!-- Library Items Injected Here -->
-        <p style="color: #666; text-align: center; padding: 20px;">No saved videos found.</p>
-      </div>
-
-      <!-- Sponsorship only in Library -->
-      <div class="view-footer">
-        <a href="https://www.buymeacoffee.com/victorhsu" target="_blank" class="bmc-btn">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-            <path
-              d="M20.216 6.415l-.132-.666c-.119-.596-.385-1.135-.77-1.566-.426-.477-.972-.81-1.584-.962-.437-.109-.893-.163-1.346-.164H9.006c-.906 0-1.786.176-2.616.523-1.127.472-2.094 1.253-2.77 2.235-.55.795-.89 1.718-.98 2.684l-.193.364c-1.353.16-2.395 1.306-2.395 2.693 0 1.493 1.215 2.708 2.709 2.708h.122c.245 2.36 2.067 4.256 4.416 4.629l.34.054c.758 1.8 2.508 3.037 4.544 3.037h.03c2.036 0 3.786-1.238 4.544-3.037l.34-.054c2.518-.399 4.39-2.525 4.39-4.99 0-2.464-1.872-4.59-4.39-4.99l-.216-.76zM4.764 13.56c-.714 0-1.294-.58-1.294-1.294 0-.714.58-1.294 1.294-1.294h.61c.21 0 .42.022.624.062l.27.79.034.618a8.3 8.3 0 0 1-.295 1.118h-1.24zm10.74 3.036c-2.464.399-4.39 2.526-4.39 4.99h-1.415c0-2.464-1.925-4.59-4.39-4.99l-.341-.054a5.003 5.003 0 0 1-4.417-4.63h.03c.596 0 1.16-.13 1.666-.364.676-.314 1.258-.78 1.706-1.362.437-.568.746-1.23.896-1.926l.132-.666h7.614l.132.666c.15.697.459 1.358.896 1.926.448.582 1.03 1.048 1.706 1.362.506.234 1.07.364 1.666.364h.03a5.003 5.003 0 0 1-4.417 4.63l-.34.054z" />
-          </svg>
-          Buy me a coffee
-        </a>
-      </div>
-    </div>
 
     <!-- Favorites View -->
     <div id="view-favorites" style="display: none;">
@@ -407,8 +404,7 @@
             style="flex:1; background:#222; border:1px solid #444; color:#fff; border-radius:4px; padding:2px 6px;">
           <button id="btn-add-fav-group" class="action-btn" style="padding:2px 8px;">Add</button>
         </div>
-        <div id="fav-groups-list-mgmt"
-          style="display:flex; flex-direction:column; gap:4px; max-height:200px; overflow-y:auto; margin-bottom:8px;">
+        <div id="fav-groups-list-mgmt" style="display:flex; flex-direction:column; gap:4px; margin-bottom:8px;">
           <!-- Group items with delete/rename buttons -->
         </div>
 
@@ -430,6 +426,53 @@
           <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
             <path
               d="M20.216 6.415l-.132-.666c-.119-.596-.385-1.135-.77-1.566-.426-.477-.972-.81-1.584-.962-.437-.109-.893-.163-1.346-.164H9.006c-.906 0-1.786.176-2.616.523-1.127.472-2.094 1.253-2.77 2.235-.55.795-.89 1.718-.98 2.684l-.193.364c-1.353.16-2.395 1.306-2.395 2.693 0 1.493 1.215 2.708 2.709 2.708h.122c.245 2.36 2.067 4.256 4.416 4.629l.34.054c.758 1.8 2.508 3.037 4.544 3.037h.03c2.036 0 3.786-1.238 4.544-3.037l.34-.054c2.518-.399 4.39-2.525 4.39-4.99 0-2.464-1.872-4.59-4.39-4.99l-.216-.76zM4.764 13.56c-.714 0-1.294-.58-1.294-1.294 0-.714.58-1.294 1.294-1.294h.61c.21 0 .42.022.624.062l.27.79.034.618a8.3 8.3 0 0 1-.295 1.118h-1.24zm10.74 3.036c-2.464.399-4.39 2.526-4.39 4.99h-1.415c0-2.464-1.925-4.59-4.39-4.99l-.341-.054a5.003 5.003 0 0 1-4.417-4.63h.03c.596 0 1.16-.13 1.666-.364.676-.314 1.258-.78 1.706-1.362.437-.568.746-1.23.896-1.926l.132-.666h7.614l.132.666c.15.697.459 1.358.896 1.926.448.582 1.03 1.048 1.706 1.362.506.234 1.07.364 1.666.364h.03a5.003 5.003 0 0 1-4.417 4.63l-.34.054z" />
+          </svg>
+          Buy me a coffee
+        </a>
+      </div>
+    </div>
+
+    <!-- Library View -->
+    <div id="view-library" style="display: none;">
+      <div class="library-header"
+        style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <h2>Saved Videos</h2>
+          <button id="btn-toggle-edit" class="icon-btn small-btn" title="Toggle Edit Mode"
+            style="border:1px solid #444; border-radius:4px; width:45px; height:20px; font-size:9px; font-weight:700;">Edit</button>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button id="lib-btn-import" class="action-btn"
+            style="font-size:10px; margin:0; padding:2px 8px; width:auto;">+ Add Video Profile</button>
+          <input type="file" id="lib-file-import" accept=".json" hidden />
+        </div>
+      </div>
+
+      <!-- Batch Action Bar (Initially Hidden) -->
+      <div id="lib-batch-actions" class="control-group"
+        style="display:none; margin-bottom:12px; padding:8px; align-items:center; gap:8px; font-size:11px; background:rgba(62,166,255,0.1); border-color:var(--accent-color);">
+        <div style="display:flex; align-items:center; gap:6px; flex:1;">
+          <input type="checkbox" id="lib-select-all" style="cursor:pointer;">
+          <span id="lib-selection-count" style="font-weight:600; color:var(--accent-color);">0 selected</span>
+        </div>
+        <div style="display:flex; gap:4px;">
+          <button id="btn-batch-add-fav" class="action-btn" style="padding:2px 8px; font-size:10px;">Set Favorite
+            Groups</button>
+          <button id="btn-batch-delete" class="secondary-btn"
+            style="padding:2px 8px; font-size:10px; border-color:var(--danger-color); color:var(--danger-color); margin:0;">Delete</button>
+        </div>
+      </div>
+      <div id="library-list">
+        <!-- Library Items Injected Here -->
+        <p style="color: #666; text-align: center; padding: 20px;">No saved videos found.</p>
+      </div>
+
+      <!-- Sponsorship only in Library -->
+      <div class="view-footer">
+        <a href="https://www.buymeacoffee.com/victorhsu" target="_blank" class="bmc-btn">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+            <path
+              d="M20.216 6.415l-.132-.666c-.119-.596-.385-1.135-.77-1.566-.426-.477-.972-.81-1.584-.962-.437-.109-.893-.163-1.346-.164H9.006c-.906 0-1.786.176-2.616.523-1.127.472-2.094 1.253-2.77 2.235-.55.795-.89 1.718-.98 2.684l-.193.364c-1.353.16-2.395 1.306-2.395 2.693 0 1.493 1.215 2.708 2.709 2.708h.122c.245 2.36 2.067 4.256 4.416 4.629l.34.054c.758 1.8 2.508 3.037 4.544 3.037h.03c2.036 0 3.786-1.238 4.544-3.037l.34-.054c2.518-.399 4.39-2.525 4.39-4.99 0-2.464-1.872-4.59-4.39-4.99l-.216-.76zM4.764 13.56c-.714 0-1.294-.58-1.294-1.294 0-.714.58-1.294 1.294-1.294h.61c.21 0 .42.022.624.062l.27.79.034.618a8.3 8.3 0 0 1-.295 1.118h-1.24zm10.74 3.036c-2.464.399-4.39 2.526-4.39 4.99h-1.415c0-2.464-1.925-4.59-4.39-4.99l-.341-.054a5.003 5.003 0 0 1-4.417-4.63h.03c.596 0 1.16-.13 1.666-.364.676-.314 1.258-.78 1.706-1.362.437-.568.746-1.23.896-1.926l.132-.666h7.614l.132.666c.15.697.459 1.358.896 1.926.448.582 1.048 1.048 1.706 1.362.506.234 1.07.364 1.666.364h.03a5.003 5.003 0 0 1-4.417 4.63l-.34.054z" />
           </svg>
           Buy me a coffee
         </a>
@@ -535,7 +578,8 @@
         <!-- Checkboxes injected here -->
       </div>
       <div class="modal-footer">
-        <button id="save-fav-picker" class="action-btn" style="padding:4px 12px; font-size:12px;">Save Changes</button>
+        <button id="save-fav-picker" class="action-btn" style="padding:4px 12px; font-size:12px;">Save
+          Changes</button>
       </div>
     </div>
   </div>

@@ -19,6 +19,8 @@ function log(msg, type = 'info') {
 console.log("[YT Study] Extension ID:", chrome.runtime.id);
 log(`Instance ID: ${chrome.runtime.id.substring(0, 8)}...`, 'info');
 
+let isCloneEnabled = false; // Global state
+
 // Set app version from manifest
 try {
     const manifest = chrome.runtime.getManifest();
@@ -161,14 +163,63 @@ try {
 
     // --- Favorite Groups Logic ---
     async function initFavGroups() {
+        const localStatus = await chrome.storage.local.get('device_initialized');
+        const isDeviceInitialized = localStatus.device_initialized;
+
         const data = await chrome.storage.sync.get('favorite_groups');
-        if (data.favorite_groups && Array.isArray(data.favorite_groups)) {
+        if (data.favorite_groups && Array.isArray(data.favorite_groups) && data.favorite_groups.length > 0) {
             favoriteGroupsList = data.favorite_groups;
+            if (!isDeviceInitialized) await chrome.storage.local.set({ 'device_initialized': true });
+            updateFavGroupUI();
         } else {
+            if (!isDeviceInitialized) {
+                // Potential fresh installation. Wait for user before overwriting cloud data.
+                showConfirmModal(
+                    "Data Sync Check / 資料同步檢查",
+                    "No cloud data detected. If you have data from another device, Chrome may still be downloading it. \n(未偵測到雲端資料。若您有其他裝置的資料，Chrome 可能尚未完成下載。)\n\nDo you want to Wait & Load from Cloud (以雲端為主載入), or Start Fresh (清除建立全新記錄)?",
+                    async () => {
+                        // On Confirm -> Start Fresh
+                        await chrome.storage.local.set({ 'device_initialized': true });
+                        favoriteGroupsList = ["Default"];
+                        await chrome.storage.sync.set({ 'favorite_groups': favoriteGroupsList });
+                        updateFavGroupUI();
+                    },
+                    () => {
+                        // On Cancel -> Wait
+                        alert("Please wait a moment for Chrome to download your cloud data.\n\n(請稍候讓 Chrome 完成下載資料。您隨後可以在選單中變更群組即可。)");
+                    },
+                    "Start Fresh / 清除紀錄"
+                );
+
+                // Tweak the Cancel button momentarily to show "Wait / 以雲端為主"
+                setTimeout(() => {
+                    const cancelBtn = document.getElementById('btn-cancel-confirm');
+                    if (cancelBtn) {
+                        const origCancelText = cancelBtn.textContent;
+                        cancelBtn.textContent = 'Wait / 以雲端為主';
+                        const origOnclick = cancelBtn.onclick;
+                        cancelBtn.onclick = (e) => {
+                            cancelBtn.textContent = origCancelText;
+                            if (origOnclick) origOnclick(e);
+                        };
+                        const confirmBtn = document.getElementById('btn-confirm-action');
+                        if (confirmBtn) {
+                            const origConfirmClick = confirmBtn.onclick;
+                            confirmBtn.onclick = (e) => {
+                                cancelBtn.textContent = origCancelText;
+                                if (origConfirmClick) origConfirmClick(e);
+                            };
+                        }
+                    }
+                }, 50);
+
+                return; // halt and wait
+            }
+
             favoriteGroupsList = ["Default"];
             await chrome.storage.sync.set({ 'favorite_groups': favoriteGroupsList });
+            updateFavGroupUI();
         }
-        updateFavGroupUI();
     }
 
     function updateFavGroupUI() {
@@ -198,17 +249,31 @@ try {
         if (!container) return;
         container.innerHTML = '';
 
-        favoriteGroupsList.forEach(g => {
+        favoriteGroupsList.forEach((g, index) => {
             const div = document.createElement('div');
             div.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding:4px 6px; background:rgba(255,255,255,0.05); border-radius:4px; margin-bottom:2px;';
 
             div.innerHTML = `
-                <span style="font-weight:500;">${g}</span>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <input type="text" inputmode="numeric" class="group-index-input" value="${index + 1}" 
+                        style="width:28px; background:#000; border:1px solid #444; color:var(--accent-color); font-size:10px; padding:1px 2px; text-align:center; border-radius:3px;">
+                    <span style="font-weight:500;">${g}</span>
+                </div>
                 <div style="display:flex; gap:8px;">
                     <button class="rename-group-btn" style="background:none; border:none; color:var(--accent-color); cursor:pointer; font-size:10px; padding:0;">Rename</button>
                     ${g !== 'Default' ? '<button class="delete-group-btn" style="background:none; border:none; color:var(--danger-color); cursor:pointer; font-size:10px; padding:0;">Delete</button>' : ''}
                 </div>
             `;
+
+            // Listen for direct index changes
+            const indexInput = div.querySelector('.group-index-input');
+            indexInput.onchange = (e) => {
+                const newPos = parseInt(e.target.value) - 1;
+                reorderFavGroup(index, newPos);
+            };
+
+            // Prevent general click when typing
+            indexInput.onclick = (e) => e.stopPropagation();
 
             div.querySelector('.rename-group-btn').onclick = (e) => { e.stopPropagation(); renameFavGroup(g); };
             if (g !== 'Default') {
@@ -216,6 +281,18 @@ try {
             }
             container.appendChild(div);
         });
+    }
+
+    async function reorderFavGroup(oldIndex, newIndex) {
+        if (newIndex < 0) newIndex = 0;
+        if (newIndex >= favoriteGroupsList.length) newIndex = favoriteGroupsList.length - 1;
+        if (oldIndex === newIndex) return;
+
+        const item = favoriteGroupsList.splice(oldIndex, 1)[0];
+        favoriteGroupsList.splice(newIndex, 0, item);
+
+        await chrome.storage.sync.set({ 'favorite_groups': favoriteGroupsList });
+        updateFavGroupUI();
     }
 
     async function addFavGroup(name) {
@@ -336,13 +413,13 @@ try {
     // --- Elements ---
     const views = {
         player: document.getElementById('view-player'),
-        library: document.getElementById('view-library'),
-        favorites: document.getElementById('view-favorites')
+        favorites: document.getElementById('view-favorites'),
+        library: document.getElementById('view-library')
     };
     const navs = {
         player: document.getElementById('nav-player'),
-        library: document.getElementById('nav-library'),
-        favorites: document.getElementById('nav-favorites')
+        favorites: document.getElementById('nav-favorites'),
+        library: document.getElementById('nav-library')
     };
 
     // Controls
@@ -412,7 +489,24 @@ try {
         });
 
         if (viewName === 'library') loadLibrary();
-        if (viewName === 'favorites') loadFavorites();
+        if (viewName === 'favorites') {
+            // Intelligent Jump: auto-select the group of the currently playing video
+            try {
+                const selector = document.getElementById('fav-group-selector');
+                if (selector && currentVideoData && currentVideoData.isSaved) {
+                    const videoGroups = [...(currentVideoData.favoriteGroups || [])];
+                    if (currentVideoData.isDefault && !videoGroups.includes("Default")) videoGroups.push("Default");
+                    const validGroups = videoGroups.filter(g => g && favoriteGroupsList.includes(g));
+                    if (validGroups.length > 0 && !validGroups.includes(selector.value)) {
+                        selector.value = validGroups[0];
+                        currentFavGroup = validGroups[0];
+                    }
+                }
+            } catch (e) {
+                console.warn('[YT Study] Intelligent jump skipped:', e);
+            }
+            loadFavorites();
+        }
     }
 
     if (navs.player) navs.player.addEventListener('click', () => switchView('player'));
@@ -702,17 +796,19 @@ try {
 
     // Speed
     const speedSlider = document.getElementById('speed-slider');
-    const speedDisplay = document.getElementById('speed-display');
+    const mainSpeedDisplayBadge = document.getElementById('main-speed-badge');
+
     speedSlider?.addEventListener('input', (e) => {
-        const val = e.target.value;
-        if (speedDisplay) speedDisplay.textContent = val + 'x';
-        sendMessage('SET_SPEED', { speed: parseFloat(val) });
+        const val = parseFloat(e.target.value).toFixed(2) + 'x';
+        if (mainSpeedDisplayBadge) mainSpeedDisplayBadge.textContent = val;
+        sendMessage('SET_SPEED', { speed: parseFloat(e.target.value) });
     });
     document.querySelectorAll('.preset-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const val = btn.dataset.speed;
-            speedSlider.value = val;
-            speedDisplay.textContent = parseFloat(val).toFixed(2) + 'x';
+            const formattedVal = parseFloat(val).toFixed(2) + 'x';
+            if (speedSlider) speedSlider.value = val;
+            if (mainSpeedDisplayBadge) mainSpeedDisplayBadge.textContent = formattedVal;
             sendMessage('SET_SPEED', { speed: parseFloat(val) });
         });
     });
@@ -724,8 +820,9 @@ try {
         speedDownBtn.addEventListener('click', () => {
             const currentSpeed = parseFloat(speedSlider.value);
             const newSpeed = Math.max(0.25, currentSpeed - 0.05);
-            speedSlider.value = newSpeed.toFixed(2);
-            speedDisplay.textContent = newSpeed.toFixed(2) + 'x';
+            const formattedVal = newSpeed.toFixed(2) + 'x';
+            if (speedSlider) speedSlider.value = newSpeed.toFixed(2);
+            if (mainSpeedDisplayBadge) mainSpeedDisplayBadge.textContent = formattedVal;
             sendMessage('SET_SPEED', { speed: newSpeed });
         });
     }
@@ -734,32 +831,32 @@ try {
         speedUpBtn.addEventListener('click', () => {
             const currentSpeed = parseFloat(speedSlider.value);
             const newSpeed = Math.min(3.0, currentSpeed + 0.05);
-            speedSlider.value = newSpeed.toFixed(2);
-            speedDisplay.textContent = newSpeed.toFixed(2) + 'x';
+            const formattedVal = newSpeed.toFixed(2) + 'x';
+            if (speedSlider) speedSlider.value = newSpeed.toFixed(2);
+            if (mainSpeedDisplayBadge) mainSpeedDisplayBadge.textContent = formattedVal;
             sendMessage('SET_SPEED', { speed: newSpeed });
         });
     }
 
     // --- Accordions (Collapsible Sections) ---
-    const speedHeader = document.getElementById('speed-header');
     const speedContent = document.getElementById('speed-content');
-    const speedChevron = document.getElementById('speed-chevron');
+    const mainSpeedBadge = document.getElementById('main-speed-badge');
 
-    if (speedHeader && speedContent) {
-        speedHeader.addEventListener('click', () => {
+    if (mainSpeedBadge && speedContent) {
+        mainSpeedBadge.addEventListener('click', () => {
             const isExpanding = speedContent.classList.contains('collapsed');
             setSpeedAccordionState(isExpanding);
         });
     }
 
     function setSpeedAccordionState(expand) {
-        if (speedContent && speedChevron) {
+        if (speedContent) {
             if (expand) {
                 speedContent.classList.remove('collapsed');
-                speedChevron.style.transform = 'rotate(90deg)';
+                if (mainSpeedBadge) mainSpeedBadge.style.background = 'rgba(62, 166, 255, 0.3)';
             } else {
                 speedContent.classList.add('collapsed');
-                speedChevron.style.transform = 'rotate(0deg)';
+                if (mainSpeedBadge) mainSpeedBadge.style.background = 'rgba(255, 255, 255, 0.1)';
             }
         }
     }
@@ -1398,8 +1495,35 @@ try {
         establishConnection(true);
     });
 
-    // --- Clone Button ---
-    document.getElementById('btn-clone-session')?.addEventListener('click', async () => {
+    // --- Clone Button & Toggle Logic ---
+    const btnCloneSession = document.getElementById('btn-clone-session');
+    const toggleCloneSession = document.getElementById('toggle-clone-session');
+
+    // Init from storage
+    chrome.storage.local.get(['enableCloneSession'], (res) => {
+        isCloneEnabled = res.enableCloneSession || false;
+        if (toggleCloneSession) toggleCloneSession.checked = isCloneEnabled;
+        if (btnCloneSession) btnCloneSession.style.display = isCloneEnabled ? 'inline-block' : 'none';
+
+        // Re-render relevant UI
+        updateHeader();
+        loadLibrary();
+    });
+
+    // Handle toggle
+    if (toggleCloneSession) {
+        toggleCloneSession.addEventListener('change', (e) => {
+            isCloneEnabled = e.target.checked;
+            chrome.storage.local.set({ enableCloneSession: isCloneEnabled });
+            if (btnCloneSession) btnCloneSession.style.display = isCloneEnabled ? 'inline-block' : 'none';
+
+            // Sync dependent UI
+            updateHeader();
+            loadLibrary();
+        });
+    }
+
+    btnCloneSession?.addEventListener('click', async () => {
         if (!currentVideoId) return;
         const clone = JSON.parse(JSON.stringify(currentVideoData));
         const now = Date.now();
@@ -1415,10 +1539,9 @@ try {
         currentStorageKey = newKey;
         updateHeader();
         loadLibrary();
-        const btn = document.getElementById('btn-clone-session');
-        const origColor = btn.style.color;
-        btn.style.color = '#4cc713';
-        setTimeout(() => btn.style.color = origColor, 1000);
+        const origColor = btnCloneSession.style.color;
+        btnCloneSession.style.color = '#4cc713';
+        setTimeout(() => btnCloneSession.style.color = origColor, 1000);
     });
 
     async function toggleVideoDefault(key) {
@@ -1624,12 +1747,18 @@ try {
         }
 
         if (defaultBtn) {
-            defaultBtn.className = 'icon-btn small-btn';
-            if (currentVideoData.isDefault) {
-                defaultBtn.classList.add('active');
-                defaultBtn.style.color = '#ffca28'; // Gold
+            if (isCloneEnabled) {
+                defaultBtn.style.display = 'inline-block';
+                defaultBtn.className = 'icon-btn small-btn';
+                if (currentVideoData.isDefault) {
+                    defaultBtn.classList.add('active');
+                    defaultBtn.style.color = '#ffca28'; // Gold
+                } else {
+                    defaultBtn.style.color = '';
+                    defaultBtn.classList.remove('active');
+                }
             } else {
-                defaultBtn.style.color = '';
+                defaultBtn.style.display = 'none';
             }
         }
 
@@ -2430,7 +2559,7 @@ try {
                     <div class="library-meta" style="display:flex; justify-content:space-between; align-items:center;">
                         <span style="font-size:10px; color:#888;">${metaLabel}${favBadge} • ${count} markers</span>
                         <div style="display:flex; gap:4px;">
-                            <button class="icon-btn small-action toggle-item-default-btn" title="Set as My Default Profile" style="width:20px;height:20px;font-size:10px; color:${v.isDefault ? '#ffca28' : ''};">★</button>
+                            ${isCloneEnabled ? `<button class="icon-btn small-action toggle-item-default-btn" title="Set as My Default Profile" style="width:20px;height:20px;font-size:10px; color:${v.isDefault ? '#ffca28' : ''};">★</button>` : ''}
                             <button class="icon-btn small-action set-fav-groups-btn" title="Add to Favorite Groups" style="width:20px;height:20px;font-size:10px; color:${v.favoriteGroups && v.favoriteGroups.length > 0 ? '#ff4e45' : ''};">❤</button>
                             <button class="icon-btn small-action export-item-btn" title="Export" style="width:20px;height:20px;font-size:10px;">⬇</button>
                         </div>
@@ -2543,7 +2672,7 @@ try {
                 e.stopPropagation();
                 showFavGroupPicker(v._key);
             });
-            el.querySelector('.toggle-item-default-btn').addEventListener('click', (e) => {
+            el.querySelector('.toggle-item-default-btn')?.addEventListener('click', (e) => {
                 e.stopPropagation();
                 toggleVideoDefault(v._key);
             });
@@ -3282,21 +3411,48 @@ try {
         const bars = [document.getElementById('sync-usage-bar'), document.getElementById('fav-sync-usage-bar')];
         const texts = [document.getElementById('sync-usage-text'), document.getElementById('fav-sync-usage-text')];
 
-        chrome.storage.sync.getBytesInUse(null, (bytes) => {
-            const quota = chrome.storage.sync.QUOTA_BYTES || 102400;
-            const percent = Math.min(100, Math.ceil((bytes / quota) * 100));
+        chrome.storage.sync.get(null, (all) => {
+            let libraryCount = 0;
+            let favoritesCount = 0;
+            const bytes = JSON.stringify(all).length; // Rough estimate if getBytesInUse fails
 
-            bars.forEach(bar => {
-                if (bar) {
-                    bar.style.width = percent + '%';
-                    if (percent < 70) bar.style.backgroundColor = 'var(--success-color)';
-                    else if (percent < 90) bar.style.backgroundColor = 'var(--warning-color)';
-                    else bar.style.backgroundColor = 'var(--danger-color)';
+            Object.keys(all).forEach(key => {
+                if (key.startsWith('v_')) {
+                    const video = all[key];
+                    if (video.isSaved) {
+                        libraryCount++;
+                        const favGroups = video.favoriteGroups || [];
+                        if ((favGroups.length > 0) || video.isDefault) {
+                            favoritesCount++;
+                        }
+                    }
                 }
             });
 
-            texts.forEach(text => {
-                if (text) text.textContent = `${percent}% Used`;
+            // Update Item Counts
+            const favCountEl = document.getElementById('stats-favorites-count');
+            const libCountEl = document.getElementById('stats-library-count');
+            if (favCountEl) favCountEl.textContent = favoritesCount;
+            if (libCountEl) libCountEl.textContent = libraryCount;
+
+            // Update Storage Bar
+            chrome.storage.sync.getBytesInUse(null, (bytesInUse) => {
+                const usedBytes = bytesInUse || bytes;
+                const quota = chrome.storage.sync.QUOTA_BYTES || 102400;
+                const percent = Math.min(100, Math.ceil((usedBytes / quota) * 100));
+
+                bars.forEach(bar => {
+                    if (bar) {
+                        bar.style.width = percent + '%';
+                        if (percent < 70) bar.style.backgroundColor = 'var(--success-color)';
+                        else if (percent < 90) bar.style.backgroundColor = 'var(--warning-color)';
+                        else bar.style.backgroundColor = 'var(--danger-color)';
+                    }
+                });
+
+                texts.forEach(text => {
+                    if (text) text.textContent = `${percent}% Used`;
+                });
             });
         });
     }
