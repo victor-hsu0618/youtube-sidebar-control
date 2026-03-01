@@ -273,6 +273,13 @@ try {
                 const newPos = parseInt(e.target.value) - 1;
                 reorderFavGroup(index, newPos);
             };
+            indexInput.onkeydown = (e) => {
+                if (e.key === 'Enter') {
+                    const newPos = parseInt(e.target.value) - 1;
+                    reorderFavGroup(index, newPos);
+                    e.target.blur();
+                }
+            };
 
             // Prevent general click when typing
             indexInput.onclick = (e) => e.stopPropagation();
@@ -431,6 +438,16 @@ try {
     // Icons
     const ICON_PLAY = '<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
     const ICON_PAUSE = '<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+
+    // Use data-state attribute to avoid innerHTML mutation during click events
+    function setPlayPauseIcon(btn, playing) {
+        if (!btn) return;
+        const current = btn.getAttribute('data-state');
+        const next = playing ? 'pause' : 'play';
+        if (current === next) return; // No change needed
+        btn.setAttribute('data-state', next);
+        btn.innerHTML = playing ? ICON_PAUSE : ICON_PLAY;
+    }
     const ICON_SMALL_PLAY = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
     const ICON_SMALL_PAUSE = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
     const ICON_SMALL_RESTART = '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>';
@@ -457,7 +474,7 @@ try {
             // Update UI immediately - this bypasses message passing delay!
             isCurrentlyPlaying = newPlayingState;
             if (playPauseBtn) {
-                playPauseBtn.innerHTML = isCurrentlyPlaying ? ICON_PAUSE : ICON_PLAY;
+                setPlayPauseIcon(playPauseBtn, isCurrentlyPlaying);
             }
             syncMarkersUI();
         }
@@ -474,7 +491,7 @@ try {
             if (result[stateKey] !== undefined) {
                 isCurrentlyPlaying = result[stateKey];
                 if (playPauseBtn) {
-                    playPauseBtn.innerHTML = isCurrentlyPlaying ? ICON_PAUSE : ICON_PLAY;
+                    setPlayPauseIcon(playPauseBtn, isCurrentlyPlaying);
                 }
                 console.log(`[YT Study Sidebar] State synchronized from storage (${stateKey}):`, isCurrentlyPlaying ? 'PLAYING' : 'PAUSED');
             }
@@ -664,6 +681,22 @@ try {
     }
 
     let lastTabValidationTime = 0;
+
+    /**
+     * Fire-and-forget message for latency-sensitive actions (e.g. play/pause).
+     * Skips tab validation entirely and falls back to full sendMessage on error.
+     */
+    async function sendMessageFast(action, payload = {}) {
+        if (!connectedTabId) return sendMessage(action, payload);
+        try {
+            const response = await chrome.tabs.sendMessage(connectedTabId, { action, ...payload });
+            if (response && response.success) return response;
+            throw new Error(response ? response.error : 'No response');
+        } catch (e) {
+            return sendMessage(action, payload);
+        }
+    }
+
     async function sendMessage(action, payload = {}, retryCount = 0) {
         // Command logging removed to avoid ReferenceError
         try {
@@ -739,7 +772,7 @@ try {
 
         isCurrentlyPlaying = playing;
         if (playPauseBtn) {
-            playPauseBtn.innerHTML = isCurrentlyPlaying ? ICON_PAUSE : ICON_PLAY;
+            setPlayPauseIcon(playPauseBtn, isCurrentlyPlaying);
         }
         syncMarkersUI();
     }
@@ -771,22 +804,22 @@ try {
 
             // Optimistic update for immediate feedback
             isCurrentlyPlaying = nextPlayingState;
-            playPauseBtn.innerHTML = isCurrentlyPlaying ? ICON_PAUSE : ICON_PLAY;
+            setPlayPauseIcon(playPauseBtn, isCurrentlyPlaying);
             syncMarkersUI(true);
 
             try {
-                // We DON'T await this to prevent UI blocking, 
-                // but we catch errors for revert logic
-                sendMessage(action).catch(err => {
-                    console.error('[YT Study] Toggle failed:', err);
-                    isCurrentlyPlaying = originalState;
-                    if (playPauseBtn) playPauseBtn.innerHTML = isCurrentlyPlaying ? ICON_PAUSE : ICON_PLAY;
-                    syncMarkersUI(true);
-                });
+                // Await so lock is held until message completes, preventing double-toggle
+                await sendMessageFast(action);
+            } catch (err) {
+                console.error('[YT Study] Toggle failed:', err);
+                isCurrentlyPlaying = originalState;
+                setPlayPauseIcon(playPauseBtn, isCurrentlyPlaying);
+                syncMarkersUI(true);
             } finally {
+                // Small cooldown to prevent accidental double-tap
                 playPauseDebounceTimer = setTimeout(() => {
                     isProcessingPlayPause = false;
-                }, 50);
+                }, 100);
             }
         });
     }
@@ -2295,8 +2328,9 @@ try {
             return idxA - idxB;
         });
 
-        // Update memory cache for subsequent reorders
+        // Update memory cache and persist to storage for subsequent reorders
         favoriteGroupOrders[activeGroup] = syncedOrder;
+        await chrome.storage.sync.set({ 'favorite_group_orders': favoriteGroupOrders });
 
         browsedGroupItems = items; // Cache for starting a playlist
         renderList(container, items);
@@ -3405,19 +3439,27 @@ try {
             } catch (e) { console.log("Popup: Passed Tab Invalid"); }
         }
 
-        // 2. Scan active if still null
+        // 2. Scan active tab in currentWindow
         if (!connectedTabId) {
             const [t] = await chrome.tabs.query({ active: true, currentWindow: true });
-            // Optimized query: use the determineStatus logic for consistency
-            if (t && (t.url.includes('youtube.com/watch') || t.url.includes('/shorts/') || t.url.includes('/v/') || t.url.includes('/embed/'))) {
+            if (t && t.url && (t.url.includes('youtube.com/watch') || t.url.includes('/shorts/') || t.url.includes('/v/') || t.url.includes('/embed/'))) {
                 connectedTabId = t.id;
                 log("Detecting YouTube video...", "info");
             }
         }
 
+        // 2b. Scan active tab in ALL windows (fixes Edge Side Panel where currentWindow != YouTube window)
+        if (!connectedTabId) {
+            const allActive = await chrome.tabs.query({ active: true });
+            const ytActive = allActive.find(t => t.url && (t.url.includes('youtube.com/watch') || t.url.includes('/shorts/') || t.url.includes('/v/') || t.url.includes('/embed/')));
+            if (ytActive) {
+                connectedTabId = ytActive.id;
+                log("Detecting YouTube video (cross-window)...", "info");
+            }
+        }
+
         // 3. Scan Global if still null (Popup Fallback)
         if (!connectedTabId) {
-            // Find any tab that matches a video URL pattern
             const tabs = await chrome.tabs.query({ url: ["*://*.youtube.com/watch*", "*://*.youtube.com/shorts/*", "*://*.youtube.com/v/*"] });
             const active = tabs.find(t => t.active) || tabs[0];
             if (active) connectedTabId = active.id;
@@ -3477,6 +3519,7 @@ try {
         if (!connectedTabId) {
             const titleEl = document.getElementById('current-video-title');
             titleEl?.classList.remove('detached', 'remote');
+            updateTabBanners(false, false, null);
             return;
         }
 
@@ -3488,15 +3531,22 @@ try {
             const titleEl = document.getElementById('current-video-title');
             if (!titleEl) return;
 
+            const isCurrentTabYouTube = activeInCurrent &&
+                activeInCurrent.id !== connectedTabId &&
+                (activeInCurrent.url?.includes('youtube.com/watch') ||
+                    activeInCurrent.url?.includes('youtube.com/shorts'));
+
             // Step 1: Same Window Check (Side Panel Usage)
             if (controlledTab.windowId === currentWin.id) {
                 titleEl.classList.remove('remote');
                 if (activeInCurrent && activeInCurrent.id !== connectedTabId) {
                     titleEl.classList.add('detached'); // Amber
                     titleEl.title = "Warning: Controlled Video is on a hidden tab in this window.";
+                    updateTabBanners(true, isCurrentTabYouTube, activeInCurrent);
                 } else {
                     titleEl.classList.remove('detached');
                     titleEl.title = currentVideoData?.title || "";
+                    updateTabBanners(false, false, null);
                 }
             }
             // Step 2: Different Window Check (Pop-out / Dual Monitor Usage)
@@ -3504,9 +3554,63 @@ try {
                 titleEl.classList.remove('detached');
                 titleEl.classList.add('remote'); // Blue
                 titleEl.title = "Connected to Video in another window (Remote Mode)";
+                updateTabBanners(false, false, null);
             }
         } catch (e) {
             console.warn("[YT Study] Detach check failed:", e);
+        }
+    }
+
+    /**
+     * Update the detach banner and relink button in the player view
+     */
+    function updateTabBanners(showDetachBanner, showRelinkBtn, activeTab) {
+        const playerView = document.getElementById('view-player');
+        if (!playerView) return;
+
+        // --- Detach Banner (Feature 1: Switch back to YouTube tab) ---
+        let detachBanner = document.getElementById('tab-detach-banner');
+        if (showDetachBanner) {
+            if (!detachBanner) {
+                detachBanner = document.createElement('div');
+                detachBanner.id = 'tab-detach-banner';
+                detachBanner.style.cssText = 'display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(255,180,0,0.15);border:1px solid rgba(255,180,0,0.4);color:#ffb400;font-size:11px;padding:6px 10px;border-radius:6px;margin:6px 8px 0;cursor:pointer;user-select:none;';
+                detachBanner.innerHTML = '<span>&#x25B6;</span><span>Click to switch back to YouTube tab</span>';
+                detachBanner.addEventListener('click', async () => {
+                    if (connectedTabId) {
+                        await chrome.tabs.update(connectedTabId, { active: true });
+                    }
+                });
+                playerView.insertBefore(detachBanner, playerView.firstChild);
+            }
+            detachBanner.style.display = 'flex';
+        } else if (detachBanner) {
+            detachBanner.style.display = 'none';
+        }
+
+        // --- Relink Button (Feature 2: Link to current YouTube tab) ---
+        let relinkBtn = document.getElementById('tab-relink-btn');
+        if (showRelinkBtn && activeTab) {
+            if (!relinkBtn) {
+                relinkBtn = document.createElement('div');
+                relinkBtn.id = 'tab-relink-btn';
+                relinkBtn.style.cssText = 'display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(62,166,255,0.12);border:1px solid rgba(62,166,255,0.35);color:var(--accent-color);font-size:11px;padding:6px 10px;border-radius:6px;margin:4px 8px 0;cursor:pointer;user-select:none;';
+                playerView.insertBefore(relinkBtn, playerView.firstChild);
+            }
+            const tabTitle = (activeTab.title || 'YouTube').substring(0, 40);
+            relinkBtn.innerHTML = '<span>&#x1F517;</span><span>Link to current YouTube tab: "' + tabTitle + '"</span>';
+            relinkBtn.onclick = async () => {
+                connectedTabId = activeTab.id;
+                console.log('[YT Study] Re-linked to tab:', connectedTabId);
+                updateTabBanners(false, false, null);
+                establishConnection(false);
+            };
+            relinkBtn.style.display = 'flex';
+            if (detachBanner && detachBanner.nextSibling !== relinkBtn) {
+                playerView.insertBefore(relinkBtn, detachBanner.nextSibling);
+            }
+        } else if (relinkBtn) {
+            relinkBtn.style.display = 'none';
         }
     }
 

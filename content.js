@@ -1,4 +1,6 @@
 // content.js
+console.log("[YT Study] content.js INJECTED");
+window.__ytStudyLoaded = true;
 let video = null;
 let loopStart = null;
 let loopEnd = null;
@@ -458,15 +460,27 @@ function triggerSpaceKey() {
 
 // Robust toggle that tries multiple methods
 function robustToggle() {
-    // Method 1: Click the native YouTube Play Button (Highest reliability)
-    const nativePlayBtn = document.querySelector('.ytp-play-button');
-    if (nativePlayBtn) {
-        console.log('[YT Study] Toggling via native button click');
-        nativePlayBtn.click();
+    // Method 1: Direct video element (fastest, no DOM lookup needed)
+    const videoEl = video && video.isConnected
+        ? video
+        : document.querySelector('video.html5-main-video') || document.querySelector('video');
+    if (videoEl) {
+        if (videoEl.paused) {
+            videoEl.play().catch(() => {
+                // Fallback to API or button if play() is rejected
+                _robustToggleFallback();
+            });
+        } else {
+            videoEl.pause();
+        }
         return;
     }
 
-    // Method 2: Use API if available
+    _robustToggleFallback();
+}
+
+function _robustToggleFallback() {
+    // Method 2: Use YouTube player API
     const player = document.getElementById('movie_player');
     if (player && typeof player.togglePlay === 'function') {
         console.log('[YT Study] Toggling via player.togglePlay()');
@@ -474,15 +488,15 @@ function robustToggle() {
         return;
     }
 
-    // Method 3: Direct video element control fallback
-    const videoEl = document.querySelector('video');
-    if (videoEl) {
-        console.log('[YT Study] Toggling via video element');
-        if (videoEl.paused) videoEl.play().catch(() => { });
-        else videoEl.pause();
+    // Method 3: Click the native YouTube Play Button
+    const nativePlayBtn = document.querySelector('.ytp-play-button');
+    if (nativePlayBtn) {
+        console.log('[YT Study] Toggling via native button click');
+        nativePlayBtn.click();
+        return;
     }
 
-    // Method 4: Space key as backup
+    // Method 4: Space key as last resort
     triggerSpaceKey();
 }
 
