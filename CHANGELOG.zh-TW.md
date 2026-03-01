@@ -4,6 +4,21 @@
 
 **YouTube Study Companion** 專案的所有重要更新紀錄。
 
+## [3.1.0] - 2026-03-01
+### 新增 (Added)
+- **分頁切換提示橫幅**：當控制的 YouTube 分頁被隱藏時，Player 頂部會出現黃色橫幅，點擊即可立即切換回去。
+- **重新連結當前分頁**：當目前的 active tab 也是 YouTube 影片時，會出現藍色按鈕，可一鍵將 extension 重新連結至新分頁。
+- **Microsoft Edge 支援**：修正 Edge Side Panel 無法正確偵測 YouTube 分頁的問題（跨視窗偵測）。
+- **Edge 擴充功能商店**：現已於 Microsoft Edge Add-ons Store 上架。
+
+### 修復 (Fixed)
+- **播放/暫停點擊失效**：修正一個嚴重 Bug，點擊播放/暫停按鈕有時會完全沒有反應。根本原因：`mousedown` 和 `click` 事件之間的 `innerHTML` 變動導致瀏覽器取消 click 事件。改用 `data-state` 屬性切換圖示解決。
+- **播放/暫停延遲**：新增 `sendMessageFast()` 跳過不必要的 tab 驗證，大幅降低延遲。
+- **收藏排序 Enter 鍵**：在排序欄位輸入數字後按 Enter 現在可正確觸發重新排序。
+- **收藏排序順序**：修正排序順序只存在 memory 而未寫回 storage 的問題，導致排序失效。
+- **PRO 啟動**：加入 `redirect: 'follow'` 正確處理 Google Apps Script 的重新導向。
+- **身份逾時後的 PRO 狀態**：即使 Chrome identity 偵測逾時，本地 PRO 狀態現在也能正確載入。
+
 ## [3.0.2] - 2026-02-26
 ### 新增 (Added)
 - **智慧分頁狀態偵測**：新增標題色彩提醒，區分琥珀色（隱藏分頁）與藍色（遠端視窗）。
