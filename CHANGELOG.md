@@ -4,6 +4,21 @@
 
 All notable changes to the **YouTube Study Companion** project will be documented in this file.
 
+## [3.1.0] - 2026-03-01
+### Added
+- **Tab Switch Banner**: A yellow banner now appears in the Player when the controlled YouTube tab is hidden. Click it to instantly switch back.
+- **Relink to Current Tab**: When the active tab is also a YouTube video, a blue button appears to re-link the extension to the new tab.
+- **Microsoft Edge Support**: Extension now correctly detects YouTube tabs in Edge Side Panel (cross-window detection).
+- **Edge Add-ons Store**: Extension is now available on the Microsoft Edge Add-ons Store.
+
+### Fixed
+- **Play/Pause Click Drop**: Resolved a critical bug where clicks on the play/pause button were silently dropped. Root cause: `innerHTML` mutation between `mousedown` and `click` events caused the browser to cancel the click. Fixed by replacing `innerHTML` updates with a `data-state` attribute approach.
+- **Play/Pause Latency**: Added `sendMessageFast()` to bypass tab validation for latency-sensitive actions.
+- **Favorites Sort (Enter Key)**: Pressing Enter in the sort index field now correctly triggers reordering.
+- **Favorites Sort Order**: Fixed a bug where sort order was only cached in memory but not persisted to storage, causing reorder to fail.
+- **PRO Activation**: Added `redirect: 'follow'` to handle Google Apps Script redirects correctly.
+- **PRO Status on Identity Timeout**: Local PRO status is now correctly loaded even when Chrome identity detection times out.
+
 ## [3.0.2] - 2026-02-26
 ### Added
 - **Tab Awareness**: Video title now highlights in Amber (hidden tab) or Blue (remote/pop-out) to prevent mis-clicks.
