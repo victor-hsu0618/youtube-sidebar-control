@@ -64,6 +64,7 @@ async function initMonetization() {
                 console.log('[YT Study] Identity hard timeout reached.');
                 userStatus.email = null;
                 updateAccountDisplay();
+                checkLocalStatus(); // Still load PRO status even without identity
             }
         }, 5000);
 
@@ -125,7 +126,7 @@ async function verifyWithCloud(code = '', showFeedback = true) {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-        const response = await fetch(url, { signal: controller.signal });
+        const response = await fetch(url, { signal: controller.signal, redirect: 'follow' });
         clearTimeout(timeoutId);
 
         const text = await response.text();

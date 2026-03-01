@@ -1,7 +1,8 @@
 {
   "manifest_version": 3,
   "name": "YouTube Study Companion",
-  "version": "2.5.1",
+  "version": "3.1.0",
+  "version_name": "3.1.0",
   "description": "Professional playback controls for learning: Speed, Loop, Bookmarks, and Notes.",
   "permissions": [
     "sidePanel",
