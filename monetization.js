@@ -124,7 +124,7 @@ async function verifyWithCloud(code = '', showFeedback = true) {
 
         // Use a timeout for the fetch
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s to handle Google Script cold start
 
         const response = await fetch(url, { signal: controller.signal, redirect: 'follow' });
         clearTimeout(timeoutId);
@@ -142,10 +142,17 @@ async function verifyWithCloud(code = '', showFeedback = true) {
                 else if (showFeedback && !code) alert('Your Pro status has been verified!');
             } else {
                 console.log('[YT Study] Cloud Verification: User is FREE.');
-                await chrome.storage.sync.remove(['pro_activated']);
-                userStatus.paid = false;
-                if (code && showFeedback) alert('Activation code is invalid or has expired.');
-                else if (showFeedback && !code) alert('No active Pro subscription found for this account.');
+                if (showFeedback) {
+                    // Only revoke during user-initiated checks.
+                    // Never revoke during background silent checks — a temporary server
+                    // error or network hiccup would otherwise wipe a paying user's Pro status.
+                    await chrome.storage.sync.remove(['pro_activated']);
+                    userStatus.paid = false;
+                    if (code) alert('Activation code is invalid or has expired.');
+                    else alert('No active Pro subscription found for this account.');
+                } else {
+                    console.log('[YT Study] Cloud: Silent check returned FREE — preserving existing local status to avoid false revocation.');
+                }
             }
         } catch (jsonErr) {
             console.error('[YT Study] Cloud: Parse Error.', jsonErr);
@@ -168,8 +175,15 @@ async function verifyWithCloud(code = '', showFeedback = true) {
  */
 function upgradeToPro() {
     if (!userStatus.email) {
-        alert('Please sign in to Chrome first to bind your Pro status.');
-        return;
+        // Chrome identity unavailable — let user manually provide an email so
+        // they can still activate with a code even without a detected account.
+        const manualEmail = prompt('Chrome account not detected.\nPlease enter your email address to proceed:');
+        if (!manualEmail || !manualEmail.includes('@')) {
+            alert('Invalid email. Please sign in to Chrome or enter a valid email address.');
+            return;
+        }
+        userStatus.email = manualEmail.trim();
+        updateAccountDisplay();
     }
 
     const choice = confirm('Do you have an activation code?\n\nOK: Enter code\nCancel: Just re-verify current account');
