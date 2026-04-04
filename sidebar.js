@@ -2137,12 +2137,22 @@ try {
             }
             // 3. Set A Button
             else if (e.target.closest('.set-a')) {
+                lastCommandSentTime = Date.now();
+                currentLoopStart = time;
+                if (loopStart) loopStart.value = formatTime(time);
                 sendMessage('SET_LOOP_START', { time: time });
+                if (currentLoopEnd !== null) currentLoopEnabled = true;
+                updateLoopVisuals();
                 setLoopAccordionState(true);
             }
             // 4. Set B Button
             else if (e.target.closest('.set-b')) {
+                lastCommandSentTime = Date.now();
+                currentLoopEnd = time;
+                if (loopEnd) loopEnd.value = formatTime(time);
                 sendMessage('SET_LOOP_END', { time: time });
+                if (currentLoopStart !== null) currentLoopEnabled = true;
+                updateLoopVisuals();
                 setLoopAccordionState(true);
             }
             // 5. Delete Button
@@ -3011,12 +3021,16 @@ try {
             updateLoopVisuals();
         }
         else if (msg.action === 'UPDATE_LOOP_TIMES') {
-            currentLoopStart = msg.start;
-            currentLoopEnd = msg.end;
-            currentLoopEnabled = msg.enabled;
+            // Guard: ignore if we just set a loop point ourselves (within 500ms)
+            const isRecentlySet = (Date.now() - lastCommandSentTime < 500);
+            if (!isRecentlySet) {
+                currentLoopStart = msg.start;
+                currentLoopEnd = msg.end;
+                currentLoopEnabled = msg.enabled;
 
-            if (loopStart) loopStart.value = (msg.start !== null) ? formatTime(msg.start) : '0:00';
-            if (loopEnd) loopEnd.value = (msg.end !== null) ? formatTime(msg.end) : '0:00';
+                if (loopStart) loopStart.value = (msg.start !== null) ? formatTime(msg.start) : '0:00';
+                if (loopEnd) loopEnd.value = (msg.end !== null) ? formatTime(msg.end) : '0:00';
+            }
 
             updateLoopVisuals();
         }
