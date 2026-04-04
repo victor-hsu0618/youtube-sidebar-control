@@ -163,175 +163,6 @@ try {
         };
     }
 
-// --- Supabase Cloud Sync (s4.0.0) ---
-let cloudSyncDebounceTimer = null;
-
-/**
- * Trigger a background sync of all local data to Supabase
- */
-async function triggerCloudSync() {
-    // Check if Pro (Gated)
-    if (typeof isPro === 'function' && !isPro()) {
-        console.log('[Cloud Sync] Skip: Non-pro user.');
-        return;
-    }
-
-    if (!window.supabaseManager) return;
-
-    clearTimeout(cloudSyncDebounceTimer);
-    cloudSyncDebounceTimer = setTimeout(async () => {
-        const dot = document.getElementById('cloud-sync-status-dot');
-        if (dot) dot.style.background = 'var(--accent-color)'; // Pulsing or active
-
-        try {
-            console.log('[Cloud Sync] Starting snapshot sync...');
-            const allData = await chrome.storage.sync.get(null);
-            await window.supabaseManager.upsertSnapshot(allData);
-            
-            if (dot) {
-                dot.style.background = '#4cc713'; // Success Green
-                setTimeout(() => { if (dot) dot.style.background = '#333'; }, 2000);
-            }
-        } catch (e) {
-            console.error('[Cloud Sync] Error:', e);
-            if (dot) dot.style.background = 'var(--danger-color)';
-        }
-    }, 3000); // 3 second debounce to avoid rate limits
-}
-
-/**
- * Initialize Supabase Auth UI state
- */
-async function initSupabaseAuth() {
-    if (!window.supabaseManager) return;
-    
-    const loginBtn = document.getElementById('btn-supabase-login');
-    const loginForm = document.getElementById('supabase-login-form');
-    const userInfo = document.getElementById('supabase-user-info');
-    const userEmail = document.getElementById('supabase-user-email');
-    const syncHint = document.getElementById('cloud-sync-hint');
-
-    try {
-        if (!window.supabaseManager.client) {
-            console.warn('[Supabase] Client not ready for auth check.');
-            return;
-        }
-        const { data: { user } } = await window.supabaseManager.client.auth.getUser();
-        if (user) {
-            if (loginForm) loginForm.style.display = 'none';
-            if (userInfo) userInfo.style.display = 'flex';
-            if (userEmail) userEmail.textContent = user.email;
-            if (syncHint) syncHint.innerHTML = '<span style="color:#4cc713;">✓ Cloud Sync Active</span>';
-        } else {
-            if (loginForm) loginForm.style.display = 'flex';
-            if (userInfo) userInfo.style.display = 'none';
-            if (syncHint) syncHint.textContent = 'Real-time cloud backup for Pro users.';
-        };
-    } catch (e) {
-        console.error('[Supabase] Auth init error:', e);
-    }
-}
-
-// Attach Supabase Listeners
-document.getElementById('btn-supabase-login')?.addEventListener('click', async () => {
-    console.log('[UI] Google Login button clicked');
-    if (!window.supabaseManager) {
-        console.error('[UI] SupabaseManager missing');
-        return;
-    }
-    const user = await window.supabaseManager.login();
-    if (user) {
-        initSupabaseAuth();
-        triggerCloudSync();
-    }
-});
-
-document.getElementById('btn-supabase-send-otp')?.addEventListener('click', async () => {
-    const email = document.getElementById('supabase-email')?.value;
-    if (!email) {
-        alert("Please enter your email");
-        return;
-    }
-    try {
-        console.log('[UI] Sending OTP to:', email);
-        await window.supabaseManager.sendOtp(email);
-        document.getElementById('otp-email-step').style.display = 'none';
-        document.getElementById('otp-verify-step').style.display = 'flex';
-        alert("A 6-digit code has been sent to your email!");
-    } catch (e) {
-        alert("Failed to send code: " + e.message);
-    }
-});
-
-document.getElementById('btn-supabase-verify-otp')?.addEventListener('click', async () => {
-    const email = document.getElementById('supabase-email')?.value;
-    const token = document.getElementById('supabase-otp-code')?.value;
-    if (!token) {
-        alert("Please enter the 6-digit code");
-        return;
-    }
-    try {
-        console.log('[UI] Verifying OTP...');
-        const user = await window.supabaseManager.verifyOtp(email, token);
-        if (user) {
-            initSupabaseAuth();
-            triggerCloudSync();
-        }
-    } catch (e) {
-        alert("Verification failed: " + e.message);
-    }
-});
-
-document.getElementById('btn-supabase-otp-back')?.addEventListener('click', () => {
-    document.getElementById('otp-email-step').style.display = 'flex';
-    document.getElementById('otp-verify-step').style.display = 'none';
-});
-
-document.getElementById('btn-supabase-logout')?.addEventListener('click', async () => {
-    if (!window.supabaseManager) return;
-    await window.supabaseManager.client.auth.signOut();
-    initSupabaseAuth();
-});
-
-document.getElementById('btn-supabase-sync-now')?.addEventListener('click', () => {
-    triggerCloudSync();
-});
-
-// Hybrid Auth Switching
-document.getElementById('link-to-pwd-login')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    document.getElementById('otp-flow').style.display = 'none';
-    document.getElementById('password-flow').style.display = 'flex';
-});
-
-document.getElementById('link-to-otp-login')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    document.getElementById('otp-flow').style.display = 'flex';
-    document.getElementById('password-flow').style.display = 'none';
-});
-
-// Password Login Hook
-document.getElementById('btn-supabase-login-pwd')?.addEventListener('click', async () => {
-    const email = document.getElementById('supabase-email-pwd')?.value;
-    const password = document.getElementById('supabase-password')?.value;
-    if (!email || !password) {
-        alert("Please enter email and password");
-        return;
-    }
-    try {
-        const user = await window.supabaseManager.loginWithEmail(email, password);
-        if (user) {
-            initSupabaseAuth();
-            triggerCloudSync();
-        }
-    } catch (e) {
-        alert("Login failed: " + e.message);
-    }
-});
-
-// Run Initial Auth Check
-setTimeout(initSupabaseAuth, 1000);
-
     // --- Favorite Groups Logic ---
     async function initFavGroups() {
         const localStatus = await chrome.storage.local.get('device_initialized');
@@ -607,16 +438,6 @@ setTimeout(initSupabaseAuth, 1000);
     // Icons
     const ICON_PLAY = '<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
     const ICON_PAUSE = '<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
-
-    // Use data-state attribute to avoid innerHTML mutation during click events
-    function setPlayPauseIcon(btn, playing) {
-        if (!btn) return;
-        const current = btn.getAttribute('data-state');
-        const next = playing ? 'pause' : 'play';
-        if (current === next) return; // No change needed
-        btn.setAttribute('data-state', next);
-        btn.innerHTML = playing ? ICON_PAUSE : ICON_PLAY;
-    }
     const ICON_SMALL_PLAY = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
     const ICON_SMALL_PAUSE = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
     const ICON_SMALL_RESTART = '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>';
@@ -643,7 +464,7 @@ setTimeout(initSupabaseAuth, 1000);
             // Update UI immediately - this bypasses message passing delay!
             isCurrentlyPlaying = newPlayingState;
             if (playPauseBtn) {
-                setPlayPauseIcon(playPauseBtn, isCurrentlyPlaying);
+                playPauseBtn.innerHTML = isCurrentlyPlaying ? ICON_PAUSE : ICON_PLAY;
             }
             syncMarkersUI();
         }
@@ -660,7 +481,7 @@ setTimeout(initSupabaseAuth, 1000);
             if (result[stateKey] !== undefined) {
                 isCurrentlyPlaying = result[stateKey];
                 if (playPauseBtn) {
-                    setPlayPauseIcon(playPauseBtn, isCurrentlyPlaying);
+                    playPauseBtn.innerHTML = isCurrentlyPlaying ? ICON_PAUSE : ICON_PLAY;
                 }
                 console.log(`[YT Study Sidebar] State synchronized from storage (${stateKey}):`, isCurrentlyPlaying ? 'PLAYING' : 'PAUSED');
             }
@@ -850,22 +671,6 @@ setTimeout(initSupabaseAuth, 1000);
     }
 
     let lastTabValidationTime = 0;
-
-    /**
-     * Fire-and-forget message for latency-sensitive actions (e.g. play/pause).
-     * Skips tab validation entirely and falls back to full sendMessage on error.
-     */
-    async function sendMessageFast(action, payload = {}) {
-        if (!connectedTabId) return sendMessage(action, payload);
-        try {
-            const response = await chrome.tabs.sendMessage(connectedTabId, { action, ...payload });
-            if (response && response.success) return response;
-            throw new Error(response ? response.error : 'No response');
-        } catch (e) {
-            return sendMessage(action, payload);
-        }
-    }
-
     async function sendMessage(action, payload = {}, retryCount = 0) {
         // Command logging removed to avoid ReferenceError
         try {
@@ -941,7 +746,7 @@ setTimeout(initSupabaseAuth, 1000);
 
         isCurrentlyPlaying = playing;
         if (playPauseBtn) {
-            setPlayPauseIcon(playPauseBtn, isCurrentlyPlaying);
+            playPauseBtn.innerHTML = isCurrentlyPlaying ? ICON_PAUSE : ICON_PLAY;
         }
         syncMarkersUI();
     }
@@ -973,22 +778,22 @@ setTimeout(initSupabaseAuth, 1000);
 
             // Optimistic update for immediate feedback
             isCurrentlyPlaying = nextPlayingState;
-            setPlayPauseIcon(playPauseBtn, isCurrentlyPlaying);
+            playPauseBtn.innerHTML = isCurrentlyPlaying ? ICON_PAUSE : ICON_PLAY;
             syncMarkersUI(true);
 
             try {
-                // Await so lock is held until message completes, preventing double-toggle
-                await sendMessageFast(action);
-            } catch (err) {
-                console.error('[YT Study] Toggle failed:', err);
-                isCurrentlyPlaying = originalState;
-                setPlayPauseIcon(playPauseBtn, isCurrentlyPlaying);
-                syncMarkersUI(true);
+                // We DON'T await this to prevent UI blocking, 
+                // but we catch errors for revert logic
+                sendMessage(action).catch(err => {
+                    console.error('[YT Study] Toggle failed:', err);
+                    isCurrentlyPlaying = originalState;
+                    if (playPauseBtn) playPauseBtn.innerHTML = isCurrentlyPlaying ? ICON_PAUSE : ICON_PLAY;
+                    syncMarkersUI(true);
+                });
             } finally {
-                // Small cooldown to prevent accidental double-tap
                 playPauseDebounceTimer = setTimeout(() => {
                     isProcessingPlayPause = false;
-                }, 100);
+                }, 50);
             }
         });
     }
@@ -2306,22 +2111,12 @@ setTimeout(initSupabaseAuth, 1000);
             }
             // 3. Set A Button
             else if (e.target.closest('.set-a')) {
-                lastCommandSentTime = Date.now();
-                currentLoopStart = time;
-                if (loopStart) loopStart.value = formatTime(time);
                 sendMessage('SET_LOOP_START', { time: time });
-                if (currentLoopEnd !== null) currentLoopEnabled = true;
-                updateLoopVisuals();
                 setLoopAccordionState(true);
             }
             // 4. Set B Button
             else if (e.target.closest('.set-b')) {
-                lastCommandSentTime = Date.now();
-                currentLoopEnd = time;
-                if (loopEnd) loopEnd.value = formatTime(time);
                 sendMessage('SET_LOOP_END', { time: time });
-                if (currentLoopStart !== null) currentLoopEnabled = true;
-                updateLoopVisuals();
                 setLoopAccordionState(true);
             }
             // 5. Delete Button
@@ -2960,9 +2755,6 @@ setTimeout(initSupabaseAuth, 1000);
     // --- State Sync (Multi-Window) ---
     chrome.storage.onChanged.addListener((changes, namespace) => {
         if (namespace !== 'sync') return;
-        
-        // s4.0.0: Automated Cloud Sync 
-        if (typeof triggerCloudSync === 'function') triggerCloudSync();
 
         if (changes.favorite_groups) {
             favoriteGroupsList = changes.favorite_groups.newValue || ["Default"];
@@ -3193,16 +2985,12 @@ setTimeout(initSupabaseAuth, 1000);
             updateLoopVisuals();
         }
         else if (msg.action === 'UPDATE_LOOP_TIMES') {
-            // Guard: ignore if we just set a loop point ourselves (within 500ms)
-            const isRecentlySet = (Date.now() - lastCommandSentTime < 500);
-            if (!isRecentlySet) {
-                currentLoopStart = msg.start;
-                currentLoopEnd = msg.end;
-                currentLoopEnabled = msg.enabled;
+            currentLoopStart = msg.start;
+            currentLoopEnd = msg.end;
+            currentLoopEnabled = msg.enabled;
 
-                if (loopStart) loopStart.value = (msg.start !== null) ? formatTime(msg.start) : '0:00';
-                if (loopEnd) loopEnd.value = (msg.end !== null) ? formatTime(msg.end) : '0:00';
-            }
+            if (loopStart) loopStart.value = (msg.start !== null) ? formatTime(msg.start) : '0:00';
+            if (loopEnd) loopEnd.value = (msg.end !== null) ? formatTime(msg.end) : '0:00';
 
             updateLoopVisuals();
         }
@@ -3625,27 +3413,19 @@ setTimeout(initSupabaseAuth, 1000);
             } catch (e) { console.log("Popup: Passed Tab Invalid"); }
         }
 
-        // 2. Scan active tab in currentWindow
+        // 2. Scan active if still null
         if (!connectedTabId) {
             const [t] = await chrome.tabs.query({ active: true, currentWindow: true });
-            if (t && t.url && (t.url.includes('youtube.com/watch') || t.url.includes('/shorts/') || t.url.includes('/v/') || t.url.includes('/embed/'))) {
+            // Optimized query: use the determineStatus logic for consistency
+            if (t && (t.url.includes('youtube.com/watch') || t.url.includes('/shorts/') || t.url.includes('/v/') || t.url.includes('/embed/'))) {
                 connectedTabId = t.id;
                 log("Detecting YouTube video...", "info");
             }
         }
 
-        // 2b. Scan active tab in ALL windows (fixes Edge Side Panel where currentWindow != YouTube window)
-        if (!connectedTabId) {
-            const allActive = await chrome.tabs.query({ active: true });
-            const ytActive = allActive.find(t => t.url && (t.url.includes('youtube.com/watch') || t.url.includes('/shorts/') || t.url.includes('/v/') || t.url.includes('/embed/')));
-            if (ytActive) {
-                connectedTabId = ytActive.id;
-                log("Detecting YouTube video (cross-window)...", "info");
-            }
-        }
-
         // 3. Scan Global if still null (Popup Fallback)
         if (!connectedTabId) {
+            // Find any tab that matches a video URL pattern
             const tabs = await chrome.tabs.query({ url: ["*://*.youtube.com/watch*", "*://*.youtube.com/shorts/*", "*://*.youtube.com/v/*"] });
             const active = tabs.find(t => t.active) || tabs[0];
             if (active) connectedTabId = active.id;
@@ -3705,7 +3485,6 @@ setTimeout(initSupabaseAuth, 1000);
         if (!connectedTabId) {
             const titleEl = document.getElementById('current-video-title');
             titleEl?.classList.remove('detached', 'remote');
-            updateTabBanners(false, false, null);
             return;
         }
 
@@ -3717,22 +3496,15 @@ setTimeout(initSupabaseAuth, 1000);
             const titleEl = document.getElementById('current-video-title');
             if (!titleEl) return;
 
-            const isCurrentTabYouTube = activeInCurrent &&
-                activeInCurrent.id !== connectedTabId &&
-                (activeInCurrent.url?.includes('youtube.com/watch') ||
-                    activeInCurrent.url?.includes('youtube.com/shorts'));
-
             // Step 1: Same Window Check (Side Panel Usage)
             if (controlledTab.windowId === currentWin.id) {
                 titleEl.classList.remove('remote');
                 if (activeInCurrent && activeInCurrent.id !== connectedTabId) {
                     titleEl.classList.add('detached'); // Amber
                     titleEl.title = "Warning: Controlled Video is on a hidden tab in this window.";
-                    updateTabBanners(true, isCurrentTabYouTube, activeInCurrent);
                 } else {
                     titleEl.classList.remove('detached');
                     titleEl.title = currentVideoData?.title || "";
-                    updateTabBanners(false, false, null);
                 }
             }
             // Step 2: Different Window Check (Pop-out / Dual Monitor Usage)
@@ -3740,63 +3512,9 @@ setTimeout(initSupabaseAuth, 1000);
                 titleEl.classList.remove('detached');
                 titleEl.classList.add('remote'); // Blue
                 titleEl.title = "Connected to Video in another window (Remote Mode)";
-                updateTabBanners(false, false, null);
             }
         } catch (e) {
             console.warn("[YT Study] Detach check failed:", e);
-        }
-    }
-
-    /**
-     * Update the detach banner and relink button in the player view
-     */
-    function updateTabBanners(showDetachBanner, showRelinkBtn, activeTab) {
-        const playerView = document.getElementById('view-player');
-        if (!playerView) return;
-
-        // --- Detach Banner (Feature 1: Switch back to YouTube tab) ---
-        let detachBanner = document.getElementById('tab-detach-banner');
-        if (showDetachBanner) {
-            if (!detachBanner) {
-                detachBanner = document.createElement('div');
-                detachBanner.id = 'tab-detach-banner';
-                detachBanner.style.cssText = 'display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(255,180,0,0.15);border:1px solid rgba(255,180,0,0.4);color:#ffb400;font-size:11px;padding:6px 10px;border-radius:6px;margin:6px 8px 0;cursor:pointer;user-select:none;';
-                detachBanner.innerHTML = '<span>&#x25B6;</span><span>Click to switch back to YouTube tab</span>';
-                detachBanner.addEventListener('click', async () => {
-                    if (connectedTabId) {
-                        await chrome.tabs.update(connectedTabId, { active: true });
-                    }
-                });
-                playerView.insertBefore(detachBanner, playerView.firstChild);
-            }
-            detachBanner.style.display = 'flex';
-        } else if (detachBanner) {
-            detachBanner.style.display = 'none';
-        }
-
-        // --- Relink Button (Feature 2: Link to current YouTube tab) ---
-        let relinkBtn = document.getElementById('tab-relink-btn');
-        if (showRelinkBtn && activeTab) {
-            if (!relinkBtn) {
-                relinkBtn = document.createElement('div');
-                relinkBtn.id = 'tab-relink-btn';
-                relinkBtn.style.cssText = 'display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(62,166,255,0.12);border:1px solid rgba(62,166,255,0.35);color:var(--accent-color);font-size:11px;padding:6px 10px;border-radius:6px;margin:4px 8px 0;cursor:pointer;user-select:none;';
-                playerView.insertBefore(relinkBtn, playerView.firstChild);
-            }
-            const tabTitle = (activeTab.title || 'YouTube').substring(0, 40);
-            relinkBtn.innerHTML = '<span>&#x1F517;</span><span>Link to current YouTube tab: "' + tabTitle + '"</span>';
-            relinkBtn.onclick = async () => {
-                connectedTabId = activeTab.id;
-                console.log('[YT Study] Re-linked to tab:', connectedTabId);
-                updateTabBanners(false, false, null);
-                establishConnection(false);
-            };
-            relinkBtn.style.display = 'flex';
-            if (detachBanner && detachBanner.nextSibling !== relinkBtn) {
-                playerView.insertBefore(relinkBtn, detachBanner.nextSibling);
-            }
-        } else if (relinkBtn) {
-            relinkBtn.style.display = 'none';
         }
     }
 
