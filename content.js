@@ -584,10 +584,15 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
                 break;
             case 'SET_LOOP_END':
                 const endVal = (msg.time !== undefined) ? msg.time : (video ? video.currentTime : 0);
-                if (loopStart !== null && endVal <= loopStart) {
+                if (msg.time === null) {
                     loopEnd = null;
                     loopEnabled = false;
                 } else {
+                    // Favor the new endpoint: if setting B at/before A, clear A
+                    if (loopStart !== null && endVal <= loopStart) {
+                        loopStart = null;
+                        loopEnabled = false;
+                    }
                     loopEnd = endVal;
                     if (loopStart !== null) {
                         loopEnabled = true;
@@ -612,10 +617,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
                 break;
             case 'TOGGLE_LOOP':
                 loopEnabled = msg.enabled;
-                if (loopEnabled && loopStart !== null) {
-                    executeCommand('SEEK', loopStart);
-                    executeCommand('PLAY');
-                }
                 sendResponse({ success: true });
                 break;
             case 'ADD_BOOKMARK_REQUEST':

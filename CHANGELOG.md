@@ -4,6 +4,10 @@
 
 All notable changes to the **YouTube Study Companion** project will be documented in this file.
 
+## [3.2.0] - 2026-04-04
+### Fixed
+- **A-B Loop Race Condition**: Implemented a command-guard in the Sidebar UI to ignore incoming loop updates immediately after a user sets a point. This prevents "self-echoing" UI updates that previously caused race conditions and loop toggling artifacts.
+
 ## [3.1.0] - 2026-03-01
 ### Added
 - **Tab Switch Banner**: A yellow banner now appears in the Player when the controlled YouTube tab is hidden. Click it to instantly switch back.

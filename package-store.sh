@@ -1,17 +1,14 @@
 #!/bin/bash
 
 # Configuration
-ZIP_NAME="YouTubeStudyCompanion_Store.zip"
 MANIFEST_STORE="manifest-store.json"
 MANIFEST_REAL="manifest.json"
 MANIFEST_TEMP="manifest_backup.json"
 
-echo "Preparing Store version..."
-
-# Backup real manifest if it has key
-cp "$MANIFEST_REAL" "$MANIFEST_TEMP"
-# Use store manifest
-cp "$MANIFEST_STORE" "$MANIFEST_REAL"
+# Read version from manifest
+VERSION=$(python3 -c "import json; d=json.load(open('$MANIFEST_REAL')); print(d.get('version_name', d.get('version', 'unknown')))")
+CHROME_ZIP="YouTubeStudyCompanion_v${VERSION}_Chrome.zip"
+EDGE_ZIP="YouTubeStudyCompanion_v${VERSION}_Edge.zip"
 
 FILES_TO_ZIP=(
   "manifest.json"
@@ -27,16 +24,29 @@ FILES_TO_ZIP=(
   "README.zh-TW.md"
 )
 
-# Clean up old zip if exists
-if [ -f "$ZIP_NAME" ]; then
-  rm "$ZIP_NAME"
-fi
+echo "📦 Packaging YouTube Study Companion v${VERSION}..."
 
-# Create new zip
-echo "Creating $ZIP_NAME..."
-zip -r "$ZIP_NAME" "${FILES_TO_ZIP[@]}" -x "*.DS_Store*" "*__MACOSX*"
+# Backup real manifest
+cp "$MANIFEST_REAL" "$MANIFEST_TEMP"
+# Use store manifest (no key field)
+cp "$MANIFEST_STORE" "$MANIFEST_REAL"
+
+# --- Chrome ZIP ---
+[ -f "$CHROME_ZIP" ] && rm "$CHROME_ZIP"
+echo "Creating $CHROME_ZIP..."
+zip -r "$CHROME_ZIP" "${FILES_TO_ZIP[@]}" -x "*.DS_Store*" "*__MACOSX*"
+echo "✅ $CHROME_ZIP ready for Chrome Web Store"
+
+# --- Edge ZIP (same content, different name) ---
+[ -f "$EDGE_ZIP" ] && rm "$EDGE_ZIP"
+echo "Creating $EDGE_ZIP..."
+cp "$CHROME_ZIP" "$EDGE_ZIP"
+echo "✅ $EDGE_ZIP ready for Microsoft Edge Add-ons Store"
 
 # Restore real manifest
 mv "$MANIFEST_TEMP" "$MANIFEST_REAL"
 
-echo "Done! $ZIP_NAME is ready for upload to Chrome Web Store."
+echo ""
+echo "🎉 Done! v${VERSION} packaged for both stores."
+echo "   Chrome : $CHROME_ZIP  → https://chrome.google.com/webstore/devconsole"
+echo "   Edge   : $EDGE_ZIP    → https://partner.microsoft.com/dashboard"
