@@ -318,35 +318,76 @@
               </p>
             </div>
           </section>
+  
+          <!-- Supabase Cloud Sync -->
+          <section class="control-group">
+            <div class="section-header" style="display:flex; justify-content:space-between; align-items:center;">
+              <h2>Cloud Sync (Supabase)</h2>
+              <div id="cloud-sync-status-dot" class="status-indicator" style="width:6px; height:6px;" title="Cloud Sync Status"></div>
+            </div>
+            <div style="padding: 10px 4px; display: flex; flex-direction: column; gap: 8px;">
+              <div id="supabase-auth-box">
+                <div id="supabase-login-form" style="display: flex; flex-direction: column; gap: 6px;">
+                  
+                  <!-- OTP FLOW -->
+                  <div id="otp-flow">
+                    <div id="otp-email-step" style="display: flex; flex-direction: column; gap: 6px;">
+                      <input type="email" id="supabase-email" placeholder="Enter your email" style="font-size: 11px; padding: 6px; background:#111; border:1px solid #444; color:#fff; border-radius:4px;">
+                      <button id="btn-supabase-send-otp" class="action-btn full-width-btn" style="font-size: 11px; padding: 6px;">Send 6-Digit Code</button>
+                    </div>
+                    <div id="otp-verify-step" style="display: none; flex-direction: column; gap: 6px; border-top:1px dashed #333; padding-top:8px;">
+                      <p style="font-size: 10px; color: var(--accent-color); margin:0;">Check email (Don't click link!)</p>
+                      <input type="text" id="supabase-otp-code" placeholder="Enter Code" style="font-size: 12px; padding: 6px; background:#111; border:1px solid var(--accent-color); color:#fff; border-radius:4px; text-align:center; letter-spacing:2px; font-weight:700;">
+                      <div style="display:flex; gap:4px;">
+                        <button id="btn-supabase-verify-otp" class="action-btn" style="flex:2; font-size: 11px; padding: 6px;">Verify</button>
+                        <button id="btn-supabase-otp-back" class="secondary-btn" style="flex:1; font-size: 11px; padding: 6px; margin:0;">Back</button>
+                      </div>
+                    </div>
+                    <p style="text-align:center; margin:4px 0 0 0;"><a href="#" id="link-to-pwd-login" style="font-size:9px; color:#666; text-decoration:none;">Use Password Login instead?</a></p>
+                  </div>
 
-          <!-- Cloud Sync & Systems (Moved to bottom) -->
+                  <!-- PASSWORD FLOW (Initially hidden) -->
+                  <div id="password-flow" style="display:none; flex-direction: column; gap: 6px;">
+                    <input type="email" id="supabase-email-pwd" placeholder="Email" style="font-size: 11px; padding: 6px; background:#111; border:1px solid #444; color:#fff; border-radius:4px;">
+                    <input type="password" id="supabase-password" placeholder="Password" style="font-size: 11px; padding: 6px; background:#111; border:1px solid #444; color:#fff; border-radius:4px;">
+                    <button id="btn-supabase-login-pwd" class="action-btn full-width-btn" style="font-size: 11px; padding: 6px;">Login with Password</button>
+                    <p style="text-align:center; margin:4px 0 0 0;"><a href="#" id="link-to-otp-login" style="font-size:9px; color:#666; text-decoration:none;">Use Email Code instead?</a></p>
+                  </div>
+
+                  <button id="btn-supabase-login" class="secondary-btn full-width-btn" style="font-size: 10px; padding: 4px; margin-top:4px; opacity:0.6;">Or Google (Needs Setup)</button>
+                </div>
+                <div id="supabase-user-info" style="display:none; flex-direction:column; gap:6px;">
+                  <div style="font-size: 10px; color: #888; display:flex; justify-content:space-between; align-items:center;">
+                    <span>User: <span id="supabase-user-email" style="color:var(--accent-color);"></span></span>
+                    <button id="btn-supabase-logout" style="background:none; border:none; color:#666; font-size:10px; cursor:pointer; text-decoration:underline;">Logout</button>
+                  </div>
+                  <button id="btn-supabase-sync-now" class="secondary-btn full-width-btn" style="font-size: 11px; padding: 6px; margin:0;">↑ Sync to Cloud Now</button>
+                </div>
+              </div>
+              <p id="cloud-sync-hint" style="font-size:10px; color:#888; text-align:center; line-height: 1.4;">Real-time cloud backup for Pro users.
+              </p>
+            </div>
+          </section>
+  
+          <!-- Diagnostics -->
           <section class="control-group">
             <div class="section-header">
-              <h2>Cloud Sync & Systems</h2>
+              <h2>Diagnostics</h2>
             </div>
             <div style="padding: 10px 4px; display: flex; flex-direction: column; gap: 8px;">
               <button id="btn-refresh-sync" class="action-btn outline-btn full-width-btn"
-                style="font-size: 11px; padding: 6px;">↻ Refresh Cloud Sync & Diagnostics</button>
-
+                style="font-size: 11px; padding: 6px;">↻ Refresh Status & Diagnostics</button>
+  
               <div id="sync-usage-container" class="storage-usage" title="Chrome Sync Storage Usage"
                 style="margin-top: 4px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2px;">
-                  <span style="font-size: 10px; color: #888;">Cloud Storage Usage</span>
+                  <span style="font-size: 10px; color: #888;">Chrome Sync Usage</span>
                   <div id="sync-usage-text" class="storage-text">0% Used</div>
                 </div>
                 <div class="storage-bar-bg">
                   <div id="sync-usage-bar" class="storage-bar-fill"></div>
                 </div>
-                <div
-                  style="display:flex; justify-content:space-between; align-items:center; margin-top: 8px; font-size: 10px; color: #888; border-top: 1px dashed #333; padding-top: 6px;">
-                  <span>Favorites Items:</span>
-                  <span id="stats-favorites-count" style="color: #ddd;">0</span>
-                </div>
-                <div
-                  style="display:flex; justify-content:space-between; align-items:center; margin-top: 4px; font-size: 10px; color: #888;">
-                  <span>Library Items:</span>
-                  <span id="stats-library-count" style="color: #ddd;">0</span>
-                </div>
+                <!-- stats removed for space if needed -->
               </div>
             </div>
           </section>
@@ -649,6 +690,8 @@
     </div>
   </div>
   <script src="monetization.js"></script>
+  <script src="lib/supabase.js"></script>
+  <script src="SupabaseManager.js"></script>
   <script src="sidebar.js"></script>
 </body>
 
