@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Open Shared Bookmark - YouTube Study Companion</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0d10;
+      --panel: rgba(18, 23, 30, 0.86);
+      --panel-border: rgba(255, 255, 255, 0.08);
+      --text: #f4f1e8;
+      --muted: #a7b0ba;
+      --accent: #8ef0c5;
+      --accent-strong: #42d9a3;
+      --accent-soft: rgba(142, 240, 197, 0.16);
+      --shadow: 0 32px 80px rgba(0, 0, 0, 0.42);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "IBM Plex Sans", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(66, 217, 163, 0.18), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(95, 124, 255, 0.18), transparent 32%),
+        linear-gradient(135deg, #050608 0%, #10141a 48%, #050608 100%);
+      display: grid;
+      place-items: center;
+      padding: 1.25rem;
+    }
+
+    .noise {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.08;
+      background-image: radial-gradient(rgba(255,255,255,0.4) 0.6px, transparent 0.6px);
+      background-size: 14px 14px;
+      mix-blend-mode: soft-light;
+    }
+
+    .shell {
+      width: min(100%, 44rem);
+      padding: 1rem;
+    }
+
+    .card {
+      position: relative;
+      overflow: hidden;
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 1.75rem;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+      padding: 1.5rem;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: -20% auto auto -10%;
+      width: 14rem;
+      height: 14rem;
+      background: radial-gradient(circle, rgba(142, 240, 197, 0.22), transparent 68%);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.45rem 0.8rem;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.05);
+      color: var(--muted);
+      font-size: 0.76rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .dot {
+      width: 0.55rem;
+      height: 0.55rem;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 14px rgba(142, 240, 197, 0.6);
+    }
+
+    h1 {
+      font-family: "Fraunces", serif;
+      font-size: clamp(2rem, 6vw, 3.7rem);
+      line-height: 0.98;
+      margin: 1.15rem 0 0.85rem;
+      max-width: 11ch;
+    }
+
+    p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 1rem;
+    }
+
+    .meta {
+      margin-top: 1.25rem;
+      padding: 1rem;
+      border-radius: 1.1rem;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .meta-label {
+      font-size: 0.76rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.4rem;
+    }
+
+    .meta-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      word-break: break-word;
+    }
+
+    .actions {
+      display: grid;
+      gap: 0.85rem;
+      margin-top: 1.4rem;
+    }
+
+    .button {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 3.25rem;
+      padding: 0.9rem 1.1rem;
+      border-radius: 1rem;
+      text-decoration: none;
+      font-weight: 600;
+      transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
+      border: 1px solid transparent;
+      text-align: center;
+    }
+
+    .button:active {
+      transform: scale(0.985);
+    }
+
+    .button-primary {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+      color: #062318;
+      box-shadow: 0 14px 30px rgba(66, 217, 163, 0.24);
+    }
+
+    .button-secondary {
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      border-color: rgba(255,255,255,0.08);
+    }
+
+    .footnote {
+      margin-top: 1rem;
+      font-size: 0.92rem;
+      color: var(--muted);
+    }
+
+    .status {
+      margin-top: 1rem;
+      color: var(--accent);
+      font-size: 0.95rem;
+      min-height: 1.5rem;
+    }
+
+    @media (min-width: 768px) {
+      .card {
+        padding: 2rem;
+      }
+
+      .actions {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="noise" aria-hidden="true"></div>
+  <main class="shell">
+    <section class="card">
+      <div class="eyebrow"><span class="dot"></span> Shared Bookmark</div>
+      <h1>Open this bookmark set in the app.</h1>
+      <p>This shared YouTube bookmark link works best with YouTube Study Companion installed on this device.</p>
+
+      <div class="meta">
+        <div class="meta-label">Shared Title</div>
+        <div class="meta-title" id="shared-title">YouTube bookmark set</div>
+      </div>
+
+      <div class="actions">
+        <a id="open-app" class="button button-primary" href="#">Open In App</a>
+        <a id="copy-link" class="button button-secondary" href="#">Copy Direct Link</a>
+      </div>
+
+      <p class="footnote">If the app does not open automatically, tap “Open In App”. If you still do not have the app, ask your friend to send the installation build first.</p>
+      <div class="status" id="status"></div>
+    </section>
+  </main>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const shareId = params.get('id') || '';
+    const title = params.get('title') || 'YouTube bookmark set';
+    const target = params.get('target') || (shareId ? `youtube-study-companion://share/${shareId}` : 'youtube-study-companion://');
+
+    const titleEl = document.getElementById('shared-title');
+    const openButton = document.getElementById('open-app');
+    const copyButton = document.getElementById('copy-link');
+    const statusEl = document.getElementById('status');
+
+    titleEl.textContent = title;
+    openButton.href = target;
+
+    copyButton.addEventListener('click', async (event) => {
+      event.preventDefault();
+      try {
+        await navigator.clipboard.writeText(target);
+        statusEl.textContent = 'Direct app link copied.';
+      } catch {
+        statusEl.textContent = 'Copy failed. Please long-press the button and copy the link manually.';
+      }
+    });
+
+    let navigatedAway = false;
+    window.addEventListener('pagehide', () => {
+      navigatedAway = true;
+    });
+
+    const tryOpen = () => {
+      statusEl.textContent = 'Trying to open YouTube Study Companion...';
+      window.location.href = target;
+      window.setTimeout(() => {
+        if (!navigatedAway) {
+          statusEl.textContent = 'If nothing happened, tap “Open In App”. Some chat apps block direct app opening.';
+        }
+      }, 1400);
+    };
+
+    window.setTimeout(tryOpen, 250);
+  </script>
+</body>
+</html>
