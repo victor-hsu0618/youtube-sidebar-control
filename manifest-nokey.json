@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "YouTube Study Companion",
-  "version": "3.2.0",
+  "version": "4.1.0",
   "description": "Professional playback controls for learning: Speed, Loop, Bookmarks, and Notes.",
   "permissions": [
     "sidePanel",
@@ -10,6 +10,7 @@
     "storage"
   ],
   "host_permissions": [
+    "*://music.youtube.com/*",
     "*://*.youtube.com/*"
   ],
   "background": {
@@ -21,6 +22,7 @@
   "content_scripts": [
     {
       "matches": [
+        "*://music.youtube.com/*",
         "*://*.youtube.com/*"
       ],
       "js": [

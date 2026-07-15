@@ -3,6 +3,29 @@
 const debugConsole = document.getElementById('debug-console');
 const debugLogs = document.getElementById('debug-logs');
 
+const YOUTUBE_VIDEO_QUERY_URLS = [
+    "*://*.youtube.com/watch*",
+    "*://music.youtube.com/watch*",
+    "*://*.youtube.com/playlist*",
+    "*://*.youtube.com/shorts*",
+    "*://*.youtube.com/v/*"
+];
+
+function isYouTubeUrl(url) {
+    return Boolean(url && (url.includes('youtube.com') || url.includes('music.youtube.com')));
+}
+
+function isYouTubeVideoUrl(url) {
+    return Boolean(url && (
+        url.includes('youtube.com/watch') ||
+        url.includes('music.youtube.com/watch') ||
+        url.includes('youtube.com/playlist') ||
+        url.includes('/shorts/') ||
+        url.includes('/v/') ||
+        url.includes('/embed/')
+    ));
+}
+
 function log(msg, type = 'info') {
     // if (debugConsole) debugConsole.style.display = 'block'; // Hidden for release
     if (!debugLogs) return;
@@ -878,7 +901,7 @@ setTimeout(initSupabaseAuth, 1000);
             else if (connectedTabId) {
                 try {
                     const tab = await chrome.tabs.get(connectedTabId);
-                    const isYT = tab && tab.url && (tab.url.includes('youtube.com/watch') || tab.url.includes('youtube.com/playlist') || tab.url.includes('/shorts/') || tab.url.includes('/v/'));
+                    const isYT = tab && isYouTubeVideoUrl(tab.url);
                     if (isYT) {
                         targetTabId = connectedTabId;
                         lastTabValidationTime = Date.now();
@@ -892,7 +915,7 @@ setTimeout(initSupabaseAuth, 1000);
 
             // Fallback: Query for target tab
             if (!targetTabId) {
-                const queryOptions = { url: ["*://*.youtube.com/watch*", "*://*.youtube.com/playlist*", "*://*.youtube.com/shorts*", "*://*.youtube.com/v/*"] };
+                const queryOptions = { url: YOUTUBE_VIDEO_QUERY_URLS };
                 const tabs = await chrome.tabs.query(queryOptions);
                 if (tabs.length > 0) {
                     const currentWindow = await chrome.windows.getCurrent();
@@ -3058,7 +3081,7 @@ setTimeout(initSupabaseAuth, 1000);
         if (!isMatch) {
             const isConnecting = currentVideoData && currentVideoData.title === "Connecting...";
             const isTabActive = sender.tab && sender.tab.active;
-            const isYT = sender.tab && (sender.tab.url.includes('youtube.com/watch') || sender.tab.url.includes('youtube.com/playlist') || sender.tab.url.includes('/shorts/') || sender.tab.url.includes('/v/'));
+            const isYT = sender.tab && isYouTubeVideoUrl(sender.tab.url);
 
             if (isConnecting && isTabActive && isYT) {
                 console.log("[YT Study] Discovery Latch: Auto-binding to", sender.tab.id);
@@ -3512,8 +3535,8 @@ setTimeout(initSupabaseAuth, 1000);
                 const determineStatus = (url) => {
                     if (!url) return 'SLEEP';
                     // Inclusive matching for video pages (watch, shorts, v, embed)
-                    if (url.includes('youtube.com/watch') || url.includes('/shorts/') || url.includes('/v/') || url.includes('/embed/')) return 'WATCH';
-                    if (url.includes('youtube.com')) return 'HOME';
+                    if (isYouTubeVideoUrl(url)) return 'WATCH';
+                    if (isYouTubeUrl(url)) return 'HOME';
                     return 'SLEEP';
                 };
 
@@ -3628,7 +3651,7 @@ setTimeout(initSupabaseAuth, 1000);
         // 2. Scan active tab in currentWindow
         if (!connectedTabId) {
             const [t] = await chrome.tabs.query({ active: true, currentWindow: true });
-            if (t && t.url && (t.url.includes('youtube.com/watch') || t.url.includes('/shorts/') || t.url.includes('/v/') || t.url.includes('/embed/'))) {
+            if (t && isYouTubeVideoUrl(t.url)) {
                 connectedTabId = t.id;
                 log("Detecting YouTube video...", "info");
             }
@@ -3637,7 +3660,7 @@ setTimeout(initSupabaseAuth, 1000);
         // 2b. Scan active tab in ALL windows (fixes Edge Side Panel where currentWindow != YouTube window)
         if (!connectedTabId) {
             const allActive = await chrome.tabs.query({ active: true });
-            const ytActive = allActive.find(t => t.url && (t.url.includes('youtube.com/watch') || t.url.includes('/shorts/') || t.url.includes('/v/') || t.url.includes('/embed/')));
+            const ytActive = allActive.find(t => isYouTubeVideoUrl(t.url));
             if (ytActive) {
                 connectedTabId = ytActive.id;
                 log("Detecting YouTube video (cross-window)...", "info");
@@ -3646,7 +3669,7 @@ setTimeout(initSupabaseAuth, 1000);
 
         // 3. Scan Global if still null (Popup Fallback)
         if (!connectedTabId) {
-            const tabs = await chrome.tabs.query({ url: ["*://*.youtube.com/watch*", "*://*.youtube.com/shorts/*", "*://*.youtube.com/v/*"] });
+            const tabs = await chrome.tabs.query({ url: YOUTUBE_VIDEO_QUERY_URLS });
             const active = tabs.find(t => t.active) || tabs[0];
             if (active) connectedTabId = active.id;
         }
@@ -3719,8 +3742,7 @@ setTimeout(initSupabaseAuth, 1000);
 
             const isCurrentTabYouTube = activeInCurrent &&
                 activeInCurrent.id !== connectedTabId &&
-                (activeInCurrent.url?.includes('youtube.com/watch') ||
-                    activeInCurrent.url?.includes('youtube.com/shorts'));
+                isYouTubeVideoUrl(activeInCurrent.url);
 
             // Step 1: Same Window Check (Side Panel Usage)
             if (controlledTab.windowId === currentWin.id) {

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "YouTube Study Companion",
-  "version": "3.2.0",
-  "version_name": "3.2.0",
+  "version": "4.1.0",
+  "version_name": "4.1.0",
   "description": "Professional playback controls for learning: Speed, Loop, Bookmarks, and Notes.",
   "permissions": [
     "sidePanel",
@@ -14,9 +14,11 @@
     "identity.email"
   ],
   "host_permissions": [
+    "*://music.youtube.com/*",
     "*://*.youtube.com/*",
     "https://script.google.com/*",
-    "https://script.googleusercontent.com/*"
+    "https://script.googleusercontent.com/*",
+    "https://*.supabase.co/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -27,6 +29,7 @@
   "content_scripts": [
     {
       "matches": [
+        "*://music.youtube.com/*",
         "*://*.youtube.com/*"
       ],
       "js": [

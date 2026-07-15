@@ -44,6 +44,10 @@ function getActiveVideoId() {
     return id;
 }
 
+function getCleanPageTitle() {
+    return document.title.replace(/\s+-\s+YouTube(?: Music)?$/, '');
+}
+
 function init(shouldResetLoop = false) {
     if (isInitializing) return;
 
@@ -254,7 +258,7 @@ function scrapePlaylistInfo() {
 
     // Fallback title from page title
     if (!title || title.trim() === "") {
-        title = document.title.replace(' - YouTube', '');
+        title = getCleanPageTitle();
     }
 
     const videos = [];
@@ -342,7 +346,7 @@ function notifyStatus(isPeriodic = false) {
                     action: 'VIDEO_METADATA',
                     data: {
                         videoId: videoId,
-                        title: document.title.replace(' - YouTube', ''),
+                        title: getCleanPageTitle(),
                         thumbnail: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
                         duration: video.duration || 0,
                         currentTime: video.currentTime || 0,

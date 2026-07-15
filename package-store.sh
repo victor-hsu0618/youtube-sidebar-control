@@ -18,6 +18,8 @@ FILES_TO_ZIP=(
   "sidebar.html"
   "sidebar.css"
   "monetization.js"
+  "SupabaseManager.js"
+  "lib"
   "icons"
   "docs"
   "README.md"

@@ -1,5 +1,17 @@
 // background.js
 
+const YOUTUBE_TAB_URLS = [
+    "*://*.youtube.com/*",
+    "*://music.youtube.com/*"
+];
+
+const YOUTUBE_VIDEO_URLS = [
+    "*://*.youtube.com/watch*",
+    "*://music.youtube.com/watch*",
+    "*://*.youtube.com/shorts*",
+    "*://*.youtube.com/v/*"
+];
+
 // Allow the side panel to open when the user clicks the extension icon
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })
     .catch((error) => console.error(error));
@@ -28,7 +40,7 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 
 // Proactive Injection for Existing Tabs
 const injectToExistingTabs = async () => {
-    const tabs = await chrome.tabs.query({ url: "*://*.youtube.com/*" });
+    const tabs = await chrome.tabs.query({ url: YOUTUBE_TAB_URLS });
     for (const tab of tabs) {
         chrome.scripting.executeScript({
             target: { tabId: tab.id },
@@ -48,7 +60,7 @@ chrome.runtime.onStartup.addListener(() => {
 // Hotkey Relay
 chrome.commands.onCommand.addListener(async (command) => {
     // Inclusive matching for all video formats
-    const queryOptions = { url: ["*://*.youtube.com/watch*", "*://*.youtube.com/shorts*", "*://*.youtube.com/v/*"] };
+    const queryOptions = { url: YOUTUBE_VIDEO_URLS };
     const tabs = await chrome.tabs.query({ ...queryOptions, active: true, currentWindow: true });
     const targetTab = tabs[0] || (await chrome.tabs.query(queryOptions))[0];
 
