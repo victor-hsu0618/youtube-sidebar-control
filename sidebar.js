@@ -143,6 +143,39 @@ async function secureRemove(key) {
     }
 }
 
+function isSyncQuotaError(err) {
+    const message = String(err?.message || err || '').toLowerCase();
+    return message.includes('quota') || message.includes('max_write') || message.includes('storage');
+}
+
+function chromeSyncSet(items) {
+    return new Promise((resolve, reject) => {
+        chrome.storage.sync.set(items, () => {
+            const err = chrome.runtime.lastError;
+            if (err) reject(new Error(err.message));
+            else resolve();
+        });
+    });
+}
+
+async function safeSyncSet(items, context = 'Save data') {
+    try {
+        await chromeSyncSet(items);
+        return true;
+    } catch (err) {
+        const message = err?.message || String(err);
+        log(`${context} failed: ${message}`, 'error');
+
+        if (isSyncQuotaError(err)) {
+            alert('Cloud Space is full, so this change was not saved. Please delete older videos/groups or export a backup before trying again.');
+        } else {
+            alert(`${context} failed: ${message}`);
+        }
+
+        throw err;
+    }
+}
+
 /*
 // Global Click Debugger: Logs EVERY click to verify browser event firing
 document.addEventListener('mousedown', (e) => {
@@ -290,7 +323,7 @@ async function applyCloudSnapshot(snapshot, source = 'manual', cloudUpdatedAt = 
     clearTimeout(cloudSyncDebounceTimer);
 
     try {
-        await chrome.storage.sync.set(snapshot);
+        await safeSyncSet(snapshot, 'Restore cloud snapshot');
         await rememberCloudSnapshotTimestamp(cloudUpdatedAt);
         await refreshAfterCloudRestore(snapshot);
         const summary = summarizeSyncData(snapshot);
@@ -617,7 +650,7 @@ setTimeout(async () => {
                         // On Confirm -> Start Fresh
                         await chrome.storage.local.set({ 'device_initialized': true });
                         favoriteGroupsList = ["Default"];
-                        await chrome.storage.sync.set({ 'favorite_groups': favoriteGroupsList });
+                        await safeSyncSet({ 'favorite_groups': favoriteGroupsList }, 'Initialize library groups');
                         updateFavGroupUI();
                     },
                     () => {
@@ -653,7 +686,7 @@ setTimeout(async () => {
             }
 
             favoriteGroupsList = ["Default"];
-            await chrome.storage.sync.set({ 'favorite_groups': favoriteGroupsList });
+            await safeSyncSet({ 'favorite_groups': favoriteGroupsList }, 'Initialize library groups');
             updateFavGroupUI();
         }
     }
@@ -752,7 +785,7 @@ setTimeout(async () => {
         const item = favoriteGroupsList.splice(oldIndex, 1)[0];
         favoriteGroupsList.splice(newIndex, 0, item);
 
-        await chrome.storage.sync.set({ 'favorite_groups': favoriteGroupsList });
+        await safeSyncSet({ 'favorite_groups': favoriteGroupsList }, 'Reorder library groups');
         updateFavGroupUI();
     }
 
@@ -761,7 +794,7 @@ setTimeout(async () => {
         if (name === ALL_VIDEOS_LABEL || name === ALL_VIDEOS_GROUP) return;
         if (!name || favoriteGroupsList.includes(name)) return;
         favoriteGroupsList.push(name);
-        await chrome.storage.sync.set({ 'favorite_groups': favoriteGroupsList });
+        await safeSyncSet({ 'favorite_groups': favoriteGroupsList }, 'Add library group');
         updateFavGroupUI();
 
         // Auto-scroll to bottom of the management list so user sees the new item
@@ -781,7 +814,7 @@ setTimeout(async () => {
             `Delete favorite group "${name}"? Videos will remain but won't be in this group.`,
             async () => {
                 favoriteGroupsList = favoriteGroupsList.filter(g => g !== name);
-                await chrome.storage.sync.set({ 'favorite_groups': favoriteGroupsList });
+                await safeSyncSet({ 'favorite_groups': favoriteGroupsList }, 'Delete library group');
 
                 // Update all videos that had this group
                 const all = await chrome.storage.sync.get(null);
@@ -794,7 +827,7 @@ setTimeout(async () => {
                         }
                     }
                 });
-                if (Object.keys(updates).length > 0) await chrome.storage.sync.set(updates);
+                if (Object.keys(updates).length > 0) await safeSyncSet(updates, 'Update library group assignments');
 
                 updateFavGroupUI();
                 if (views.favorites.style.display !== 'none') loadFavorites();
@@ -810,7 +843,7 @@ setTimeout(async () => {
 
         // Update list
         favoriteGroupsList = favoriteGroupsList.map(g => g === oldName ? trimmedNewName : g);
-        await chrome.storage.sync.set({ 'favorite_groups': favoriteGroupsList });
+        await safeSyncSet({ 'favorite_groups': favoriteGroupsList }, 'Rename library group');
 
         // Update all videos that had this group
         const all = await chrome.storage.sync.get(null);
@@ -825,7 +858,7 @@ setTimeout(async () => {
                 if (changed) updates[key] = all[key];
             }
         });
-        if (Object.keys(updates).length > 0) await chrome.storage.sync.set(updates);
+        if (Object.keys(updates).length > 0) await safeSyncSet(updates, 'Rename library group assignments');
 
         updateFavGroupUI();
         if (views.favorites.style.display !== 'none') loadFavorites();
@@ -1516,7 +1549,9 @@ setTimeout(async () => {
 
         // Save preference
         followToggle.addEventListener('change', (e) => {
-            chrome.storage.sync.set({ followMarkers: e.target.checked });
+            safeSyncSet({ followMarkers: e.target.checked }, 'Save follow setting').catch(() => {
+                e.target.checked = !e.target.checked;
+            });
         });
     }
 
@@ -1728,7 +1763,7 @@ setTimeout(async () => {
         let groupName = playlist.title;
         if (!favoriteGroupsList.includes(groupName)) {
             favoriteGroupsList.push(groupName);
-            await chrome.storage.sync.set({ 'favorite_groups': favoriteGroupsList });
+            await safeSyncSet({ 'favorite_groups': favoriteGroupsList }, 'Import playlist group');
         }
         updateFavGroupUI();
 
@@ -1771,7 +1806,7 @@ setTimeout(async () => {
         favoriteGroupOrders[groupName] = newOrder;
         updates['favorite_group_orders'] = favoriteGroupOrders;
 
-        await chrome.storage.sync.set(updates);
+        await safeSyncSet(updates, 'Import playlist videos');
 
         // Switch to the new group
         const selector = document.getElementById('fav-group-selector');
@@ -1830,7 +1865,7 @@ setTimeout(async () => {
             // Also update isDefault for backward compatibility if "Default" is selected
             video.isDefault = newGroups.includes("Default");
 
-            await chrome.storage.sync.set({ [videoKey]: video });
+            await safeSyncSet({ [videoKey]: video }, 'Save library group assignment');
 
             // If this is the current video, sync its state
             if (videoKey === currentStorageKey) {
@@ -1958,7 +1993,7 @@ setTimeout(async () => {
                 }
             });
 
-            await chrome.storage.sync.set(updates);
+            await safeSyncSet(updates, 'Save batch library group assignments');
 
             loadLibrary();
             closeModal();
@@ -2021,7 +2056,7 @@ setTimeout(async () => {
         clone.updatedAt = now;
         clone.id = currentVideoId;
         const newKey = `v_${currentVideoId}_${now}`;
-        await chrome.storage.sync.set({ [newKey]: clone });
+        await safeSyncSet({ [newKey]: clone }, 'Clone video profile');
         const all = await chrome.storage.sync.get(null);
         updateDataCache(all, currentVideoId);
         currentVideoData = clone;
@@ -2056,11 +2091,11 @@ setTimeout(async () => {
                 }
             });
             if (Object.keys(updates).length > 0) {
-                await chrome.storage.sync.set(updates);
+                await safeSyncSet(updates, 'Save default video profile');
             }
         }
 
-        await chrome.storage.sync.set({ [key]: video });
+        await safeSyncSet({ [key]: video }, 'Update default video profile');
 
         // If this is the current video, sync local state
         if (key === currentStorageKey) {
@@ -2236,7 +2271,7 @@ setTimeout(async () => {
         currentVideoData.id = currentVideoId;
         currentVideoData.source = currentVideoData.source || 'youtube';
         currentVideoData.updatedAt = Date.now();
-        await chrome.storage.sync.set({ [currentStorageKey]: currentVideoData });
+        await safeSyncSet({ [currentStorageKey]: currentVideoData }, 'Save video data');
         updateStorageUsage();
 
         const heartBtn = document.getElementById('toggle-library-save');
@@ -2422,7 +2457,7 @@ setTimeout(async () => {
                     if (typeof data !== 'object' || data === null) throw new Error("Invalid Data Format");
 
                     if (confirm("Restore All Data? This will merge with your current data and overwrite duplicates.")) {
-                        await chrome.storage.sync.set(data);
+                        await safeSyncSet(data, 'Restore backup');
                         log("All Data Restored!", "success");
                         loadLibrary();
                         // If current video is in backup, refresh UI
@@ -2461,7 +2496,7 @@ setTimeout(async () => {
                 jsonObj.createdAt = jsonObj.createdAt || Date.now();
                 jsonObj.updatedAt = Date.now();
 
-                await chrome.storage.sync.set({ [saveKey]: jsonObj });
+                await safeSyncSet({ [saveKey]: jsonObj }, 'Import video profile');
 
                 const all = await chrome.storage.sync.get(null);
                 updateDataCache(all, currentVideoId);
@@ -2881,7 +2916,7 @@ setTimeout(async () => {
 
         // Update memory cache and persist to storage for subsequent reorders
         favoriteGroupOrders[activeGroup] = syncedOrder;
-        await chrome.storage.sync.set({ 'favorite_group_orders': favoriteGroupOrders });
+        await safeSyncSet({ 'favorite_group_orders': favoriteGroupOrders }, 'Save group order');
 
         browsedGroupItems = items; // Cache for starting a playlist
         renderList(container, items);
@@ -2904,7 +2939,7 @@ setTimeout(async () => {
         order[newIdx] = temp;
 
         favoriteGroupOrders[activeGroup] = order;
-        await chrome.storage.sync.set({ 'favorite_group_orders': favoriteGroupOrders });
+        await safeSyncSet({ 'favorite_group_orders': favoriteGroupOrders }, 'Save group order');
         loadFavorites();
     }
 
@@ -2934,7 +2969,7 @@ setTimeout(async () => {
         allOrders[activeGroup] = order;
         favoriteGroupOrders = allOrders; // Sync memory cache
 
-        await chrome.storage.sync.set({ 'favorite_group_orders': allOrders });
+        await safeSyncSet({ 'favorite_group_orders': allOrders }, 'Save group order');
         console.log(`[YT Study] Favorite Reordered in "${activeGroup}": ${oldIndex + 1} -> ${newIndex + 1}`);
 
         loadFavorites();
