@@ -41,7 +41,7 @@ This project is a browser extension, currently supporting Chrome and Edge browse
 ## 🌟 Core Features (Legacy v2.x)
 
 ### 3. 🎛️ Advanced Playback Control
-- **Dual-Panel Workspace**: Dedicated sub-tabs for **Markers** and **Advanced** to maximize vertical space.
+- **Focused Workspace**: Dedicated **Player**, **Library**, and **Settings** views to keep study controls, saved videos, and account tools separated.
 - **Integrated A-B Loop**: Set start (A) and end (B) points precisely with **visual markers** directly on the progress bar.
 - **Precise Speed Control**: Accordion-style adjustment in **0.05x increments** from 0.25x to 3.0x.
 
@@ -51,7 +51,7 @@ This project is a browser extension, currently supporting Chrome and Edge browse
 - **Hotkeys**: Full support for `A` (Add Marker) and `R` (Restart Marker).
 
 ### 5. 💎 Pro Verification & Limits
-- **Free Version Limits**: Maximum of 10 saved videos in the Library, and 10 markers per video.
+- **Free Version Limits**: Maximum of 20 saved videos in the Library, and 20 markers per video.
 - **Pro Version (Unlimited)**: Unlimited video saves, unlimited markers, and unrestricted features.
 - **Account Binding**: Automatically detects your Google Account Email.
 - **Cloud Authorization**: Permissions follow your account across devices via cloud sync.

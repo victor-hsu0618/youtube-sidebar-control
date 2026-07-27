@@ -54,6 +54,8 @@ log(`Instance ID: ${chrome.runtime.id.substring(0, 8)}...`, 'info');
 let isCloneEnabled = false; // Global state
 const ALL_VIDEOS_GROUP = '__all_videos__';
 const ALL_VIDEOS_LABEL = 'All Videos';
+const FREE_LIBRARY_LIMIT = 20;
+const FREE_MARKER_GROUP_LIMIT = 20;
 
 // Set app version from manifest
 try {
@@ -1575,8 +1577,8 @@ setTimeout(async () => {
         if (!isPro()) {
             const groupName = groupSelector ? groupSelector.value : "Default";
             const currentMarkers = currentVideoData.tagGroups[groupName] || [];
-            if (currentMarkers.length >= 10) {
-                if (confirm('You have reached the limit of 10 markers for this group in the Free version. Upgrade to PRO for unlimited markers!')) {
+            if (currentMarkers.length >= FREE_MARKER_GROUP_LIMIT) {
+                if (confirm(`You have reached the limit of ${FREE_MARKER_GROUP_LIMIT} markers for this group in the Free version. Upgrade to PRO for unlimited markers!`)) {
                     upgradeToPro();
                 }
                 return;
@@ -2343,8 +2345,8 @@ setTimeout(async () => {
             if (!isPro()) {
                 const allData = await chrome.storage.sync.get(null);
                 const savedVideos = Object.keys(allData).filter(k => k.startsWith('v_') && allData[k].isSaved);
-                if (savedVideos.length >= 10) {
-                    alert('Free version is limited to 10 saved videos in the Library. Please upgrade to Pro to save unlimited videos.');
+                if (savedVideos.length >= FREE_LIBRARY_LIMIT) {
+                    alert(`Free version is limited to ${FREE_LIBRARY_LIMIT} saved videos in the Library. Please upgrade to Pro to save unlimited videos.`);
                     switchView('library');
                     setTimeout(() => {
                         const container = document.getElementById('view-favorites');
@@ -3155,7 +3157,7 @@ setTimeout(async () => {
         } catch (e) { console.warn("monetization check failed", e); }
 
         items.forEach((v, index) => {
-            const isGated = !paid && index >= 10;
+            const isGated = !paid && index >= FREE_LIBRARY_LIMIT;
             const el = document.createElement('div');
             el.className = 'library-item';
             el.dataset.key = v._key || '';
@@ -3164,7 +3166,7 @@ setTimeout(async () => {
             if (isGated) {
                 el.style.opacity = '0.4';
                 el.style.cursor = 'not-allowed';
-                el.title = 'Free version is limited to 10 videos. Upgrade to Pro to unlock.';
+                el.title = `Free version is limited to ${FREE_LIBRARY_LIMIT} videos. Upgrade to Pro to unlock.`;
             }
 
             const thumbSrc = v.thumbnail || '';
@@ -3249,7 +3251,7 @@ setTimeout(async () => {
                 if (isLibraryEditMode) return;
                 if (e.target.tagName !== 'BUTTON') {
                     if (isGated) {
-                        alert('This video is locked. Free version is limited to 10 videos. Please upgrade to Pro in Settings.');
+                        alert(`This video is locked. Free version is limited to ${FREE_LIBRARY_LIMIT} videos. Please upgrade to Pro in Settings.`);
                         return;
                     }
                     const vid = getVideoIdFromItem(v);

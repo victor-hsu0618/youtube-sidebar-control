@@ -27,7 +27,7 @@
 
 *   **Player (播放器)**：主要的操作區域。現在包含兩個內部子分頁：
     *   **Markers (標記)**：做筆記與瀏覽時間戳記的主要空間。
-    *   **Advanced (進階)**：調整播放速度、雲端同步刷新、以及處理 **Pro 帳號啟用** 的地方。
+    *   **Settings (設定)**：調整播放速度、雲端同步刷新、以及處理 **Pro 帳號啟用** 的地方。
 *   **Library (影片庫)**：透過內建的 **All Videos** 群組檢視所有儲存紀錄，也可以切換到使用者自訂群組。對於免費版用戶，此處限額儲存 **10 部影片**。
 
 ![介面總覽截圖](images/screenshot/v3.0.1/Favorites-UI-v3.0.1.png)
@@ -59,7 +59,7 @@ YouTube Study Companion 同時支援一般 YouTube 影片頁與 YouTube Music �
 YouTube Study Companion 現在支援雲端帳號綁定。
 
 1.  **自動識別**：系統會自動抓取您 Chrome 瀏覽器登入的 Google 帳號。
-2.  **解鎖方式**：進入 **Player -> Advanced**，點擊 **Activate Pro Features** 並輸入由作者提供的 Code。
+2.  **解鎖方式**：進入 **Settings**，點擊 **Activate Pro Features** 並輸入由作者提供的 Code。
 3.  **權限同步**：啟用後，Pro 狀態會儲存在雲端。即使您更換電腦，只要登入同一個 Google 帳號，權限就會自動恢復。
 4.  **免費版限制**：
     *   影片庫 (Library) 最多存儲 10 部影片。

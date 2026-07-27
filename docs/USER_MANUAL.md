@@ -27,8 +27,8 @@ After launching the Extension, you will see the main screen. The sidebar is desi
 
 *   **Player**: The main operation area. It now features two internal sub-tabs:
     *   **Markers**: Your primary workspace for taking and browsing notes.
-    *   **Advanced**: Adjustment area for Speed, Cloud Sync Refresh, and **Pro Account Activation**.
-*   **Library**: View all saved sessions through the **All Videos** group, or switch to custom groups for focused collections. Free users are limited to **10 saved videos** here.
+*   **Settings**: Adjustment area for Speed, Cloud Sync Refresh, and **Pro Account Activation**.
+*   **Library**: View all saved sessions through the **All Videos** group, or switch to custom groups for focused collections. Free users are limited to **20 saved videos** here.
 
 ![Interface Overview Screenshot](images/screenshot/v3.0.1/Favorites-UI-v3.0.1.png)
 *(Suggested Screenshot: Full screen after opening Sidebar)*
@@ -59,11 +59,11 @@ Next to the **v3.0.0** badge, you will see a status indicator:
 YouTube Study Companion now supports cloud-linked account binding.
 
 1.  **Auto Identification**: The system automatically detects the Google account logged into your Chrome browser.
-2.  **Unlocking**: Go to **Player -> Advanced**, click **Activate Pro Features**, and enter the Code provided by the author.
+2.  **Unlocking**: Go to **Settings**, click **Activate Pro Features**, and enter the Code provided by the author.
 3.  **Sync Persistence**: Once activated, your Pro status is stored in the cloud. It will automatically be recognized on any computer where you are logged into the same Google account.
 4.  **Free Version Limits**:
-    *   Library capped at 10 saved videos.
-    *   Marker groups capped at 10 markers per group.
+    *   Library capped at 20 saved videos.
+    *   Marker groups capped at 20 markers per group.
     *   Locked videos in the Library appear dimmed and unclickable until you upgrade.
 
 ---
