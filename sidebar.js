@@ -415,6 +415,7 @@ async function triggerCloudSync() {
         console.log('[Cloud Sync] Skip upload while applying cloud snapshot.');
         return;
     }
+
     // Check if Pro (Gated)
     if (typeof isPro === 'function' && !isPro()) {
         console.log('[Cloud Sync] Skip: Non-pro user.');
@@ -918,6 +919,7 @@ setTimeout(async () => {
             if (playPauseBtn) {
                 setPlayPauseIcon(playPauseBtn, isCurrentlyPlaying);
             }
+            refreshActiveLibraryMarkers();
             syncMarkersUI();
         }
     });
@@ -935,6 +937,7 @@ setTimeout(async () => {
                 if (playPauseBtn) {
                     setPlayPauseIcon(playPauseBtn, isCurrentlyPlaying);
                 }
+                refreshActiveLibraryMarkers();
                 console.log(`[YT Study Sidebar] State synchronized from storage (${stateKey}):`, isCurrentlyPlaying ? 'PLAYING' : 'PAUSED');
             }
         });
@@ -1216,6 +1219,7 @@ setTimeout(async () => {
         if (playPauseBtn) {
             setPlayPauseIcon(playPauseBtn, isCurrentlyPlaying);
         }
+        refreshActiveLibraryMarkers();
         syncMarkersUI();
     }
 
@@ -2020,6 +2024,7 @@ setTimeout(async () => {
         clone.isDefault = false;
         clone.createdAt = now;
         clone.updatedAt = now;
+        clone.id = currentVideoId;
         const newKey = `v_${currentVideoId}_${now}`;
         await chrome.storage.sync.set({ [newKey]: clone });
         const all = await chrome.storage.sync.get(null);
@@ -2039,13 +2044,15 @@ setTimeout(async () => {
         const video = all[key];
         if (!video) return;
 
-        const vid = video.id || video.videoId || key.split('_')[1];
+        const vid = video.id || video.videoId || getVideoIdFromStorageKey(key);
+        if (!vid) return;
         const newValue = !video.isDefault;
         video.isDefault = newValue;
+        video.id = vid;
 
         if (newValue) {
             // Unset others for SAME video ID
-            const related = Object.keys(all).filter(k => k.startsWith('v_' + vid));
+            const related = Object.keys(all).filter(k => isStorageKeyForVideo(k, vid));
             const updates = {};
             related.forEach(k => {
                 if (k !== key && all[k].isDefault) {
@@ -2174,7 +2181,7 @@ setTimeout(async () => {
         if (res[key]) {
             currentVideoData = res[key];
             currentStorageKey = key;
-            currentVideoId = currentVideoData.id;
+            currentVideoId = getVideoIdFromItem({ ...currentVideoData, _key: key });
 
             migrateDataIfNeeded(key, currentVideoId);
 
@@ -2193,6 +2200,10 @@ setTimeout(async () => {
 
     function migrateDataIfNeeded(key, videoId) {
         let changed = false;
+        if (!currentVideoData.id && videoId) {
+            currentVideoData.id = videoId;
+            changed = true;
+        }
         if (!currentVideoData.tagGroups) {
             currentVideoData.tagGroups = { "Default": [], "Study": [], "Cust. A": [], "Cust. B": [] };
             if (currentVideoData.bookmarks) currentVideoData.tagGroups["Default"] = [...currentVideoData.bookmarks];
@@ -2229,6 +2240,7 @@ setTimeout(async () => {
             currentVideoData.createdAt = Date.now();
         }
 
+        currentVideoData.id = currentVideoId;
         currentVideoData.source = currentVideoData.source || 'youtube';
         currentVideoData.updatedAt = Date.now();
         await chrome.storage.sync.set({ [currentStorageKey]: currentVideoData });
@@ -2761,7 +2773,11 @@ setTimeout(async () => {
         container.innerHTML = 'Loading...';
         const all = await chrome.storage.sync.get(null);
         let items = [];
-        Object.keys(all).forEach(key => { if (key.startsWith('v_') && all[key].isSaved) items.push({ ...all[key], _key: key }); });
+        Object.keys(all).forEach(key => {
+            if (key.startsWith('v_') && all[key].isSaved) {
+                items.push({ ...all[key], id: all[key].id || getVideoIdFromStorageKey(key), _key: key });
+            }
+        });
 
         if (items.length === 0) {
             container.innerHTML = '<p style="padding:20px;text-align:center;color:#666">No saved videos.</p>';
@@ -2778,6 +2794,55 @@ setTimeout(async () => {
         if (usageText && !usageText.textContent.includes('| ID:')) {
             usageText.textContent += ` | ID: ${chrome.runtime.id.substring(0, 8)}`;
         }
+    }
+
+    function getMarkerCount(v) {
+        if (v.tagGroups) return Object.values(v.tagGroups).reduce((acc, g) => acc + g.length, 0);
+        if (v.bookmarks) return v.bookmarks.length;
+        return 0;
+    }
+
+    function resolveActiveLibraryKey(items) {
+        if (!Array.isArray(items) || items.length === 0) return null;
+
+        if (currentStorageKey && items.some(v => v._key === currentStorageKey)) {
+            return currentStorageKey;
+        }
+
+        if (!currentVideoId) return null;
+
+        const related = items.filter(v => getVideoIdFromItem(v) === currentVideoId);
+        if (related.length === 0) return null;
+
+        related.sort((a, b) => {
+            if (a.isDefault && !b.isDefault) return -1;
+            if (!a.isDefault && b.isDefault) return 1;
+
+            const countDiff = getMarkerCount(b) - getMarkerCount(a);
+            if (countDiff !== 0) return countDiff;
+
+            return (b.updatedAt || 0) - (a.updatedAt || 0);
+        });
+
+        return related[0]._key;
+    }
+
+    function refreshActiveLibraryMarkers() {
+        ['library-list', 'favorites-list', 'player-playlist-items'].forEach(id => {
+            const container = document.getElementById(id);
+            if (!container) return;
+
+            const items = Array.from(container.querySelectorAll('.library-item[data-key]'));
+            let activeApplied = false;
+
+            items.forEach(el => {
+                const shouldBeActive = Boolean(container.dataset.activeKey) &&
+                    !activeApplied &&
+                    el.dataset.key === container.dataset.activeKey;
+                el.classList.toggle('active', shouldBeActive);
+                if (shouldBeActive) activeApplied = true;
+            });
+        });
     }
 
     // --- Favorites Logic ---
@@ -2803,7 +2868,7 @@ setTimeout(async () => {
                 }
 
                 if (favGroups.includes(activeGroup)) isMatch = true;
-                if (isMatch) items.push({ ...video, _key: key });
+                if (isMatch) items.push({ ...video, id: video.id || getVideoIdFromStorageKey(key), _key: key });
             }
         });
 
@@ -2987,13 +3052,15 @@ setTimeout(async () => {
             return;
         }
 
+        const activeKey = resolveActiveLibraryKey(currentPlaylistItems);
+        container.dataset.activeKey = activeKey || '';
+
         currentPlaylistItems.forEach((v, index) => {
             const el = document.createElement('div');
             el.className = 'library-item';
+            el.dataset.key = v._key || '';
 
-            // Robust highlighting: match by key OR by Video ID as fallback
-            const isActive = (currentStorageKey && v._key === currentStorageKey) ||
-                (!currentStorageKey && v.id === currentVideoId);
+            const isActive = v._key === activeKey;
             if (isActive) el.classList.add('active');
 
             el.innerHTML = `
@@ -3015,7 +3082,7 @@ setTimeout(async () => {
             container.appendChild(el);
 
             // Auto-scroll to active item
-            if (v._key === currentStorageKey) {
+            if (v._key === activeKey) {
                 setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
             }
         });
@@ -3085,6 +3152,8 @@ setTimeout(async () => {
     function renderList(container, items) {
         container.innerHTML = '';
         container.classList.toggle('edit-mode', isLibraryEditMode);
+        const activeKey = resolveActiveLibraryKey(items);
+        container.dataset.activeKey = activeKey || '';
 
         // Safety check for monetization status
         let paid = false;
@@ -3096,7 +3165,8 @@ setTimeout(async () => {
             const isGated = !paid && index >= 10;
             const el = document.createElement('div');
             el.className = 'library-item';
-            if (v._key === currentStorageKey) el.classList.add('active');
+            el.dataset.key = v._key || '';
+            if (v._key === activeKey) el.classList.add('active');
 
             if (isGated) {
                 el.style.opacity = '0.4';
@@ -3434,8 +3504,8 @@ setTimeout(async () => {
                     const all = await chrome.storage.sync.get(null);
                     const related = [];
                     Object.keys(all).forEach(k => {
-                        if (k.startsWith('v_' + d.videoId) && all[k].isSaved) {
-                            related.push({ ...all[k], _key: k });
+                        if (isStorageKeyForVideo(k, d.videoId) && all[k].isSaved) {
+                            related.push({ ...all[k], id: all[k].id || getVideoIdFromStorageKey(k), _key: k });
                         }
                     });
 
