@@ -14,7 +14,7 @@
 2.  [播放控制 (Player Controls)](#2-播放控制-player-controls)
 3.  [A-B 循環 (A-B Loop)](#3-a-b-循環-a-b-loop)
 4.  [智慧標籤 (Smart Bookmarks)](#4-智慧標籤-smart-bookmarks)
-5.  [影片庫與我的最愛 (Library & Favorites)](#5-影片庫與我的最愛-library--favorites)
+5.  [影片庫與群組 (Library & Groups)](#5-影片庫與群組-library--groups)
 6.  [浮動視窗 (Pop-out Window)](#6-浮動視窗-pop-out-window)
 7.  [鍵盤快捷鍵 (Keyboard Shortcuts)](#7-鍵盤快捷鍵-keyboard-shortcuts)
 8.  [跨裝置同步 (Cross-Device Sync)](#8-跨裝置同步-cross-device-sync)
@@ -28,8 +28,7 @@
 *   **Player (播放器)**：主要的操作區域。現在包含兩個內部子分頁：
     *   **Markers (標記)**：做筆記與瀏覽時間戳記的主要空間。
     *   **Advanced (進階)**：調整播放速度、雲端同步刷新、以及處理 **Pro 帳號啟用** 的地方。
-*   **Library (影片庫)**：檢視所有您儲存過收藏的影片歷史紀錄。對於免費版用戶，此處限額儲存 **10 部影片**。
-*   **Favorites (我的最愛)**：快速存取您標記為「星號/預設」的常用收藏。
+*   **Library (影片庫)**：透過內建的 **All Videos** 群組檢視所有儲存紀錄，也可以切換到使用者自訂群組。對於免費版用戶，此處限額儲存 **10 部影片**。
 
 ![介面總覽截圖](images/screenshot/v3.0.1/Favorites-UI-v3.0.1.png)
 *(建議截圖：開啟 Sidebar 後的完整畫面)*
@@ -41,7 +40,7 @@ YouTube Study Companion 同時支援一般 YouTube 影片頁與 YouTube Music �
 - **YouTube**：`youtube.com/watch`、播放清單、Shorts、以及嵌入式/影片頁。
 - **YouTube Music**：`music.youtube.com/watch` 與播放清單頁。
 
-當影片或播放清單是從 YouTube Music 匯入時，擴充功能會記住來源。之後從 Library、Favorites 或群組播放開啟時，會回到 `music.youtube.com`，而不是一般 YouTube。
+當影片或播放清單是從 YouTube Music 匯入時，擴充功能會記住來源。之後從 Library 或群組播放開啟時，會回到 `music.youtube.com`，而不是一般 YouTube。
 
 ### 🟢 狀態指示燈
 在 **v3.0.0** 版號旁邊，您會看到狀態標示：
@@ -125,26 +124,26 @@ YouTube Study Companion 現在支援雲端帳號綁定。
 
 ## 5. 群組播放與播放清單 (v3.0 全新功能)
 
-「群組播放」讓您可以將收藏夾中的一個群組當作連續播放清單來使用。
+「群組播放」讓您可以將 All Videos 或任一 Library 群組當作連續播放清單來使用。
 
 ### 使用方式：
-1.  **啟動群組播放**：進入 **Favorites** 分頁，選擇一個資料夾後點擊 **▶ Play Group**。
+1.  **啟動群組播放**：進入 **Library** 分頁，選擇 **All Videos** 或自訂群組後，點擊 **▶ Play All** 或 **▶ Play Group**。
 2.  **介面變更**：播放器會進入「播放清單模式」，頂部顯示綠色橫幅。此時會出現 **上一步/下一步** 按鈕（僅在此模式下顯示）供您切換影片。
 3.  **自動下一首**：當一部影片結束時，系統會自動加載該群組中的下一部影片。
 4.  **整合式清單匯入**：
     *   開啟任一 YouTube 或 YouTube Music 播放清單網頁。也可以在有顯示佇列/清單的 YouTube Music 播放頁使用。
-    *   進入 **Favorites -> 管理群組 (齒輪圖示)**。
+    *   進入 **Library -> 管理群組 (齒輪圖示)**。
     *   點擊 **偵測並匯入 YouTube 播放清單**。
     *   系統會自動擷取目前可見的標題與 ID，為您建立一個全新的收藏群組。
 
 ### YouTube Music 注意事項
-*   在 YouTube Music 播放頁中，播放控制、速度控制、A-B 循環、標記、Library、Favorites 與群組播放皆可使用。
+*   在 YouTube Music 播放頁中，播放控制、速度控制、A-B 循環、標記、Library 群組與群組播放皆可使用。
 *   從 YouTube Music 匯入的項目會保存 Music 來源，之後播放時會開回 YouTube Music。
 *   播放清單匯入會讀取目前畫面上已載入的 YouTube Music 清單或佇列。如果 YouTube Music 尚未載入全部曲目，請先捲動清單再重新偵測。
 
 ---
 
-## 5. 影片庫與我的最愛 (Library & Favorites)
+## 5. 影片庫與群組 (Library & Groups)
 
 這是一個強大的功能，允許您為**同一部影片**儲存多個不同的「學習情境」。
 
@@ -157,10 +156,11 @@ YouTube Study Companion 現在支援雲端帳號綁定。
 *   第二次儲存：專注於「文法分析」。
 
 ### 操作方式：
-*   **Library 分頁**：列出所有儲存過的影片。
-*   **Favorites 分頁**：只顯示您標記為「星號」的收藏。
+*   **All Videos**：內建的影片庫群組，列出所有儲存過的影片設定，並依最近更新排序。
+*   **自訂群組**：由使用者建立，用於整理特定練習清單或學習主題。
+*   **Default 群組**：內建群組，用於收納您標記為預設的影片設定。
 *   **[新功能] 批次管理**：在編輯模式下，您可以同時勾選多部影片進行批次刪除，或統一修改所屬群組。
-*   **[新功能] 序號排序**：除了使用滑鼠拖曳，您現在可以直接在序號框內輸入數字，精確調整影片在群組中的顯示順位。
+*   **[新功能] 序號排序**：除了使用滑鼠拖曳，您現在可以直接在序號框內輸入數字，精確調整自訂群組中的顯示順位。All Videos 會依最近更新自動排序。
 *   **Clone Session**: 在 Player 頁面，點擊 `Clone` 按鈕可以複製當前的收藏，建立一個新版本。
 *   **Set as Default**: 將某個收藏設為該影片的「預設值」，下次打開該影片時會自動載入此設定。
 

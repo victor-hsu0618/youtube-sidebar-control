@@ -14,7 +14,7 @@ Welcome to YouTube Study Companion! This guide will help you familiarize yoursel
 2.  [Player Controls](#2-player-controls)
 3.  [A-B Loop](#3-a-b-loop)
 4.  [Smart Markers](#4-smart-markers)
-5.  [Library & Favorites](#5-library--favorites)
+5.  [Library & Groups](#5-library--groups)
 6.  [Pop-out Window](#6-pop-out-window)
 7.  [Keyboard Shortcuts](#7-keyboard-shortcuts)
 8.  [Cross-Device Synchronization](#8-cross-device-synchronization)
@@ -28,8 +28,7 @@ After launching the Extension, you will see the main screen. The sidebar is desi
 *   **Player**: The main operation area. It now features two internal sub-tabs:
     *   **Markers**: Your primary workspace for taking and browsing notes.
     *   **Advanced**: Adjustment area for Speed, Cloud Sync Refresh, and **Pro Account Activation**.
-*   **Library**: View history of saved sessions. Free users are limited to **10 saved videos** here.
-*   **Favorites**: Quick access to starred/default sessions.
+*   **Library**: View all saved sessions through the **All Videos** group, or switch to custom groups for focused collections. Free users are limited to **10 saved videos** here.
 
 ![Interface Overview Screenshot](images/screenshot/v3.0.1/Favorites-UI-v3.0.1.png)
 *(Suggested Screenshot: Full screen after opening Sidebar)*
@@ -41,7 +40,7 @@ YouTube Study Companion supports both regular YouTube video pages and YouTube Mu
 - **YouTube**: `youtube.com/watch`, playlists, Shorts, and embedded/video pages.
 - **YouTube Music**: `music.youtube.com/watch` and playlist pages.
 
-When a video or playlist is imported from YouTube Music, the extension remembers that source. Opening it later from Library, Favorites, or Group Play will return to `music.youtube.com` instead of regular YouTube.
+When a video or playlist is imported from YouTube Music, the extension remembers that source. Opening it later from Library or Group Play will return to `music.youtube.com` instead of regular YouTube.
 
 ### 🟢 Status Indicator
 Next to the **v3.0.0** badge, you will see a status indicator:
@@ -125,26 +124,26 @@ Marker function allows you to take notes on the video timeline and jump back at 
 
 ## 5. Group Play & Playlists (New in v3.0)
 
-Group Play allows you to treat a Favorite Group as a sequential playlist.
+Group Play allows you to treat All Videos or any Library Group as a sequential playlist.
 
 ### How to use:
-1.  **Start Group Play**: Go to the **Favorites** tab, select a folder, and click **▶ Play Group**.
+1.  **Start Group Play**: Go to the **Library** tab, select **All Videos** or a custom group, and click **▶ Play All** or **▶ Play Group**.
 2.  **Navigation**: The interface transitions into "Playlist Mode" with a green header. Use the **Prev/Next** buttons (visible only in this mode) to switch videos.
 3.  **Automatic Next**: When a video ends, the next one in the group will load automatically.
 4.  **Integrated Scraper**:
     *   Open a YouTube or YouTube Music playlist page. You can also use a YouTube Music watch page with a visible queue/list.
-    *   Go to **Favorites -> Manage Groups (Gear icon)**.
+    *   Go to **Library -> Manage Groups (Gear icon)**.
     *   Click **Detect & Import YouTube Playlist**.
     *   The extension will scrape visible titles/IDs and create a new group for you.
 
 ### YouTube Music Notes
-*   Player controls, speed control, A-B Loop, markers, Library, Favorites, and Group Play are supported on YouTube Music playback pages.
+*   Player controls, speed control, A-B Loop, markers, Library groups, and Group Play are supported on YouTube Music playback pages.
 *   Imported YouTube Music items are saved with their Music source, so later playback opens in YouTube Music.
 *   Playlist import reads the currently visible YouTube Music playlist or queue. If YouTube Music has not loaded all tracks yet, scroll the list first and run detection again.
 
 ---
 
-## 5. Library & Favorites
+## 5. Library & Groups
 
 This is a powerful feature allowing you to save multiple different "learning contexts" for the **same video**.
 
@@ -157,10 +156,11 @@ When you click the heart icon `❤️` in the title bar, you are actually saving
 *   Second save: Focus on "Grammar Analysis".
 
 ### Operation:
-*   **Library Tab**: Lists all saved videos.
-*   **Favorites Tab**: Shows only favorites you have marked with a "Star".
+*   **All Videos**: The built-in Library group. It lists every saved video profile and sorts them by latest update.
+*   **Custom Groups**: User-created groups for focused playlists or study collections.
+*   **Default Group**: A built-in group for profiles you mark as default.
 *   **[New] Batch Management**: In Edit mode, select multiple items to delete them at once or move them to a different group collectively.
-*   **[New] Numerical Index Sorting**: Precisely reorder your items within a group by entering the target index number in the sort field.
+*   **[New] Numerical Index Sorting**: Precisely reorder your items within a custom group by entering the target index number in the sort field. All Videos is sorted by recent update.
 *   **Clone Session**: In the Player page, click `Clone` button to copy the current favorite and create a new version.
 *   **Set as Default**: Set a favorite as the "Default" for that video; this setting loads automatically next time you open the video.
 

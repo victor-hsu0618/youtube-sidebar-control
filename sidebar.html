@@ -18,8 +18,8 @@
           <div class="status-indicator" id="connection-status" title="Disconnected"></div>
         </div>
         <button id="nav-player" class="nav-btn active">Player</button>
-        <button id="nav-favorites" class="nav-btn">Favorites</button>
-        <button id="nav-library" class="nav-btn">Library</button>
+        <button id="nav-favorites" class="nav-btn">Library</button>
+        <button id="nav-library" class="nav-btn" style="display:none;">Library</button>
         <button id="nav-popout" class="nav-btn icon-only" title="Pop Out Window">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
             <path
@@ -56,7 +56,7 @@
                 <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
               </svg>
             </button>
-            <button id="btn-manage-favorites" class="icon-btn small-btn" title="Manage Favorite Groups">
+            <button id="btn-manage-favorites" class="icon-btn small-btn" title="Manage Library Groups">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                 <path
                   d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z">
@@ -397,15 +397,18 @@
     </div>
 
 
-    <!-- Favorites View -->
+    <!-- Library / Collection View -->
     <div id="view-favorites" style="display: none;">
       <div class="library-header" style="margin-bottom:8px; display:flex; flex-direction:column; gap:8px;">
         <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
-          <h2>Favorites</h2>
+          <h2>Library</h2>
           <div style="display:flex; gap:4px; align-items:center;">
             <button id="btn-fav-toggle-edit" class="icon-btn small-btn" title="Toggle Edit Mode"
               style="border:1px solid #444; border-radius:4px; width:45px; height:20px; font-size:9px; font-weight:700;">Edit</button>
-            <button id="btn-manage-fav-groups" class="icon-btn small-btn" title="Manage Groups">
+            <button id="lib-btn-import" class="action-btn"
+              style="font-size:10px; margin:0; padding:2px 8px; width:auto;">+ Add</button>
+            <input type="file" id="lib-file-import" accept=".json" hidden />
+            <button id="btn-manage-fav-groups" class="icon-btn small-btn" title="Manage Library Groups">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
                 <path
                   d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41l-0.36,2.54c-0.59,0.24-1.13,0.57-1.62,0.94L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.81,11.69,4.81,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z" />
@@ -415,6 +418,7 @@
         </div>
         <div class="fav-group-bar" style="display:flex; gap:6px; align-items:center;">
           <select id="fav-group-selector" class="group-select compact-select" style="flex:1;">
+            <option value="__all_videos__">All Videos</option>
             <option value="Default">Default</option>
           </select>
           <button id="btn-play-group" class="secondary-btn"
@@ -422,7 +426,7 @@
             Group</button>
         </div>
 
-        <!-- Batch Action Bar for Favorites -->
+        <!-- Batch Action Bar for Library -->
         <div id="fav-batch-actions" class="control-group"
           style="display:none; margin-bottom:8px; padding:6px; align-items:center; gap:8px; font-size:11px; background:rgba(62,166,255,0.1); border-color:var(--accent-color);">
           <div style="display:flex; align-items:center; gap:6px; flex:1;">
@@ -430,14 +434,14 @@
             <span id="fav-selection-count" style="font-weight:600; color:var(--accent-color);">0 selected</span>
           </div>
           <div style="display:flex; gap:4px;">
-            <button id="btn-fav-batch-add-fav" class="action-btn" style="padding:2px 8px; font-size:10px;">Set Favorite
+            <button id="btn-fav-batch-add-fav" class="action-btn" style="padding:2px 8px; font-size:10px;">Set
               Groups</button>
             <button id="btn-fav-batch-delete" class="secondary-btn"
               style="padding:2px 8px; font-size:10px; border-color:var(--danger-color); color:var(--danger-color); margin:0;">Delete</button>
           </div>
         </div>
 
-        <!-- Dynamic Storage Usage in Favorites -->
+        <!-- Dynamic Storage Usage in Library -->
         <div id="fav-sync-usage-container" class="storage-usage" title="Chrome Sync Storage Usage"
           style="margin-top: 8px; padding: 0 4px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2px;">
@@ -453,7 +457,7 @@
       <!-- Group Management Panel (Hidden by Default) -->
       <div id="fav-group-mgmt" class="control-group" style="display:none; margin-bottom:12px; font-size:11px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-          <h3 style="font-size:12px;">Manage Favorite Groups</h3>
+          <h3 style="font-size:12px;">Manage Library Groups</h3>
           <button id="btn-close-fav-mgmt" style="background:none; border:none; color:#888; cursor:pointer;">×</button>
         </div>
         <div style="display:flex; gap:4px; margin-bottom:8px;">
@@ -474,10 +478,10 @@
 
       <div id="favorites-list">
         <!-- Injected -->
-        <p style="color: #666; text-align: center; padding: 20px;">No favorites set.</p>
+        <p style="color: #666; text-align: center; padding: 20px;">No saved videos.</p>
       </div>
 
-      <!-- Sponsorship also in Favorites -->
+      <!-- Sponsorship -->
       <div class="view-footer">
         <a href="https://www.buymeacoffee.com/victorhsu" target="_blank" class="bmc-btn">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
@@ -499,9 +503,9 @@
             style="border:1px solid #444; border-radius:4px; width:45px; height:20px; font-size:9px; font-weight:700;">Edit</button>
         </div>
         <div style="display:flex; gap:8px; align-items:center;">
-          <button id="lib-btn-import" class="action-btn"
+          <button id="legacy-lib-btn-import" class="action-btn"
             style="font-size:10px; margin:0; padding:2px 8px; width:auto;">+ Add Video Profile</button>
-          <input type="file" id="lib-file-import" accept=".json" hidden />
+          <input type="file" id="legacy-lib-file-import" accept=".json" hidden />
         </div>
       </div>
 
@@ -623,11 +627,11 @@
     </div>
   </div>
 
-  <!-- Favorite Group Picker Modal -->
+  <!-- Library Group Picker Modal -->
   <div id="fav-group-picker-modal" class="modal-overlay" style="display:none;">
     <div class="modal-content">
       <div class="modal-header">
-        <div class="modal-title">Set Favorite Groups</div>
+        <div class="modal-title">Set Library Groups</div>
         <button id="close-fav-picker"
           style="background:none; border:none; color:#888; cursor:pointer; font-size:18px;">×</button>
       </div>
@@ -657,7 +661,7 @@
               Playlist Name</div>
             <div id="playlist-modal-count" style="font-size:11px; color:var(--accent-color);">0 videos detected</div>
           </div>
-          <p style="font-size:12px; color:#aaa; line-height:1.5;">This will create a new Favorite Group and import all
+          <p style="font-size:12px; color:#aaa; line-height:1.5;">This will create a new Library Group and import all
             videos from this playlist.</p>
         </div>
       </div>
