@@ -26,7 +26,7 @@ Welcome to YouTube Study Companion! This guide will help you familiarize yoursel
 After launching the Extension, you will see the main screen. The sidebar is designed simply, mainly divided into three tabs:
 
 *   **Player**: The main operation area. It now features two internal sub-tabs:
-    *   **Markers**: Your primary workspace for taking and browsing notes.
+    *   **Video Marks**: Your primary workspace for taking and browsing notes.
 *   **Settings**: Adjustment area for Speed, Cloud Sync Refresh, and **Pro Account Activation**.
 *   **Library**: View all saved sessions through the **All Videos** group, or switch to custom groups for focused collections. Free users are limited to **20 saved videos** here.
 
