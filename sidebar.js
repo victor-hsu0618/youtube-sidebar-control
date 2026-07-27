@@ -2444,6 +2444,7 @@ setTimeout(async () => {
     const btnLocalBackupNow = document.getElementById('btn-local-backup-now');
     const btnLocalBackupRestore = document.getElementById('btn-local-backup-restore');
     const localBackupStatus = document.getElementById('local-backup-status');
+    const localBackupFeedback = document.getElementById('local-backup-feedback');
 
     function formatLocalBackupStatus(status) {
         if (!status?.latest) return `No backups | Keeps ${status?.max || 5}`;
@@ -2451,6 +2452,26 @@ setTimeout(async () => {
         const label = Number.isNaN(date.getTime()) ? status.latest.createdAt : date.toLocaleString();
         const summary = status.latest.summary || {};
         return `${label} | ${summary.savedCount || 0} videos | ${summary.groupCount || 0} groups`;
+    }
+
+    function formatBackupSummary(summary = {}) {
+        return `${summary.savedCount || 0} videos, ${summary.groupCount || 0} groups, ${summary.markerCount || 0} marks`;
+    }
+
+    function setLocalBackupFeedback(message, type = 'info') {
+        if (!localBackupFeedback) return;
+        localBackupFeedback.textContent = message;
+        if (type === 'success') localBackupFeedback.style.color = 'var(--success-color)';
+        else if (type === 'error') localBackupFeedback.style.color = 'var(--danger-color)';
+        else localBackupFeedback.style.color = '#888';
+    }
+
+    function flashButtonLabel(button, label, finalLabel) {
+        if (!button) return;
+        button.textContent = label;
+        setTimeout(() => {
+            button.textContent = finalLabel;
+        }, 1800);
     }
 
     async function refreshLocalBackupStatus() {
@@ -2479,29 +2500,37 @@ setTimeout(async () => {
         btnLocalBackupNow.addEventListener('click', async () => {
             btnLocalBackupNow.disabled = true;
             btnLocalBackupNow.textContent = 'Creating...';
+            setLocalBackupFeedback('Creating local backup...');
+            let completedLabel = 'Create Local Backup Now';
             try {
                 const result = await sendRuntimeMessage({ action: 'CREATE_LOCAL_BACKUP' });
                 if (result?.skipped) {
-                    alert('No saved data found to back up yet.');
+                    setLocalBackupFeedback('No saved data found to back up yet.', 'error');
                 } else {
+                    const summary = result.backup?.summary || result.status?.latest?.summary || {};
+                    setLocalBackupFeedback(`Created: ${formatBackupSummary(summary)}`, 'success');
                     log('Local backup created', 'success');
+                    completedLabel = 'Created';
                 }
                 await refreshLocalBackupStatus();
             } catch (err) {
-                alert('Local backup failed: ' + err.message);
+                setLocalBackupFeedback('Local backup failed: ' + err.message, 'error');
             } finally {
                 btnLocalBackupNow.disabled = false;
-                btnLocalBackupNow.textContent = 'Create Local Backup Now';
+                flashButtonLabel(btnLocalBackupNow, completedLabel, 'Create Local Backup Now');
             }
         });
     }
 
     if (btnLocalBackupRestore) {
         btnLocalBackupRestore.addEventListener('click', async () => {
+            btnLocalBackupRestore.disabled = true;
+            btnLocalBackupRestore.textContent = 'Restoring...';
+            setLocalBackupFeedback('Restoring latest local backup...');
             try {
                 const backup = await sendRuntimeMessage({ action: 'GET_LATEST_LOCAL_BACKUP' });
                 if (!backup?.data) {
-                    alert('No local backup found on this device.');
+                    setLocalBackupFeedback('No local backup found on this device.', 'error');
                     return;
                 }
                 const summary = backup.summary || {};
@@ -2513,9 +2542,15 @@ setTimeout(async () => {
                 log('Local backup restored', 'success');
                 await refreshAfterCloudRestore(backup.data);
                 await refreshLocalBackupStatus();
-                alert('Local backup restored.');
+                setLocalBackupFeedback(`Restored: ${formatBackupSummary(summary)}`, 'success');
+                flashButtonLabel(btnLocalBackupRestore, 'Restored', 'Restore Latest Local Backup');
             } catch (err) {
-                alert('Restore local backup failed: ' + err.message);
+                setLocalBackupFeedback('Restore local backup failed: ' + err.message, 'error');
+            } finally {
+                btnLocalBackupRestore.disabled = false;
+                if (btnLocalBackupRestore.textContent === 'Restoring...') {
+                    btnLocalBackupRestore.textContent = 'Restore Latest Local Backup';
+                }
             }
         });
     }
