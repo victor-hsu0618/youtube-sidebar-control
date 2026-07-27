@@ -2,7 +2,7 @@
 
 # User Manual: YouTube Study Companion
 
-歡迎使用 YouTube Study Companion！本指南將協助您熟悉這個擴充功能的所有功能，讓您在 YouTube 上擁有更強大的學習與控制體驗。
+歡迎使用 YouTube Study Companion！本指南將協助您熟悉這個擴充功能的所有功能，讓您在 YouTube 與 YouTube Music 上擁有更強大的學習與控制體驗。
 
 **提示**：為了達到最佳閱讀體驗，建議您可以將實際操作畫面截圖後，替換本文中的圖片佔位符。
 
@@ -35,6 +35,13 @@
 *(建議截圖：開啟 Sidebar 後的完整畫面)*
 
 上方標題列右側有一個 **↗️ 箭頭按鈕**，點擊可將視窗獨立出來（Pop-out）。
+
+### 支援網站
+YouTube Study Companion 同時支援一般 YouTube 影片頁與 YouTube Music 播放頁：
+- **YouTube**：`youtube.com/watch`、播放清單、Shorts、以及嵌入式/影片頁。
+- **YouTube Music**：`music.youtube.com/watch` 與播放清單頁。
+
+當影片或播放清單是從 YouTube Music 匯入時，擴充功能會記住來源。之後從 Library、Favorites 或群組播放開啟時，會回到 `music.youtube.com`，而不是一般 YouTube。
 
 ### 🟢 狀態指示燈
 在 **v3.0.0** 版號旁邊，您會看到狀態標示：
@@ -125,10 +132,15 @@ YouTube Study Companion 現在支援雲端帳號綁定。
 2.  **介面變更**：播放器會進入「播放清單模式」，頂部顯示綠色橫幅。此時會出現 **上一步/下一步** 按鈕（僅在此模式下顯示）供您切換影片。
 3.  **自動下一首**：當一部影片結束時，系統會自動加載該群組中的下一部影片。
 4.  **整合式清單匯入**：
-    *   開啟任一 YouTube 播放清單網頁。
+    *   開啟任一 YouTube 或 YouTube Music 播放清單網頁。也可以在有顯示佇列/清單的 YouTube Music 播放頁使用。
     *   進入 **Favorites -> 管理群組 (齒輪圖示)**。
     *   點擊 **偵測並匯入 YouTube 播放清單**。
-    *   系統會自動擷取所有標題與 ID，為您建立一個全新的收藏群組。
+    *   系統會自動擷取目前可見的標題與 ID，為您建立一個全新的收藏群組。
+
+### YouTube Music 注意事項
+*   在 YouTube Music 播放頁中，播放控制、速度控制、A-B 循環、標記、Library、Favorites 與群組播放皆可使用。
+*   從 YouTube Music 匯入的項目會保存 Music 來源，之後播放時會開回 YouTube Music。
+*   播放清單匯入會讀取目前畫面上已載入的 YouTube Music 清單或佇列。如果 YouTube Music 尚未載入全部曲目，請先捲動清單再重新偵測。
 
 ---
 

@@ -6,10 +6,19 @@ const debugLogs = document.getElementById('debug-logs');
 const YOUTUBE_VIDEO_QUERY_URLS = [
     "*://*.youtube.com/watch*",
     "*://music.youtube.com/watch*",
+    "*://music.youtube.com/playlist*",
     "*://*.youtube.com/playlist*",
     "*://*.youtube.com/shorts*",
     "*://*.youtube.com/v/*"
 ];
+
+function isYouTubeMusicUrl(url) {
+    try {
+        return new URL(url).hostname === 'music.youtube.com';
+    } catch (e) {
+        return Boolean(url && url.includes('music.youtube.com'));
+    }
+}
 
 function isYouTubeUrl(url) {
     return Boolean(url && (url.includes('youtube.com') || url.includes('music.youtube.com')));
@@ -174,6 +183,7 @@ try {
             id: id,
             title: title,
             thumbnail: "",
+            source: "youtube",
             isSaved: false,
             isDefault: false,
             createdAt: 0,
@@ -1474,20 +1484,23 @@ setTimeout(initSupabaseAuth, 1000);
 
         for (const v of playlist.videos) {
             const videoKey = `v_${v.id}_${Date.now()}`;
+            const source = v.source || playlist.source || 'youtube';
             // Check if already exists (simplistic check by ID)
-            let existingKey = Object.keys(all).find(k => k.startsWith(`v_${v.id}`) && all[k].isSaved);
+            let existingKey = Object.keys(all).find(k => isStorageKeyForVideo(k, v.id) && all[k].isSaved);
 
             if (existingKey) {
                 const existing = all[existingKey];
+                if (!existing.source) existing.source = source;
                 if (!existing.favoriteGroups) existing.favoriteGroups = [];
                 if (!existing.favoriteGroups.includes(groupName)) {
                     existing.favoriteGroups.push(groupName);
-                    updates[existingKey] = existing;
                 }
+                updates[existingKey] = existing;
                 newOrder.push(existingKey);
             } else {
                 const newData = createEmptyData(v.id, v.title);
                 newData.thumbnail = v.thumbnail;
+                newData.source = source;
                 newData.isSaved = true;
                 newData.favoriteGroups = [groupName];
                 newData.createdAt = Date.now();
@@ -1848,9 +1861,52 @@ setTimeout(initSupabaseAuth, 1000);
     let cachedRelatedKeys = [];
     let cachedAllData = {};
 
+    function getVideoIdFromStorageKey(key) {
+        if (!key || !key.startsWith('v_')) return null;
+        const body = key.slice(2);
+        const lastUnderscore = body.lastIndexOf('_');
+        if (lastUnderscore <= 0) return null;
+
+        const suffix = body.slice(lastUnderscore + 1);
+        if (!/^\d+$/.test(suffix)) return null;
+
+        return body.slice(0, lastUnderscore);
+    }
+
+    function getVideoIdFromItem(item) {
+        return item?.id || item?.videoId || getVideoIdFromStorageKey(item?._key);
+    }
+
+    function getSourceFromUrl(url) {
+        return isYouTubeMusicUrl(url) ? 'music' : 'youtube';
+    }
+
+    async function getPreferredVideoSource(item = null) {
+        if (item?.source === 'music' || item?.platform === 'music') return 'music';
+        if (item?.source === 'youtube' || item?.platform === 'youtube') return 'youtube';
+
+        if (connectedTabId) {
+            const tab = await chrome.tabs.get(connectedTabId).catch(() => null);
+            if (tab?.url) return getSourceFromUrl(tab.url);
+        }
+
+        if (currentVideoData?.source) return currentVideoData.source;
+
+        return 'youtube';
+    }
+
+    function buildWatchUrl(videoId, source = 'youtube') {
+        const host = source === 'music' ? 'music.youtube.com' : 'youtube.com';
+        return `https://${host}/watch?v=${encodeURIComponent(videoId)}`;
+    }
+
+    function isStorageKeyForVideo(key, videoId) {
+        return Boolean(videoId && getVideoIdFromStorageKey(key) === videoId);
+    }
+
     function updateDataCache(allData, videoId) {
         cachedAllData = allData;
-        cachedRelatedKeys = Object.keys(allData).filter(k => k.startsWith('v_' + videoId));
+        cachedRelatedKeys = Object.keys(allData).filter(k => isStorageKeyForVideo(k, videoId));
     }
 
     // 1. Init New Session (Detached)
@@ -1860,6 +1916,7 @@ setTimeout(initSupabaseAuth, 1000);
 
         currentVideoData = createEmptyData(videoId, initialData.title || "Loading...");
         currentVideoData.thumbnail = initialData.thumbnail || "";
+        currentVideoData.source = initialData.source || currentVideoData.source;
 
         const allData = await chrome.storage.sync.get(null);
         updateDataCache(allData, videoId);
@@ -1903,6 +1960,10 @@ setTimeout(initSupabaseAuth, 1000);
             changed = true;
         }
         if (!currentVideoData.activeGroup) { currentVideoData.activeGroup = "Default"; changed = true; }
+        if (!currentVideoData.source) {
+            currentVideoData.source = 'youtube';
+            changed = true;
+        }
 
         if (!currentVideoData.createdAt) {
             currentVideoData.createdAt = currentVideoData.updatedAt || Date.now();
@@ -1928,6 +1989,7 @@ setTimeout(initSupabaseAuth, 1000);
             currentVideoData.createdAt = Date.now();
         }
 
+        currentVideoData.source = currentVideoData.source || 'youtube';
         currentVideoData.updatedAt = Date.now();
         await chrome.storage.sync.set({ [currentStorageKey]: currentVideoData });
         updateStorageUsage();
@@ -2756,7 +2818,7 @@ setTimeout(initSupabaseAuth, 1000);
     }
 
     async function openVideo(v) {
-        const vid = v.id || v.videoId || (v._key ? v._key.split('_')[1] : null);
+        const vid = getVideoIdFromItem(v);
         if (!vid) return;
 
         showStandby(false);
@@ -2770,10 +2832,11 @@ setTimeout(initSupabaseAuth, 1000);
             'playback_intent': { value: isCurrentlyPlaying, ts: Date.now() }
         });
 
+        const watchUrl = buildWatchUrl(vid, await getPreferredVideoSource(v));
         if (connectedTabId) {
-            chrome.tabs.update(connectedTabId, { url: `https://youtube.com/watch?v=${vid}`, active: true });
+            chrome.tabs.update(connectedTabId, { url: watchUrl, active: true });
         } else {
-            const nt = await chrome.tabs.create({ url: `https://youtube.com/watch?v=${vid}` });
+            const nt = await chrome.tabs.create({ url: watchUrl });
             connectedTabId = nt.id;
         }
         establishConnection(true);
@@ -2884,7 +2947,7 @@ setTimeout(initSupabaseAuth, 1000);
                         alert('This video is locked. Free version is limited to 10 videos. Please upgrade to Pro in the Advanced panel.');
                         return;
                     }
-                    const vid = v.id || v.videoId || (v._key ? v._key.split('_')[1] : null);
+                    const vid = getVideoIdFromItem(v);
                     log(`Library click: vid=${vid}, key=${v._key}`, "info");
 
                     try {
@@ -2922,15 +2985,18 @@ setTimeout(initSupabaseAuth, 1000);
                             if (t) {
                                 connectedTabId = targetId;
                                 log(`Updating tab ${targetId} to ${vid}`, "info");
-                                chrome.tabs.update(targetId, { url: `https://youtube.com/watch?v=${vid}`, active: true });
+                                const watchUrl = buildWatchUrl(vid, await getPreferredVideoSource(v));
+                                chrome.tabs.update(targetId, { url: watchUrl, active: true });
                             } else {
                                 log("TargetId invalid, creating new", "info");
-                                const nt = await chrome.tabs.create({ url: `https://youtube.com/watch?v=${vid}` });
+                                const watchUrl = buildWatchUrl(vid, await getPreferredVideoSource(v));
+                                const nt = await chrome.tabs.create({ url: watchUrl });
                                 connectedTabId = nt.id;
                             }
                         } else {
                             log("No target, creating new tab", "info");
-                            const nt = await chrome.tabs.create({ url: `https://youtube.com/watch?v=${vid}` });
+                            const watchUrl = buildWatchUrl(vid, await getPreferredVideoSource(v));
+                            const nt = await chrome.tabs.create({ url: watchUrl });
                             connectedTabId = nt.id;
                         }
 
@@ -3158,12 +3224,13 @@ setTimeout(initSupabaseAuth, 1000);
                     } else {
                         // Truly new video with no saved sessions
                         log(`New session: ${d.title}`, 'info');
-                        initNewVideoSession(d.videoId, { title: d.title, thumbnail: d.thumbnail });
+                        initNewVideoSession(d.videoId, { title: d.title, thumbnail: d.thumbnail, source: d.source });
                     }
                 } else if (d.title && d.title !== "YouTube") {
                     // Update title if it was "Loading..." or changed
                     currentVideoData.title = d.title;
                     currentVideoData.thumbnail = d.thumbnail || currentVideoData.thumbnail;
+                    currentVideoData.source = d.source || currentVideoData.source;
                     updateHeader();
                 }
 

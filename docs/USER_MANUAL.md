@@ -2,7 +2,7 @@
 
 # User Manual: YouTube Study Companion
 
-Welcome to YouTube Study Companion! This guide will help you familiarize yourself with all features of this extension, giving you a more powerful learning and control experience on YouTube.
+Welcome to YouTube Study Companion! This guide will help you familiarize yourself with all features of this extension, giving you a more powerful learning and control experience on YouTube and YouTube Music.
 
 **Tip**: For the best reading experience, it is recommended to take screenshots of the actual operation interface and replace the image placeholders in this text.
 
@@ -35,6 +35,13 @@ After launching the Extension, you will see the main screen. The sidebar is desi
 *(Suggested Screenshot: Full screen after opening Sidebar)*
 
 On the right side of the top title bar is a **↗️ Arrow Button**. Click to detach the window (Pop-out). 
+
+### Supported Sites
+YouTube Study Companion supports both regular YouTube video pages and YouTube Music playback pages:
+- **YouTube**: `youtube.com/watch`, playlists, Shorts, and embedded/video pages.
+- **YouTube Music**: `music.youtube.com/watch` and playlist pages.
+
+When a video or playlist is imported from YouTube Music, the extension remembers that source. Opening it later from Library, Favorites, or Group Play will return to `music.youtube.com` instead of regular YouTube.
 
 ### 🟢 Status Indicator
 Next to the **v3.0.0** badge, you will see a status indicator:
@@ -124,11 +131,16 @@ Group Play allows you to treat a Favorite Group as a sequential playlist.
 1.  **Start Group Play**: Go to the **Favorites** tab, select a folder, and click **▶ Play Group**.
 2.  **Navigation**: The interface transitions into "Playlist Mode" with a green header. Use the **Prev/Next** buttons (visible only in this mode) to switch videos.
 3.  **Automatic Next**: When a video ends, the next one in the group will load automatically.
-4.  **Integrated Scraper**: 
-    *   Open a YouTube Playlist page.
+4.  **Integrated Scraper**:
+    *   Open a YouTube or YouTube Music playlist page. You can also use a YouTube Music watch page with a visible queue/list.
     *   Go to **Favorites -> Manage Groups (Gear icon)**.
     *   Click **Detect & Import YouTube Playlist**.
-    *   The extension will scrape all titles/IDs and create a new group for you.
+    *   The extension will scrape visible titles/IDs and create a new group for you.
+
+### YouTube Music Notes
+*   Player controls, speed control, A-B Loop, markers, Library, Favorites, and Group Play are supported on YouTube Music playback pages.
+*   Imported YouTube Music items are saved with their Music source, so later playback opens in YouTube Music.
+*   Playlist import reads the currently visible YouTube Music playlist or queue. If YouTube Music has not loaded all tracks yet, scroll the list first and run detection again.
 
 ---
 

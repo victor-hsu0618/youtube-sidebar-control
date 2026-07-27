@@ -8,6 +8,7 @@ const YOUTUBE_TAB_URLS = [
 const YOUTUBE_VIDEO_URLS = [
     "*://*.youtube.com/watch*",
     "*://music.youtube.com/watch*",
+    "*://music.youtube.com/playlist*",
     "*://*.youtube.com/shorts*",
     "*://*.youtube.com/v/*"
 ];

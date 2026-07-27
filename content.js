@@ -48,6 +48,10 @@ function getCleanPageTitle() {
     return document.title.replace(/\s+-\s+YouTube(?: Music)?$/, '');
 }
 
+function getPageSource() {
+    return window.location.hostname === 'music.youtube.com' ? 'music' : 'youtube';
+}
+
 function init(shouldResetLoop = false) {
     if (isInitializing) return;
 
@@ -236,9 +240,88 @@ function handleTimeUpdate() {
     }
 }
 
+function extractVideoIdFromHref(href) {
+    if (!href) return null;
+    try {
+        const url = new URL(href, window.location.origin);
+        return url.searchParams.get('v');
+    } catch (e) {
+        return null;
+    }
+}
+
+function cleanPlaylistItemTitle(title) {
+    return (title || '')
+        .replace(/\s+/g, ' ')
+        .replace(/\b\d+:\d{2}(?::\d{2})?\b/g, '')
+        .trim();
+}
+
+function scrapeYouTubeMusicPlaylist(listId) {
+    const titleEl = document.querySelector('ytmusic-detail-header-renderer .title')
+        || document.querySelector('ytmusic-detail-header-renderer h1')
+        || document.querySelector('ytmusic-responsive-header-renderer .title')
+        || document.querySelector('ytmusic-player-page #header .title')
+        || document.querySelector('ytmusic-player-queue #header .title');
+
+    const title = cleanPlaylistItemTitle(titleEl?.textContent) || getCleanPageTitle();
+    const videos = [];
+    const seen = new Set();
+
+    const itemSelector = [
+        'ytmusic-responsive-list-item-renderer',
+        'ytmusic-player-queue-item',
+        'ytmusic-two-row-item-renderer',
+        'ytmusic-shelf-renderer'
+    ].join(',');
+
+    let items = Array.from(document.querySelectorAll(itemSelector));
+    if (items.length === 0) {
+        items = Array.from(document.querySelectorAll('a[href*="watch?v="]'))
+            .map(anchor => anchor.closest(itemSelector) || anchor);
+    }
+
+    items.forEach(item => {
+        const anchor = item.matches?.('a[href*="watch?v="]')
+            ? item
+            : item.querySelector('a[href*="watch?v="]');
+        const id = extractVideoIdFromHref(anchor?.getAttribute('href'));
+        if (!id || seen.has(id)) return;
+
+        const titleNode = item.querySelector('.title')
+            || item.querySelector('yt-formatted-string.title')
+            || item.querySelector('[title]')
+            || anchor;
+        const titleText = cleanPlaylistItemTitle(titleNode?.getAttribute?.('title') || titleNode?.textContent);
+
+        seen.add(id);
+        videos.push({
+            id,
+            title: titleText || `Track ${videos.length + 1}`,
+            thumbnail: `https://img.youtube.com/vi/${id}/mqdefault.jpg`,
+            source: 'music'
+        });
+    });
+
+    if (videos.length === 0) return null;
+
+    return {
+        listId: listId || 'music-queue',
+        title: title || 'Imported YouTube Music Playlist',
+        videoCount: videos.length,
+        source: 'music',
+        videos
+    };
+}
+
 function scrapePlaylistInfo() {
     const params = new URLSearchParams(window.location.search);
     const listId = params.get('list');
+    if (getPageSource() === 'music') {
+        const musicPlaylist = scrapeYouTubeMusicPlaylist(listId);
+        if (musicPlaylist) return musicPlaylist;
+    }
+
     if (!listId) return null;
 
     let title = "";
@@ -283,26 +366,21 @@ function scrapePlaylistInfo() {
         if (vTitleEl) {
             vTitle = vTitleEl.innerText.trim();
             const href = vTitleEl.getAttribute('href');
-            if (href) {
-                const url = new URL(href, window.location.origin);
-                vId = url.searchParams.get('v');
-            }
+            vId = extractVideoIdFromHref(href);
         }
 
         // Fallback or verify ID from thumbnail
         if (!vId && vThumbnail) {
             const href = vThumbnail.getAttribute('href');
-            if (href) {
-                const url = new URL(href, window.location.origin);
-                vId = url.searchParams.get('v');
-            }
+            vId = extractVideoIdFromHref(href);
         }
 
         if (vId) {
             videos.push({
                 id: vId,
                 title: vTitle || `Video ${videos.length + 1}`,
-                thumbnail: `https://img.youtube.com/vi/${vId}/mqdefault.jpg`
+                thumbnail: `https://img.youtube.com/vi/${vId}/mqdefault.jpg`,
+                source: getPageSource()
             });
         }
     });
@@ -316,6 +394,7 @@ function scrapePlaylistInfo() {
         listId: listId,
         title: title.trim() || "Imported Playlist",
         videoCount: videos.length,
+        source: getPageSource(),
         videos: videos
     };
 }
@@ -348,6 +427,7 @@ function notifyStatus(isPeriodic = false) {
                         videoId: videoId,
                         title: getCleanPageTitle(),
                         thumbnail: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
+                        source: getPageSource(),
                         duration: video.duration || 0,
                         currentTime: video.currentTime || 0,
                         isPlaying: !video.paused,
