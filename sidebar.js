@@ -209,6 +209,7 @@ let hasCheckedCloudSnapshot = false;
 function summarizeSyncData(data = {}) {
     const keys = Object.keys(data || {});
     const videoKeys = keys.filter(k => k.startsWith('v_'));
+    const groups = Array.isArray(data.favorite_groups) ? data.favorite_groups.filter(Boolean) : [];
     let markerCount = 0;
     let savedCount = 0;
 
@@ -226,13 +227,14 @@ function summarizeSyncData(data = {}) {
         keyCount: keys.length,
         videoCount: videoKeys.length,
         savedCount,
+        groupCount: groups.length,
         markerCount,
         hasContent: videoKeys.length > 0 || markerCount > 0 || savedCount > 0
     };
 }
 
 function formatSyncSummary(summary) {
-    return `${summary.videoCount} profiles, ${summary.savedCount} saved, ${summary.markerCount} markers`;
+    return `${summary.videoCount} profiles, ${summary.savedCount} saved, ${summary.groupCount} groups, ${summary.markerCount} markers`;
 }
 
 async function rememberCloudSnapshotTimestamp(updatedAt) {
@@ -468,7 +470,6 @@ async function triggerCloudSync() {
 async function initSupabaseAuth() {
     if (!window.supabaseManager) return;
     
-    const loginBtn = document.getElementById('btn-supabase-login');
     const loginForm = document.getElementById('supabase-login-form');
     const userInfo = document.getElementById('supabase-user-info');
     const userEmail = document.getElementById('supabase-user-email');
@@ -497,19 +498,6 @@ async function initSupabaseAuth() {
 
     return null;
 }
-
-// Attach Supabase Listeners
-document.getElementById('btn-supabase-login')?.addEventListener('click', async () => {
-    console.log('[UI] Google Login button clicked');
-    if (!window.supabaseManager) {
-        console.error('[UI] SupabaseManager missing');
-        return;
-    }
-    const user = await window.supabaseManager.login();
-    if (user) {
-        handleSupabaseSignedIn();
-    }
-});
 
 document.getElementById('btn-supabase-send-otp')?.addEventListener('click', async () => {
     const email = document.getElementById('supabase-email')?.value;
@@ -4217,8 +4205,10 @@ setTimeout(async () => {
         const texts = [document.getElementById('sync-usage-text'), document.getElementById('fav-sync-usage-text')];
 
         chrome.storage.sync.get(null, (all) => {
+            const summary = summarizeSyncData(all);
             let libraryCount = 0;
             let favoritesCount = 0;
+            const groupCount = summary.groupCount;
             const bytes = JSON.stringify(all).length; // Rough estimate if getBytesInUse fails
 
             Object.keys(all).forEach(key => {
@@ -4256,7 +4246,7 @@ setTimeout(async () => {
                 });
 
                 texts.forEach(text => {
-                    if (text) text.textContent = `${percent}% Used`;
+                    if (text) text.textContent = `${percent}% Used | ${libraryCount} videos | ${groupCount} groups`;
                 });
             });
         });

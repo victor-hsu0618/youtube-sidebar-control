@@ -45,69 +45,6 @@ class SupabaseManager {
     }
 
     /**
-     * Simple Google Login via Supabase OAuth
-     */
-    async login() {
-        if (!this.isInitialized) this.init();
-        if (!this.isInitialized) return null;
-
-        try {
-            console.log('[Supabase] Initiating login flow...');
-            const redirectURL = chrome.identity.getRedirectURL();
-            
-            // s4.0.0 Refinement: Use SDK to generate the URL to ensure it's valid
-            const { data, error } = await this.client.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                    redirectTo: redirectURL,
-                    skipBrowserRedirect: true 
-                }
-            });
-
-            if (error) {
-                console.error('[Supabase] OAuth generation error:', error.message);
-                return null;
-            }
-
-            const authUrl = data.url;
-            console.log('[Supabase] Generated Auth URL:', authUrl);
-
-            return new Promise((resolve, reject) => {
-                chrome.identity.launchWebAuthFlow({
-                    url: authUrl,
-                    interactive: true
-                }, (responseUrl) => {
-                    if (chrome.runtime.lastError || !responseUrl) {
-                        console.error('[Supabase] Login error:', chrome.runtime.lastError?.message);
-                        return resolve(null);
-                    }
-
-                    // Parse tokens from URL (Fragment)
-                    const url = new URL(responseUrl.replace('#', '?'));
-                    const accessToken = url.searchParams.get('access_token');
-                    const refreshToken = url.searchParams.get('refresh_token');
-
-                    if (accessToken) {
-                        this.client.auth.setSession({
-                            access_token: accessToken,
-                            refresh_token: refreshToken
-                        }).then(({ data, error }) => {
-                            if (error) throw error;
-                            console.log('[Supabase] Authenticated as:', data.user.email);
-                            resolve(data.user);
-                        });
-                    } else {
-                        resolve(null);
-                    }
-                });
-            });
-        } catch (err) {
-            console.error('[Supabase] Login trace error:', err);
-            return null;
-        }
-    }
-
-    /**
      * Send a 6-digit OTP code to the user's email
      */
     async sendOtp(email) {
