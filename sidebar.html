@@ -19,6 +19,8 @@
         </div>
         <button id="nav-player" class="nav-btn active">Player</button>
         <button id="nav-favorites" class="nav-btn">Library</button>
+        <button id="nav-settings" class="nav-btn">Settings <span id="nav-upgrade-dot"
+            style="display:none; color:var(--accent-color); font-size:8px; vertical-align:top;">(Upgrade)</span></button>
         <button id="nav-popout" class="nav-btn icon-only" title="Pop Out Window">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
             <path
@@ -190,8 +192,6 @@
       <div class="player-tabs">
         <button id="tab-markers" class="tab-btn active">Markers</button>
         <button id="tab-playlist" class="tab-btn" style="display:none;">Playlist</button>
-        <button id="tab-controls" class="tab-btn">Advanced <span id="nav-upgrade-dot"
-            style="display:none; color:var(--accent-color); font-size:8px; vertical-align:top;">(Upgrade)</span></button>
       </div>
 
       <div id="panel-playlist" class="sub-panel">
@@ -248,12 +248,15 @@
         </section>
       </div>
 
-      <div id="panel-controls" class="sub-panel">
+    </div>
+
+    <!-- Settings View -->
+    <div id="view-settings" style="display: none;">
         <div class="sub-panel-scroll">
           <!-- Advanced Features -->
           <section class="control-group">
             <div class="section-header">
-              <h2>Advanced Features</h2>
+              <h2>Settings</h2>
             </div>
             <div style="padding: 10px 4px; display: flex; flex-direction: column; gap: 8px;">
               <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -393,7 +396,6 @@
           </section>
         </div>
       </div>
-    </div>
 
 
     <!-- Library / Collection View -->

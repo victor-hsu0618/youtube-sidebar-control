@@ -881,11 +881,13 @@ setTimeout(async () => {
     // --- Elements ---
     const views = {
         player: document.getElementById('view-player'),
-        favorites: document.getElementById('view-favorites')
+        favorites: document.getElementById('view-favorites'),
+        settings: document.getElementById('view-settings')
     };
     const navs = {
         player: document.getElementById('nav-player'),
-        favorites: document.getElementById('nav-favorites')
+        favorites: document.getElementById('nav-favorites'),
+        settings: document.getElementById('nav-settings')
     };
 
     // Controls
@@ -996,6 +998,7 @@ setTimeout(async () => {
 
     if (navs.player) navs.player.addEventListener('click', () => switchView('player'));
     if (navs.favorites) navs.favorites.addEventListener('click', () => switchView('library'));
+    if (navs.settings) navs.settings.addEventListener('click', () => switchView('settings'));
 
     // Show Player view by default on startup
     switchView('player');
@@ -1003,13 +1006,11 @@ setTimeout(async () => {
     // --- Player Sub-Panels ---
     const subPanels = {
         markers: document.getElementById('panel-markers'),
-        playlist: document.getElementById('panel-playlist'),
-        controls: document.getElementById('panel-controls')
+        playlist: document.getElementById('panel-playlist')
     };
     const subTabs = {
         markers: document.getElementById('tab-markers'),
-        playlist: document.getElementById('tab-playlist'),
-        controls: document.getElementById('tab-controls')
+        playlist: document.getElementById('tab-playlist')
     };
 
     function switchSubPanel(panelName) {
@@ -1027,7 +1028,6 @@ setTimeout(async () => {
 
     if (subTabs.markers) subTabs.markers.addEventListener('click', () => switchSubPanel('markers'));
     if (subTabs.playlist) subTabs.playlist.addEventListener('click', () => switchSubPanel('playlist'));
-    if (subTabs.controls) subTabs.controls.addEventListener('click', () => switchSubPanel('controls'));
 
     // --- Pop Out Logic (Solution: Separate Sidebar and Popup behaviors) ---
     const popOutBtn = document.getElementById('nav-popout');
@@ -3249,7 +3249,7 @@ setTimeout(async () => {
                 if (isLibraryEditMode) return;
                 if (e.target.tagName !== 'BUTTON') {
                     if (isGated) {
-                        alert('This video is locked. Free version is limited to 10 videos. Please upgrade to Pro in the Advanced panel.');
+                        alert('This video is locked. Free version is limited to 10 videos. Please upgrade to Pro in Settings.');
                         return;
                     }
                     const vid = getVideoIdFromItem(v);

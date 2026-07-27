@@ -56,7 +56,8 @@ body {
 
 /* Views Layout */
 #view-player,
-#view-favorites {
+#view-favorites,
+#view-settings {
   display: none;
   flex: 1;
   flex-direction: column;
