@@ -52,6 +52,18 @@ function getPageSource() {
     return window.location.hostname === 'music.youtube.com' ? 'music' : 'youtube';
 }
 
+function getActiveVideoTitle(videoId) {
+    try {
+        const player = document.getElementById('movie_player');
+        if (player && typeof player.getVideoData === 'function') {
+            const data = player.getVideoData();
+            if (data && data.video_id === videoId && data.title) return data.title;
+        }
+    } catch (e) { }
+
+    return getCleanPageTitle();
+}
+
 function init(shouldResetLoop = false) {
     if (isInitializing) return;
 
@@ -425,7 +437,7 @@ function notifyStatus(isPeriodic = false) {
                     action: 'VIDEO_METADATA',
                     data: {
                         videoId: videoId,
-                        title: getCleanPageTitle(),
+                        title: getActiveVideoTitle(videoId),
                         thumbnail: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
                         source: getPageSource(),
                         duration: video.duration || 0,
