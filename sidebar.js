@@ -197,12 +197,224 @@ try {
     }
 
 // --- Supabase Cloud Sync (s4.0.0) ---
+const SUPABASE_LAST_SNAPSHOT_KEY = 'supabase_last_snapshot_updated_at';
 let cloudSyncDebounceTimer = null;
+let isApplyingCloudSnapshot = false;
+let hasCheckedCloudSnapshot = false;
+
+function summarizeSyncData(data = {}) {
+    const keys = Object.keys(data || {});
+    const videoKeys = keys.filter(k => k.startsWith('v_'));
+    let markerCount = 0;
+    let savedCount = 0;
+
+    videoKeys.forEach(k => {
+        const video = data[k] || {};
+        if (video.isSaved) savedCount++;
+        if (video.tagGroups) {
+            markerCount += Object.values(video.tagGroups).reduce((acc, group) => acc + (Array.isArray(group) ? group.length : 0), 0);
+        } else if (Array.isArray(video.bookmarks)) {
+            markerCount += video.bookmarks.length;
+        }
+    });
+
+    return {
+        keyCount: keys.length,
+        videoCount: videoKeys.length,
+        savedCount,
+        markerCount,
+        hasContent: videoKeys.length > 0 || markerCount > 0 || savedCount > 0
+    };
+}
+
+function formatSyncSummary(summary) {
+    return `${summary.videoCount} profiles, ${summary.savedCount} saved, ${summary.markerCount} markers`;
+}
+
+async function rememberCloudSnapshotTimestamp(updatedAt) {
+    if (!updatedAt) return;
+    await chrome.storage.local.set({ [SUPABASE_LAST_SNAPSHOT_KEY]: updatedAt });
+}
+
+async function isCloudSnapshotNewer(updatedAt) {
+    if (!updatedAt) return true;
+    const local = await chrome.storage.local.get(SUPABASE_LAST_SNAPSHOT_KEY);
+    const lastSeen = local[SUPABASE_LAST_SNAPSHOT_KEY];
+    if (!lastSeen) return true;
+
+    return new Date(updatedAt).getTime() > new Date(lastSeen).getTime();
+}
+
+function confirmCloudAction(title, message, confirmText = 'Download') {
+    return new Promise(resolve => {
+        const modal = document.getElementById('confirm-modal');
+        if (!modal || typeof showConfirmModal !== 'function') {
+            resolve(confirm(message));
+            return;
+        }
+
+        showConfirmModal(title, message, () => resolve(true), () => resolve(false), confirmText);
+    });
+}
+
+async function refreshAfterCloudRestore(restoredData = {}) {
+    if (currentVideoId) updateDataCache(restoredData, currentVideoId);
+
+    if (currentStorageKey && restoredData[currentStorageKey]) {
+        currentVideoData = restoredData[currentStorageKey];
+        updateHeader();
+        renderBookmarks();
+    }
+
+    await loadLibrary();
+    await loadFavorites();
+    updateStorageUsage();
+
+    if (currentVideoData && (currentVideoData.title === "Connecting..." || currentVideoId === null)) {
+        establishConnection(true);
+    }
+}
+
+async function applyCloudSnapshot(snapshot, source = 'manual', cloudUpdatedAt = null) {
+    if (!snapshot || typeof snapshot !== 'object') {
+        alert("No cloud data found for this account.");
+        return false;
+    }
+
+    isApplyingCloudSnapshot = true;
+    clearTimeout(cloudSyncDebounceTimer);
+
+    try {
+        await chrome.storage.sync.set(snapshot);
+        await rememberCloudSnapshotTimestamp(cloudUpdatedAt);
+        await refreshAfterCloudRestore(snapshot);
+        const summary = summarizeSyncData(snapshot);
+        log(`Cloud data restored (${formatSyncSummary(summary)}).`, "success");
+        if (source === 'manual') {
+            alert(`Cloud data downloaded.\n\n${formatSyncSummary(summary)}`);
+        }
+        return true;
+    } catch (err) {
+        log("Cloud restore failed: " + err.message, "error");
+        alert("Cloud restore failed: " + err.message);
+        return false;
+    } finally {
+        setTimeout(() => {
+            isApplyingCloudSnapshot = false;
+        }, 1000);
+    }
+}
+
+async function downloadCloudSnapshot({ prompt = true, source = 'manual' } = {}) {
+    if (!window.supabaseManager) return false;
+
+    const dot = document.getElementById('cloud-sync-status-dot');
+    if (dot) dot.style.background = 'var(--accent-color)';
+
+    try {
+        const fetchRecord = typeof window.supabaseManager.fetchLatestSnapshotRecord === 'function'
+            ? window.supabaseManager.fetchLatestSnapshotRecord.bind(window.supabaseManager)
+            : async () => {
+                const data_json = await window.supabaseManager.fetchLatestSnapshot();
+                return data_json ? { data_json, updated_at: null } : null;
+            };
+        const record = await fetchRecord();
+        const cloudData = record?.data_json;
+        if (!cloudData) {
+            if (source === 'manual') alert("No cloud data found for this account.");
+            if (dot) dot.style.background = '#333';
+            return false;
+        }
+
+        const cloudSummary = summarizeSyncData(cloudData);
+        if (!cloudSummary.hasContent) {
+            if (source === 'manual') alert("Cloud snapshot is empty.");
+            if (dot) dot.style.background = '#333';
+            return false;
+        }
+
+        if (prompt) {
+            const localSummary = summarizeSyncData(await chrome.storage.sync.get(null));
+            const updatedAt = record.updated_at ? `\nCloud updated: ${new Date(record.updated_at).toLocaleString()}` : '';
+            const shouldRestore = await confirmCloudAction(
+                "Download Cloud Data",
+                `Replace matching local records with the Supabase snapshot?\n\nLocal: ${formatSyncSummary(localSummary)}\nCloud: ${formatSyncSummary(cloudSummary)}${updatedAt}`,
+                "Download"
+            );
+            if (!shouldRestore) {
+                if (dot) dot.style.background = '#333';
+                return false;
+            }
+        }
+
+        const restored = await applyCloudSnapshot(cloudData, source, record.updated_at);
+        if (dot) dot.style.background = restored ? '#4cc713' : 'var(--danger-color)';
+        return restored;
+    } catch (err) {
+        log("Cloud download failed: " + err.message, "error");
+        if (dot) dot.style.background = 'var(--danger-color)';
+        if (source === 'manual') alert("Cloud download failed: " + err.message);
+        return false;
+    }
+}
+
+async function checkCloudSnapshotAfterLogin({ onlyIfRemoteNewer = false, uploadOnCancel = true } = {}) {
+    if (hasCheckedCloudSnapshot || !window.supabaseManager) return false;
+    hasCheckedCloudSnapshot = true;
+
+    try {
+        const record = typeof window.supabaseManager.fetchLatestSnapshotRecord === 'function'
+            ? await window.supabaseManager.fetchLatestSnapshotRecord()
+            : null;
+        const cloudData = record?.data_json;
+        const cloudSummary = summarizeSyncData(cloudData);
+        if (!cloudSummary.hasContent) return false;
+
+        const localData = await chrome.storage.sync.get(null);
+        const localSummary = summarizeSyncData(localData);
+
+        if (!localSummary.hasContent) {
+            return downloadCloudSnapshot({ prompt: false, source: 'login' });
+        }
+
+        if (onlyIfRemoteNewer && !(await isCloudSnapshotNewer(record.updated_at))) {
+            return false;
+        }
+
+        const updatedAt = record.updated_at ? `\nCloud updated: ${new Date(record.updated_at).toLocaleString()}` : '';
+        const cancelBehavior = uploadOnCancel
+            ? 'Cancel keeps local data and uploads it to cloud.'
+            : 'Cancel keeps local data on this device.';
+        const shouldRestore = await confirmCloudAction(
+            "Cloud Data Available",
+            `Supabase has saved data for this account.\n\nLocal: ${formatSyncSummary(localSummary)}\nCloud: ${formatSyncSummary(cloudSummary)}${updatedAt}\n\nDownload cloud data to this device? ${cancelBehavior}`,
+            "Download"
+        );
+
+        if (shouldRestore) {
+            return applyCloudSnapshot(cloudData, 'login', record.updated_at);
+        }
+    } catch (err) {
+        console.error('[Cloud Sync] Login restore check failed:', err);
+    }
+
+    return false;
+}
+
+async function handleSupabaseSignedIn() {
+    initSupabaseAuth();
+    const restored = await checkCloudSnapshotAfterLogin();
+    if (!restored) triggerCloudSync();
+}
 
 /**
  * Trigger a background sync of all local data to Supabase
  */
 async function triggerCloudSync() {
+    if (isApplyingCloudSnapshot) {
+        console.log('[Cloud Sync] Skip upload while applying cloud snapshot.');
+        return;
+    }
     // Check if Pro (Gated)
     if (typeof isPro === 'function' && !isPro()) {
         console.log('[Cloud Sync] Skip: Non-pro user.');
@@ -219,7 +431,21 @@ async function triggerCloudSync() {
         try {
             console.log('[Cloud Sync] Starting snapshot sync...');
             const allData = await chrome.storage.sync.get(null);
-            await window.supabaseManager.upsertSnapshot(allData);
+            const localSummary = summarizeSyncData(allData);
+
+            if (!localSummary.hasContent) {
+                const cloudData = await window.supabaseManager.fetchLatestSnapshot();
+                const cloudSummary = summarizeSyncData(cloudData);
+                if (cloudSummary.hasContent) {
+                    console.warn('[Cloud Sync] Local data is empty but cloud has data. Upload skipped.');
+                    if (dot) dot.style.background = 'var(--warning-color)';
+                    downloadCloudSnapshot({ prompt: true, source: 'empty-local-guard' });
+                    return;
+                }
+            }
+
+            const updatedAt = await window.supabaseManager.upsertSnapshot(allData);
+            await rememberCloudSnapshotTimestamp(updatedAt);
             
             if (dot) {
                 dot.style.background = '#4cc713'; // Success Green
@@ -255,14 +481,17 @@ async function initSupabaseAuth() {
             if (userInfo) userInfo.style.display = 'flex';
             if (userEmail) userEmail.textContent = user.email;
             if (syncHint) syncHint.innerHTML = '<span style="color:#4cc713;">✓ Cloud Sync Active</span>';
+            return user;
         } else {
             if (loginForm) loginForm.style.display = 'flex';
             if (userInfo) userInfo.style.display = 'none';
-            if (syncHint) syncHint.textContent = 'Real-time cloud backup for Pro users.';
+            if (syncHint) syncHint.textContent = 'Cross-device cloud sync for Pro users.';
         };
     } catch (e) {
         console.error('[Supabase] Auth init error:', e);
     }
+
+    return null;
 }
 
 // Attach Supabase Listeners
@@ -274,8 +503,7 @@ document.getElementById('btn-supabase-login')?.addEventListener('click', async (
     }
     const user = await window.supabaseManager.login();
     if (user) {
-        initSupabaseAuth();
-        triggerCloudSync();
+        handleSupabaseSignedIn();
     }
 });
 
@@ -307,8 +535,7 @@ document.getElementById('btn-supabase-verify-otp')?.addEventListener('click', as
         console.log('[UI] Verifying OTP...');
         const user = await window.supabaseManager.verifyOtp(email, token);
         if (user) {
-            initSupabaseAuth();
-            triggerCloudSync();
+            handleSupabaseSignedIn();
         }
     } catch (e) {
         alert("Verification failed: " + e.message);
@@ -328,6 +555,10 @@ document.getElementById('btn-supabase-logout')?.addEventListener('click', async 
 
 document.getElementById('btn-supabase-sync-now')?.addEventListener('click', () => {
     triggerCloudSync();
+});
+
+document.getElementById('btn-supabase-download')?.addEventListener('click', () => {
+    downloadCloudSnapshot({ prompt: true, source: 'manual' });
 });
 
 // Hybrid Auth Switching
@@ -354,8 +585,7 @@ document.getElementById('btn-supabase-login-pwd')?.addEventListener('click', asy
     try {
         const user = await window.supabaseManager.loginWithEmail(email, password);
         if (user) {
-            initSupabaseAuth();
-            triggerCloudSync();
+            handleSupabaseSignedIn();
         }
     } catch (e) {
         alert("Login failed: " + e.message);
@@ -363,7 +593,17 @@ document.getElementById('btn-supabase-login-pwd')?.addEventListener('click', asy
 });
 
 // Run Initial Auth Check
-setTimeout(initSupabaseAuth, 1000);
+setTimeout(async () => {
+    const user = await initSupabaseAuth();
+    if (!user) return;
+
+    const localSummary = summarizeSyncData(await chrome.storage.sync.get(null));
+    if (!localSummary.hasContent) {
+        await checkCloudSnapshotAfterLogin();
+    } else {
+        await checkCloudSnapshotAfterLogin({ onlyIfRemoteNewer: true, uploadOnCancel: false });
+    }
+}, 1000);
 
     // --- Favorite Groups Logic ---
     async function initFavGroups() {
@@ -3051,7 +3291,7 @@ setTimeout(initSupabaseAuth, 1000);
         if (namespace !== 'sync') return;
         
         // s4.0.0: Automated Cloud Sync 
-        if (typeof triggerCloudSync === 'function') triggerCloudSync();
+        if (!isApplyingCloudSnapshot && typeof triggerCloudSync === 'function') triggerCloudSync();
 
         if (changes.favorite_groups) {
             favoriteGroupsList = changes.favorite_groups.newValue || ["Default"];

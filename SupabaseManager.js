@@ -194,6 +194,7 @@ class SupabaseManager {
             }
 
             console.log('[Supabase] Syncing snapshot to cloud...');
+            const updatedAt = new Date().toISOString();
             const { error } = await this.client
                 .from(SUPABASE_CONFIG.TABLES.SNAPSHOTS)
                 .upsert({
@@ -201,13 +202,15 @@ class SupabaseManager {
                     profile_name: profileName,
                     data_json: dataJson,
                     source: 'chrome_extension',
-                    updated_at: new Date().toISOString()
+                    updated_at: updatedAt
                 }, { onConflict: 'user_id,profile_name' });
 
             if (error) throw error;
             console.log('[Supabase] Snapshot synced successfully.');
+            return updatedAt;
         } catch (err) {
             console.error('[Supabase] Snapshot sync error:', err.message);
+            return null;
         }
     }
 
@@ -215,6 +218,14 @@ class SupabaseManager {
      * Fetch the latest snapshot
      */
     async fetchLatestSnapshot(profileName = 'Default') {
+        const snapshot = await this.fetchLatestSnapshotRecord(profileName);
+        return snapshot ? snapshot.data_json : null;
+    }
+
+    /**
+     * Fetch the latest snapshot with metadata
+     */
+    async fetchLatestSnapshotRecord(profileName = 'Default') {
         if (!this.isInitialized) return null;
 
         try {
@@ -223,13 +234,13 @@ class SupabaseManager {
 
             const { data, error } = await this.client
                 .from(SUPABASE_CONFIG.TABLES.SNAPSHOTS)
-                .select('data_json')
+                .select('data_json,updated_at')
                 .eq('user_id', user.id)
                 .eq('profile_name', profileName)
                 .maybeSingle();
 
             if (error) throw error;
-            return data ? data.data_json : null;
+            return data || null;
         } catch (err) {
             console.error('[Supabase] Fetch snapshot error:', err.message);
             return null;
