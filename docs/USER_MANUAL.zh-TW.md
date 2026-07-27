@@ -17,7 +17,8 @@
 5.  [影片庫與群組 (Library & Groups)](#5-影片庫與群組-library--groups)
 6.  [浮動視窗 (Pop-out Window)](#6-浮動視窗-pop-out-window)
 7.  [鍵盤快捷鍵 (Keyboard Shortcuts)](#7-鍵盤快捷鍵-keyboard-shortcuts)
-8.  [跨裝置同步 (Cross-Device Sync)](#8-跨裝置同步-cross-device-sync)
+8.  [本機自動備份 (Local Auto Backup)](#8-本機自動備份-local-auto-backup)
+9.  [跨裝置同步 (Cross-Device Sync)](#9-跨裝置同步-cross-device-sync)
 
 ---
 
@@ -208,7 +209,19 @@ YouTube Study Companion 支援豐富的鍵盤快捷鍵，讓您操作更流暢�
 
 ---
 
-## 8. 跨裝置同步 (Cross-Device Sync)
+## 8. 本機自動備份 (Local Auto Backup)
+擴充功能會每 6 小時在目前裝置建立一次本機 JSON 快照，並保留最近 5 份備份。
+
+在 **Settings -> Local Data Backup** 中，您可以：
+*   立即建立本機備份。
+*   還原最新的本機備份。
+*   手動匯出或匯入 JSON 備份。
+
+本機自動備份只保存在目前裝置。若要搬到另一台電腦，請使用 Export JSON 或 Cloud Sync。
+
+---
+
+## 9. 跨裝置同步 (Cross-Device Sync)
 您的設定、書籤與筆記會自動在所有登入相同 Google 帳號的電腦間同步。
 
 **如何啟用：**

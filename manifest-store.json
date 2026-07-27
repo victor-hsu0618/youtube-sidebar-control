@@ -10,6 +10,7 @@
     "activeTab",
     "tabs",
     "storage",
+    "alarms",
     "identity",
     "identity.email"
   ],

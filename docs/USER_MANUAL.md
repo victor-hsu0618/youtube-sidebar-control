@@ -17,7 +17,8 @@ Welcome to YouTube Study Companion! This guide will help you familiarize yoursel
 5.  [Library & Groups](#5-library--groups)
 6.  [Pop-out Window](#6-pop-out-window)
 7.  [Keyboard Shortcuts](#7-keyboard-shortcuts)
-8.  [Cross-Device Synchronization](#8-cross-device-synchronization)
+8.  [Local Auto Backup](#8-local-auto-backup)
+9.  [Cross-Device Synchronization](#9-cross-device-synchronization)
 
 ---
 
@@ -195,7 +196,19 @@ YouTube Study Companion supports a wide range of keyboard shortcuts. Click the *
 
 ---
 
-## 8. Cross-Device Synchronization
+## 8. Local Auto Backup
+The extension automatically creates local JSON snapshots on this device every 6 hours and keeps the latest 5 backups.
+
+In **Settings -> Local Data Backup**, you can:
+*   Create a local backup immediately.
+*   Restore the latest local backup.
+*   Export or import a JSON backup manually.
+
+Local auto backups stay on the current device only. Use Export JSON or Cloud Sync when moving data to another computer.
+
+---
+
+## 9. Cross-Device Synchronization
 Your settings, bookmarks, and notes are automatically synchronized across all your computers where you use Google Chrome.
 
 **How to enable:**

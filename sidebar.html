@@ -315,8 +315,18 @@
               <button id="btn-global-import" class="action-btn outline-btn full-width-btn"
                 style="font-size: 11px; padding: 6px;">Restore All Data (Import JSON)</button>
               <input type="file" id="file-global-import" accept=".json" hidden />
+              <div style="border-top:1px solid #333; padding-top:8px; display:flex; flex-direction:column; gap:6px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                  <span style="font-size:10px; color:#888;">Auto Local Backup</span>
+                  <span id="local-backup-status" class="storage-text" style="font-size:9px;">Checking...</span>
+                </div>
+                <button id="btn-local-backup-now" class="action-btn outline-btn full-width-btn"
+                  style="font-size: 11px; padding: 6px;">Create Local Backup Now</button>
+                <button id="btn-local-backup-restore" class="secondary-btn full-width-btn"
+                  style="font-size: 11px; padding: 6px; margin:0;">Restore Latest Local Backup</button>
+              </div>
               <p style="font-size:10px; color:#888; text-align:center; line-height: 1.4;">Migrate your markers and
-                video meta to other devices manually.
+                video meta manually. Auto local backups run every 6 hours and keep the latest 5 snapshots on this device.
               </p>
             </div>
           </section>

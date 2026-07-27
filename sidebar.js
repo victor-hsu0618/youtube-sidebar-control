@@ -158,6 +158,17 @@ function chromeSyncSet(items) {
     });
 }
 
+function sendRuntimeMessage(message) {
+    return new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage(message, (response) => {
+            const err = chrome.runtime.lastError;
+            if (err) reject(new Error(err.message));
+            else if (response?.error) reject(new Error(response.error));
+            else resolve(response);
+        });
+    });
+}
+
 async function safeSyncSet(items, context = 'Save data') {
     try {
         await chromeSyncSet(items);
@@ -2430,6 +2441,29 @@ setTimeout(async () => {
     const btnGlobalExport = document.getElementById('btn-global-export');
     const btnGlobalImport = document.getElementById('btn-global-import');
     const fileGlobalImport = document.getElementById('file-global-import');
+    const btnLocalBackupNow = document.getElementById('btn-local-backup-now');
+    const btnLocalBackupRestore = document.getElementById('btn-local-backup-restore');
+    const localBackupStatus = document.getElementById('local-backup-status');
+
+    function formatLocalBackupStatus(status) {
+        if (!status?.latest) return `No backups | Keeps ${status?.max || 5}`;
+        const date = new Date(status.latest.createdAt);
+        const label = Number.isNaN(date.getTime()) ? status.latest.createdAt : date.toLocaleString();
+        const summary = status.latest.summary || {};
+        return `${label} | ${summary.savedCount || 0} videos | ${summary.groupCount || 0} groups`;
+    }
+
+    async function refreshLocalBackupStatus() {
+        if (!localBackupStatus) return;
+        try {
+            const status = await sendRuntimeMessage({ action: 'GET_LOCAL_BACKUP_STATUS' });
+            localBackupStatus.textContent = formatLocalBackupStatus(status);
+            if (btnLocalBackupRestore) btnLocalBackupRestore.disabled = !status?.latest;
+        } catch (err) {
+            localBackupStatus.textContent = 'Unavailable';
+            if (btnLocalBackupRestore) btnLocalBackupRestore.disabled = true;
+        }
+    }
 
     if (btnGlobalExport) {
         btnGlobalExport.addEventListener('click', async () => {
@@ -2440,6 +2474,53 @@ setTimeout(async () => {
             log("Backup Created", "success");
         });
     }
+
+    if (btnLocalBackupNow) {
+        btnLocalBackupNow.addEventListener('click', async () => {
+            btnLocalBackupNow.disabled = true;
+            btnLocalBackupNow.textContent = 'Creating...';
+            try {
+                const result = await sendRuntimeMessage({ action: 'CREATE_LOCAL_BACKUP' });
+                if (result?.skipped) {
+                    alert('No saved data found to back up yet.');
+                } else {
+                    log('Local backup created', 'success');
+                }
+                await refreshLocalBackupStatus();
+            } catch (err) {
+                alert('Local backup failed: ' + err.message);
+            } finally {
+                btnLocalBackupNow.disabled = false;
+                btnLocalBackupNow.textContent = 'Create Local Backup Now';
+            }
+        });
+    }
+
+    if (btnLocalBackupRestore) {
+        btnLocalBackupRestore.addEventListener('click', async () => {
+            try {
+                const backup = await sendRuntimeMessage({ action: 'GET_LATEST_LOCAL_BACKUP' });
+                if (!backup?.data) {
+                    alert('No local backup found on this device.');
+                    return;
+                }
+                const summary = backup.summary || {};
+                const createdAt = new Date(backup.createdAt).toLocaleString();
+                const ok = confirm(`Restore latest local backup from ${createdAt}?\n\nThis will merge with current data and overwrite matching keys.\n\n${summary.savedCount || 0} saved videos, ${summary.groupCount || 0} groups, ${summary.markerCount || 0} markers.`);
+                if (!ok) return;
+
+                await safeSyncSet(backup.data, 'Restore local backup');
+                log('Local backup restored', 'success');
+                await refreshAfterCloudRestore(backup.data);
+                await refreshLocalBackupStatus();
+                alert('Local backup restored.');
+            } catch (err) {
+                alert('Restore local backup failed: ' + err.message);
+            }
+        });
+    }
+
+    refreshLocalBackupStatus();
 
     if (btnGlobalImport) {
         btnGlobalImport.addEventListener('click', () => fileGlobalImport.click());
