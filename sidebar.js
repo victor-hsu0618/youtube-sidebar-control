@@ -269,7 +269,6 @@ async function refreshAfterCloudRestore(restoredData = {}) {
     }
 
     await loadLibrary();
-    await loadFavorites();
     updateStorageUsage();
 
     if (currentVideoData && (currentVideoData.title === "Connecting..." || currentVideoId === null)) {
@@ -847,9 +846,8 @@ setTimeout(async () => {
     // --- Edit Mode Logic ---
     const toggleEditMode = () => {
         isLibraryEditMode = !isLibraryEditMode;
-        const libList = document.getElementById('library-list');
         const favList = document.getElementById('favorites-list');
-        const buttons = [document.getElementById('btn-toggle-edit'), document.getElementById('btn-fav-toggle-edit')];
+        const buttons = [document.getElementById('btn-fav-toggle-edit')];
 
         buttons.forEach(btn => {
             if (!btn) return;
@@ -865,10 +863,8 @@ setTimeout(async () => {
         });
 
         if (isLibraryEditMode) {
-            libList?.classList.add('edit-mode');
             favList?.classList.add('edit-mode');
         } else {
-            libList?.classList.remove('edit-mode');
             favList?.classList.remove('edit-mode');
 
             // Clear selections when exiting edit mode
@@ -877,23 +873,19 @@ setTimeout(async () => {
         }
 
         // Re-render to show/hide sort buttons and update UI state
-        loadLibrary();
         loadFavorites();
     };
 
-    document.getElementById('btn-toggle-edit')?.addEventListener('click', toggleEditMode);
     document.getElementById('btn-fav-toggle-edit')?.addEventListener('click', toggleEditMode);
 
     // --- Elements ---
     const views = {
         player: document.getElementById('view-player'),
-        favorites: document.getElementById('view-favorites'),
-        library: document.getElementById('view-library')
+        favorites: document.getElementById('view-favorites')
     };
     const navs = {
         player: document.getElementById('nav-player'),
-        favorites: document.getElementById('nav-favorites'),
-        library: document.getElementById('nav-library')
+        favorites: document.getElementById('nav-favorites')
     };
 
     // Controls
@@ -1003,7 +995,6 @@ setTimeout(async () => {
     }
 
     if (navs.player) navs.player.addEventListener('click', () => switchView('player'));
-    if (navs.library) navs.library.addEventListener('click', () => switchView('library'));
     if (navs.favorites) navs.favorites.addEventListener('click', () => switchView('library'));
 
     // Show Player view by default on startup
@@ -1859,17 +1850,15 @@ setTimeout(async () => {
             }
 
             loadLibrary();
-            loadFavorites();
             closeModal();
         };
     }
 
     // --- Batch Actions Logic ---
     function updateBatchUI() {
-        const isFavView = views.favorites?.style.display === 'flex';
-        const batchBar = document.getElementById(isFavView ? 'fav-batch-actions' : 'lib-batch-actions');
-        const countSpan = document.getElementById(isFavView ? 'fav-selection-count' : 'lib-selection-count');
-        const selectAll = document.getElementById(isFavView ? 'fav-select-all' : 'lib-select-all');
+        const batchBar = document.getElementById('fav-batch-actions');
+        const countSpan = document.getElementById('fav-selection-count');
+        const selectAll = document.getElementById('fav-select-all');
 
         const checkboxes = document.querySelectorAll('.item-select-checkbox:checked');
         const allCheckboxes = document.querySelectorAll('.item-select-checkbox');
@@ -1889,21 +1878,10 @@ setTimeout(async () => {
         }
     }
 
-    document.getElementById('lib-select-all')?.addEventListener('change', (e) => {
-        const checked = e.target.checked;
-        document.querySelectorAll('.item-select-checkbox').forEach(cb => cb.checked = checked);
-        updateBatchUI();
-    });
-
     document.getElementById('fav-select-all')?.addEventListener('change', (e) => {
         const checked = e.target.checked;
         document.querySelectorAll('.item-select-checkbox').forEach(cb => cb.checked = checked);
         updateBatchUI();
-    });
-
-    document.getElementById('btn-batch-add-fav')?.addEventListener('click', () => {
-        const selectedKeys = Array.from(document.querySelectorAll('.item-select-checkbox:checked')).map(cb => cb.dataset.key);
-        if (selectedKeys.length > 0) showBatchFavGroupPicker(selectedKeys);
     });
 
     document.getElementById('btn-fav-batch-add-fav')?.addEventListener('click', () => {
@@ -1926,13 +1904,11 @@ setTimeout(async () => {
                 }
                 log(`Deleted ${selectedKeys.length} items`, "success");
                 loadLibrary();
-                loadFavorites();
                 updateBatchUI();
             }
         );
     };
 
-    document.getElementById('btn-batch-delete')?.addEventListener('click', handleBatchDelete);
     document.getElementById('btn-fav-batch-delete')?.addEventListener('click', handleBatchDelete);
 
     async function showBatchFavGroupPicker(videoKeys) {
@@ -1995,7 +1971,6 @@ setTimeout(async () => {
             await chrome.storage.sync.set(updates);
 
             loadLibrary();
-            loadFavorites();
             closeModal();
             updateBatchUI();
             // Deselect all after batch operation
@@ -2105,7 +2080,6 @@ setTimeout(async () => {
 
         updateStorageUsage();
         loadLibrary();
-        loadFavorites();
     }
 
     // --- Set Default Button ---
@@ -2221,7 +2195,6 @@ setTimeout(async () => {
             updateHeader();
             renderBookmarks();
             loadLibrary();
-            loadFavorites();
 
             // Fix: Ensure playlist highlight is updated when switching profiles
             if (isPlaylistMode) renderPlayerPlaylist();
@@ -2285,7 +2258,6 @@ setTimeout(async () => {
             updateHeader();
         }
         loadLibrary();
-        loadFavorites();
     }
 
     // --- UI Header ---
@@ -2364,7 +2336,6 @@ setTimeout(async () => {
                     await secureRemove(currentStorageKey);
                     initNewVideoSession(currentVideoId, { title: currentVideoData.title, thumbnail: currentVideoData.thumbnail });
                     loadLibrary();
-                    loadFavorites();
                 }
             );
         } else {
@@ -2376,7 +2347,7 @@ setTimeout(async () => {
                     alert('Free version is limited to 10 saved videos in the Library. Please upgrade to Pro to save unlimited videos.');
                     switchView('library');
                     setTimeout(() => {
-                        const container = document.getElementById('view-library');
+                        const container = document.getElementById('view-favorites');
                         if (container) container.scrollTop = container.scrollHeight;
                     }, 300);
                     return;
@@ -2464,7 +2435,6 @@ setTimeout(async () => {
                         await chrome.storage.sync.set(data);
                         log("All Data Restored!", "success");
                         loadLibrary();
-                        loadFavorites();
                         // If current video is in backup, refresh UI
                         if (currentStorageKey && data[currentStorageKey]) {
                             currentVideoData = data[currentStorageKey];
@@ -2552,7 +2522,6 @@ setTimeout(async () => {
 
                 // Refresh Lists
                 await loadLibrary();
-                await loadFavorites();
 
                 // If we were "Connecting...", trigger a re-detect
                 if (currentVideoData && (currentVideoData.title === "Connecting..." || currentVideoId === null)) {
@@ -2797,33 +2766,8 @@ setTimeout(async () => {
 
     // --- Library Logic ---
     async function loadLibrary() {
-        const container = document.getElementById('library-list');
-        if (!container) return;
         updateStorageUsage();
-        container.innerHTML = 'Loading...';
-        const all = await chrome.storage.sync.get(null);
-        let items = [];
-        Object.keys(all).forEach(key => {
-            if (key.startsWith('v_') && all[key].isSaved) {
-                items.push({ ...all[key], id: all[key].id || getVideoIdFromStorageKey(key), _key: key });
-            }
-        });
-
-        if (items.length === 0) {
-            container.innerHTML = '<p style="padding:20px;text-align:center;color:#666">No saved videos.</p>';
-            return;
-        }
-
-        // Standard Chronological Sort
-        items.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-
-        renderList(container, items);
-
-        // Append ID for verification
-        const usageText = document.getElementById('sync-usage-text');
-        if (usageText && !usageText.textContent.includes('| ID:')) {
-            usageText.textContent += ` | ID: ${chrome.runtime.id.substring(0, 8)}`;
-        }
+        return loadFavorites();
     }
 
     function getMarkerCount(v) {
@@ -2858,7 +2802,7 @@ setTimeout(async () => {
     }
 
     function refreshActiveLibraryMarkers() {
-        ['library-list', 'favorites-list', 'player-playlist-items'].forEach(id => {
+        ['favorites-list', 'player-playlist-items'].forEach(id => {
             const container = document.getElementById(id);
             if (!container) return;
 
@@ -3386,7 +3330,6 @@ setTimeout(async () => {
                             initNewVideoSession(currentVideoId, { title: v.title, thumbnail: v.thumbnail });
                         }
                         loadLibrary();
-                        loadFavorites();
                     }
                 );
             });
@@ -3480,7 +3423,7 @@ setTimeout(async () => {
         }
 
         if (shouldRefreshLib) loadLibrary();
-        if (shouldRefreshFav) loadFavorites();
+        else if (shouldRefreshFav) loadFavorites();
 
         if (shouldRefreshLib || shouldRefreshFav) {
             // Update Cache for Detect Button
