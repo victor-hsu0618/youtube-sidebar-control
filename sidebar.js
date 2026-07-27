@@ -281,6 +281,55 @@ function formatSyncSummary(summary) {
     return `${summary.videoCount} profiles, ${summary.savedCount} saved, ${summary.groupCount} groups, ${summary.markerCount} markers`;
 }
 
+function formatBytes(bytes = 0) {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function getLatestLocalDataTimestamp(data = {}) {
+    return Object.keys(data || {}).reduce((latest, key) => {
+        if (!key.startsWith('v_')) return latest;
+        const video = data[key] || {};
+        const updatedAt = Number(video.updatedAt || video.createdAt || 0);
+        return Number.isFinite(updatedAt) && updatedAt > latest ? updatedAt : latest;
+    }, 0);
+}
+
+function formatSyncDate(value) {
+    if (!value) return 'Unknown';
+    const date = value instanceof Date ? value : new Date(value);
+    return Number.isNaN(date.getTime()) ? 'Unknown' : date.toLocaleString();
+}
+
+function buildSyncFreshnessMessage(localData = {}, cloudUpdatedAt = null) {
+    const localMs = getLatestLocalDataTimestamp(localData);
+    const cloudMs = cloudUpdatedAt ? new Date(cloudUpdatedAt).getTime() : 0;
+    const localLabel = localMs ? formatSyncDate(localMs) : 'Unknown';
+    const cloudLabel = cloudMs ? formatSyncDate(cloudMs) : 'Unknown';
+
+    let recommendation = 'Unable to determine which side is newer. Compare the summaries below before choosing.';
+    if (localMs && cloudMs) {
+        if (cloudMs > localMs + 1000) {
+            recommendation = 'Cloud looks newer than this device. Download is recommended if you want the latest cloud changes here.';
+        } else if (localMs > cloudMs + 1000) {
+            recommendation = 'This device looks newer than cloud. Keep local data is recommended; it can upload on the next sync.';
+        } else {
+            recommendation = 'Local and cloud appear to be from the same time. Download is usually unnecessary.';
+        }
+    } else if (cloudMs && !localMs) {
+        recommendation = 'Cloud has a snapshot, but this device has no clear local update time. Download is recommended only if this is a fresh or empty device.';
+    } else if (localMs && !cloudMs) {
+        recommendation = 'This device has local update history, but cloud has no timestamp. Keep local data unless you know cloud has the data you need.';
+    }
+
+    return {
+        localLabel,
+        cloudLabel,
+        recommendation
+    };
+}
+
 async function rememberCloudSnapshotTimestamp(updatedAt) {
     if (!updatedAt) return;
     await chrome.storage.local.set({ [SUPABASE_LAST_SNAPSHOT_KEY]: updatedAt });
@@ -383,11 +432,12 @@ async function downloadCloudSnapshot({ prompt = true, source = 'manual' } = {}) 
         }
 
         if (prompt) {
-            const localSummary = summarizeSyncData(await chrome.storage.sync.get(null));
-            const updatedAt = record.updated_at ? `\nCloud updated: ${new Date(record.updated_at).toLocaleString()}` : '';
+            const localData = await chrome.storage.sync.get(null);
+            const localSummary = summarizeSyncData(localData);
+            const freshness = buildSyncFreshnessMessage(localData, record.updated_at);
             const shouldRestore = await confirmCloudAction(
                 "Download Cloud Data",
-                `Replace matching local records with the Supabase snapshot?\n\nLocal: ${formatSyncSummary(localSummary)}\nCloud: ${formatSyncSummary(cloudSummary)}${updatedAt}`,
+                `${freshness.recommendation}\n\nLocal: ${formatSyncSummary(localSummary)}\nLocal latest update: ${freshness.localLabel}\n\nCloud: ${formatSyncSummary(cloudSummary)}\nCloud last sync: ${freshness.cloudLabel}\n\nReplace matching local records with the Supabase snapshot?`,
                 "Download"
             );
             if (!shouldRestore) {
@@ -430,19 +480,21 @@ async function checkCloudSnapshotAfterLogin({ onlyIfRemoteNewer = false, uploadO
             return false;
         }
 
-        const updatedAt = record.updated_at ? `\nCloud updated: ${new Date(record.updated_at).toLocaleString()}` : '';
+        const freshness = buildSyncFreshnessMessage(localData, record.updated_at);
         const cancelBehavior = uploadOnCancel
             ? 'Cancel keeps local data and uploads it to cloud.'
             : 'Cancel keeps local data on this device.';
         const shouldRestore = await confirmCloudAction(
-            "Cloud Data Available",
-            `Supabase has saved data for this account.\n\nLocal: ${formatSyncSummary(localSummary)}\nCloud: ${formatSyncSummary(cloudSummary)}${updatedAt}\n\nDownload cloud data to this device? ${cancelBehavior}`,
+            "Cloud Sync Check",
+            `${freshness.recommendation}\n\nLocal: ${formatSyncSummary(localSummary)}\nLocal latest update: ${freshness.localLabel}\n\nCloud: ${formatSyncSummary(cloudSummary)}\nCloud last sync: ${freshness.cloudLabel}\n\nDownload cloud data to this device?\n${cancelBehavior}`,
             "Download"
         );
 
         if (shouldRestore) {
             return applyCloudSnapshot(cloudData, 'login', record.updated_at);
         }
+
+        await rememberCloudSnapshotTimestamp(record.updated_at);
     } catch (err) {
         console.error('[Cloud Sync] Login restore check failed:', err);
     }
@@ -454,6 +506,38 @@ async function handleSupabaseSignedIn() {
     initSupabaseAuth();
     const restored = await checkCloudSnapshotAfterLogin();
     if (!restored) triggerCloudSync();
+    refreshCloudSyncStats();
+}
+
+async function refreshCloudSyncStats() {
+    const statsEl = document.getElementById('cloud-sync-stats');
+    if (!statsEl || !window.supabaseManager) return;
+
+    statsEl.textContent = 'Cloud: Checking...';
+
+    try {
+        const record = typeof window.supabaseManager.fetchLatestSnapshotRecord === 'function'
+            ? await window.supabaseManager.fetchLatestSnapshotRecord()
+            : null;
+        const cloudData = record?.data_json;
+
+        if (!cloudData) {
+            statsEl.textContent = 'Cloud: No snapshot yet';
+            return;
+        }
+
+        const summary = summarizeSyncData(cloudData);
+        const bytes = new Blob([JSON.stringify(cloudData)]).size;
+        const updatedAt = record.updated_at ? new Date(record.updated_at) : null;
+        const updatedLabel = updatedAt && !Number.isNaN(updatedAt.getTime())
+            ? updatedAt.toLocaleString()
+            : 'Unknown';
+
+        statsEl.textContent = `Cloud: ${formatBytes(bytes)} | ${summary.savedCount} videos | ${summary.groupCount} groups | Last sync: ${updatedLabel}`;
+    } catch (err) {
+        statsEl.textContent = 'Cloud: Stats unavailable';
+        console.warn('[Cloud Sync] Stats refresh failed:', err);
+    }
 }
 
 /**
@@ -496,6 +580,7 @@ async function triggerCloudSync() {
 
             const updatedAt = await window.supabaseManager.upsertSnapshot(allData);
             await rememberCloudSnapshotTimestamp(updatedAt);
+            await refreshCloudSyncStats();
             
             if (dot) {
                 dot.style.background = '#4cc713'; // Success Green
@@ -530,11 +615,14 @@ async function initSupabaseAuth() {
             if (userInfo) userInfo.style.display = 'flex';
             if (userEmail) userEmail.textContent = user.email;
             if (syncHint) syncHint.innerHTML = '<span style="color:#4cc713;">✓ Cloud Sync Active</span>';
+            refreshCloudSyncStats();
             return user;
         } else {
             if (loginForm) loginForm.style.display = 'flex';
             if (userInfo) userInfo.style.display = 'none';
             if (syncHint) syncHint.textContent = 'Cross-device cloud sync for Pro users.';
+            const statsEl = document.getElementById('cloud-sync-stats');
+            if (statsEl) statsEl.textContent = 'Cloud: Sign in to view stats';
         };
     } catch (e) {
         console.error('[Supabase] Auth init error:', e);
@@ -593,8 +681,9 @@ document.getElementById('btn-supabase-sync-now')?.addEventListener('click', () =
     triggerCloudSync();
 });
 
-document.getElementById('btn-supabase-download')?.addEventListener('click', () => {
-    downloadCloudSnapshot({ prompt: true, source: 'manual' });
+document.getElementById('btn-supabase-download')?.addEventListener('click', async () => {
+    await downloadCloudSnapshot({ prompt: true, source: 'manual' });
+    refreshCloudSyncStats();
 });
 
 // Hybrid Auth Switching
