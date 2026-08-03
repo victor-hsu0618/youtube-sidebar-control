@@ -4429,6 +4429,20 @@ setTimeout(async () => {
         setTimeout(checkActiveTabDetach, 100);
     });
 
+    // Monitor controlled tab closure so stale UI state is cleared immediately.
+    chrome.tabs.onRemoved.addListener((tabId) => {
+        if (tabId !== connectedTabId) return;
+
+        console.log('[YT Study] Controlled tab closed:', tabId);
+        connectedTabId = null;
+        if (statusIndicator) {
+            statusIndicator.classList.remove('connected');
+            statusIndicator.title = "Disconnected (Controlled tab closed)";
+        }
+        updateTabBanners(false, false, null);
+        establishConnection(true);
+    });
+
     // Monitor Window Focus (Handle multi-window setups)
     chrome.windows.onFocusChanged.addListener((winId) => {
         if (winId !== chrome.windows.ID_NONE) {
