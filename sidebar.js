@@ -277,6 +277,18 @@ function summarizeSyncData(data = {}) {
     };
 }
 
+function stableStringify(value) {
+    if (value === null || typeof value !== 'object') return JSON.stringify(value);
+    if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
+
+    const keys = Object.keys(value).sort();
+    return `{${keys.map(key => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(',')}}`;
+}
+
+function getSyncDataSignature(data = {}) {
+    return stableStringify(data || {});
+}
+
 function formatSyncSummary(summary) {
     return `${summary.videoCount} profiles, ${summary.savedCount} saved, ${summary.groupCount} groups, ${summary.markerCount} markers`;
 }
@@ -471,6 +483,11 @@ async function checkCloudSnapshotAfterLogin({ onlyIfRemoteNewer = false, uploadO
 
         const localData = await chrome.storage.sync.get(null);
         const localSummary = summarizeSyncData(localData);
+
+        if (getSyncDataSignature(localData) === getSyncDataSignature(cloudData)) {
+            await rememberCloudSnapshotTimestamp(record.updated_at);
+            return false;
+        }
 
         if (!localSummary.hasContent) {
             return downloadCloudSnapshot({ prompt: false, source: 'login' });
@@ -1695,18 +1712,23 @@ setTimeout(async () => {
         addMarkerBtn.textContent = `+ Add Now(${timeStr}) to "${groupName}" (A)`;
     }
 
-    document.getElementById('add-bookmark')?.addEventListener('click', () => {
-        // Feature Gate: Limit markers for Free users
+    async function canAddMarkerToGroup(groupName) {
         if (!isPro()) {
-            const groupName = groupSelector ? groupSelector.value : "Default";
+            if (!currentVideoData.tagGroups) currentVideoData.tagGroups = {};
             const currentMarkers = currentVideoData.tagGroups[groupName] || [];
             if (currentMarkers.length >= FREE_MARKER_GROUP_LIMIT) {
                 if (confirm(`You have reached the limit of ${FREE_MARKER_GROUP_LIMIT} markers for this group in the Free version. Upgrade to PRO for unlimited markers!`)) {
                     upgradeToPro();
                 }
-                return;
+                return false;
             }
         }
+        return true;
+    }
+
+    document.getElementById('add-bookmark')?.addEventListener('click', async () => {
+        const groupName = groupSelector ? groupSelector.value : "Default";
+        if (!await canAddMarkerToGroup(groupName)) return;
         sendMessage('ADD_BOOKMARK_REQUEST');
     });
     // btn-export/import removed in Pro-Mode
@@ -3834,6 +3856,8 @@ setTimeout(async () => {
             const groupName = currentVideoData.activeGroup || "Default";
             if (!currentVideoData.tagGroups) currentVideoData.tagGroups = {};
             if (!currentVideoData.tagGroups[groupName]) currentVideoData.tagGroups[groupName] = [];
+
+            if (!await canAddMarkerToGroup(groupName)) return;
 
             const groupTags = currentVideoData.tagGroups[groupName];
             const isDuplicate = groupTags.some(bm => Math.abs(bm.time - msg.time) < 0.05);
