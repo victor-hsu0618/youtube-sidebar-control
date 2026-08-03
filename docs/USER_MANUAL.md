@@ -79,8 +79,8 @@ At the top of the Player tab, you have full control over video playback.
 ### Feature Explanation:
 
 *   **Video Status**: Displays the currently detected video title.
-    *   **Auto Detect (🪄)**: If no video is detected, click this button to redetect.
-    *   **Save/Heart (❤️)**: Click the heart icon to save the current video settings (markers, loop points) to the library.
+    *   **Re-Detect Video (🪄)**: Reconnect the sidebar to the current tab and detect the active video.
+    *   **Manage Library Groups (❤️)**: Assign the current video to library groups. Unsaved videos are saved first.
 *   **Transport Controls**:
     *   **Restart**: Return to video start.
     *   **-10s / +10s**: Fast rewind or fast forward 10 seconds.
@@ -152,7 +152,7 @@ This is a powerful feature allowing you to save multiple different "learning con
 *(Suggested Screenshot: Library tab)*
 
 ### What is a "Video Favorite"?
-When you click the heart icon `❤️` in the title bar, you are actually saving a "Favorite". You can save multiple times for the same video, for example:
+When you click the heart icon `❤️` in the title bar, you can save the current video profile and assign it to library groups. You can save multiple profiles for the same video, for example:
 *   First save: Focus on "Vocabulary Notes".
 *   Second save: Focus on "Grammar Analysis".
 

@@ -2104,7 +2104,7 @@ setTimeout(async () => {
         };
     }
 
-    // --- Auto Detect Button (Force Sync) ---
+    // --- Re-Detect Video Button (Force Sync) ---
     document.getElementById('btn-detect-video')?.addEventListener('click', async () => {
         // Visual Feedback
         const btn = document.getElementById('btn-detect-video');
@@ -2113,7 +2113,7 @@ setTimeout(async () => {
         setTimeout(() => btn.style.color = origColor, 500);
 
         // Force Hard Re-connection to Active Tab
-        console.log("[YT Study] Manual Auto-Detect triggered: Forcing re-connection...");
+        console.log("[YT Study] Re-Detect Video triggered: Forcing re-connection...");
         currentVideoId = null; // This ensures the incoming metadata triggers 'isNewVideo' logic
         establishConnection(true);
     });
@@ -2225,7 +2225,20 @@ setTimeout(async () => {
         if (!currentVideoId) return;
 
         // If not saved yet, save it first
-        if (!currentStorageKey) {
+        if (!currentVideoData.isSaved) {
+            if (!isPro()) {
+                const allData = await chrome.storage.sync.get(null);
+                const savedVideos = Object.keys(allData).filter(k => k.startsWith('v_') && allData[k].isSaved);
+                if (savedVideos.length >= FREE_LIBRARY_LIMIT) {
+                    alert(`Free version is limited to ${FREE_LIBRARY_LIMIT} saved videos in the Library. Please upgrade to Pro to save unlimited videos.`);
+                    switchView('library');
+                    setTimeout(() => {
+                        const container = document.getElementById('view-favorites');
+                        if (container) container.scrollTop = container.scrollHeight;
+                    }, 300);
+                    return;
+                }
+            }
             currentVideoData.isSaved = true;
             await saveData();
         }
@@ -2374,9 +2387,6 @@ setTimeout(async () => {
         await safeSyncSet({ [currentStorageKey]: currentVideoData }, 'Save video data');
         updateStorageUsage();
 
-        const heartBtn = document.getElementById('toggle-library-save');
-        if (heartBtn) heartBtn.classList.toggle('active', !!currentVideoData.isSaved);
-
         if (currentVideoId) {
             const all = await chrome.storage.sync.get(null);
             updateDataCache(all, currentVideoId);
@@ -2388,7 +2398,6 @@ setTimeout(async () => {
     // --- UI Header ---
     function updateHeader() {
         const titleContainer = document.getElementById('current-video-title');
-        const heartBtn = document.getElementById('toggle-library-save');
         const defaultBtn = document.getElementById('btn-set-default');
 
         titleContainer.innerHTML = '';
@@ -2418,11 +2427,6 @@ setTimeout(async () => {
         titleSpan.textContent = currentVideoData.title || "Unknown Video";
         titleContainer.appendChild(titleSpan);
 
-        if (heartBtn) {
-            heartBtn.className = 'icon-btn small-btn';
-            if (currentVideoData.isSaved) heartBtn.classList.add('active');
-        }
-
         if (defaultBtn) {
             if (isCloneEnabled) {
                 defaultBtn.style.display = 'inline-block';
@@ -2451,38 +2455,6 @@ setTimeout(async () => {
             }
         }
     }
-
-    document.getElementById('toggle-library-save')?.addEventListener('click', async () => {
-        if (currentVideoData.isSaved) {
-            showConfirmModal(
-                "Remove Save",
-                "Remove this session from your Library? This will delete all markers for this profile.",
-                async () => {
-                    await secureRemove(currentStorageKey);
-                    initNewVideoSession(currentVideoId, { title: currentVideoData.title, thumbnail: currentVideoData.thumbnail });
-                    loadLibrary();
-                }
-            );
-        } else {
-            // Check for 10-video limit if not PRO
-            if (!isPro()) {
-                const allData = await chrome.storage.sync.get(null);
-                const savedVideos = Object.keys(allData).filter(k => k.startsWith('v_') && allData[k].isSaved);
-                if (savedVideos.length >= FREE_LIBRARY_LIMIT) {
-                    alert(`Free version is limited to ${FREE_LIBRARY_LIMIT} saved videos in the Library. Please upgrade to Pro to save unlimited videos.`);
-                    switchView('library');
-                    setTimeout(() => {
-                        const container = document.getElementById('view-favorites');
-                        if (container) container.scrollTop = container.scrollHeight;
-                    }, 300);
-                    return;
-                }
-            }
-            // Save
-            currentVideoData.isSaved = true;
-            saveData();
-        }
-    });
 
     // --- Import / Export Handlers ---
     function exportData() {

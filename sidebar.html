@@ -46,7 +46,7 @@
         <div class="video-meta-bar">
           <div id="current-video-title" class="current-title" title="No Video Detected">No Video</div>
           <div class="video-meta-actions">
-            <button id="btn-detect-video" class="icon-btn small-btn" title="Auto Detect">
+            <button id="btn-detect-video" class="icon-btn small-btn" title="Re-Detect Video">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
                 <path
                   d="M7.5 5.6L10 7 8.6 4.5 10 2 7.5 3.4 5 2 6.4 4.5 5 7zM19 2l-1.4 2.5L15 2l1.4 3.4L15 7l2.5-1.4L19 7l1.4-2.5L23 2l-2.6 1.4zM16.5 9l-1.8 3.9L10.8 15l3.9 1.8L16.5 21l1.8-4.2 3.9-1.8-3.9-1.8z" />
@@ -57,7 +57,7 @@
                 <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
               </svg>
             </button>
-            <button id="btn-manage-favorites" class="icon-btn small-btn" title="Manage Library Groups">
+            <button id="btn-manage-favorites" class="icon-btn small-btn" title="Save to Library">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                 <path
                   d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z">
@@ -68,15 +68,6 @@
               <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
                 <path
                   d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
-              </svg>
-            </button>
-            <button id="toggle-library-save" class="icon-btn small-btn" title="Save to Library">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <path d="m16 6 4 14"></path>
-                <path d="M12 6v14"></path>
-                <path d="M8 8v12"></path>
-                <path d="M4 4v16"></path>
               </svg>
             </button>
           </div>
@@ -253,24 +244,6 @@
     <!-- Settings View -->
     <div id="view-settings" style="display: none;">
         <div class="sub-panel-scroll">
-          <!-- Advanced Features -->
-          <section class="control-group">
-            <div class="section-header">
-              <h2>Settings</h2>
-            </div>
-            <div style="padding: 10px 4px; display: flex; flex-direction: column; gap: 8px;">
-              <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span class="toolbar-label" style="font-size:12px; color:#ddd;">Enable Clone Session</span>
-                <label class="toggle-switch small-toggle">
-                  <input type="checkbox" id="toggle-clone-session">
-                  <span class="slider"></span>
-                </label>
-              </div>
-              <p style="font-size:10px; color:#888; margin-top:-4px; line-height:1.4;">Shows a button in the player to
-                duplicate the current video profile.</p>
-            </div>
-          </section>
-
           <!-- Subscription Status (Standalone) -->
           <section class="control-group">
             <div class="section-header">
