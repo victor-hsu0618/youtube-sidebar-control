@@ -52,22 +52,50 @@ console.log("[YT Study] Extension ID:", chrome.runtime.id);
 log(`Instance ID: ${chrome.runtime.id.substring(0, 8)}...`, 'info');
 
 let isCloneEnabled = false; // Global state
+let currentBuildLabel = 'STORE';
 const ALL_VIDEOS_GROUP = '__all_videos__';
 const ALL_VIDEOS_LABEL = 'All Videos';
 const FREE_LIBRARY_LIMIT = 20;
 const FREE_MARKER_GROUP_LIMIT = 20;
 
-// Set app version from manifest
+// Set app version and build channel from manifest.
 try {
     const manifest = chrome.runtime.getManifest();
     const versionBadge = document.getElementById('app-version-badge');
-    if (versionBadge && manifest) {
+    if (manifest) {
         const vName = manifest.version_name || manifest.version;
-        versionBadge.textContent = 'v' + vName;
+        const isLocalBuild = /\bLOCAL\b/i.test(manifest.name || '');
+        const buildLabel = isLocalBuild ? ' LOCAL' : '';
+        currentBuildLabel = isLocalBuild ? 'LOCAL' : 'STORE';
+        document.title = `YT Study Companion${buildLabel}`;
+
+        if (versionBadge) {
+            versionBadge.textContent = `v${vName}${buildLabel}`;
+            versionBadge.title = isLocalBuild ? 'Local unpacked/test build' : 'Store build';
+            versionBadge.classList.toggle('local-build', isLocalBuild);
+        }
     }
 } catch (e) {
     console.error("[YT Study] Failed to read version from manifest:", e);
 }
+
+const extensionIdValue = document.getElementById('extension-id-value');
+const extensionBuildLabel = document.getElementById('extension-build-label');
+const copyExtensionIdBtn = document.getElementById('btn-copy-extension-id');
+if (extensionIdValue) extensionIdValue.textContent = chrome.runtime.id;
+if (extensionBuildLabel) extensionBuildLabel.textContent = currentBuildLabel;
+copyExtensionIdBtn?.addEventListener('click', async () => {
+    try {
+        await navigator.clipboard.writeText(chrome.runtime.id);
+        const originalText = copyExtensionIdBtn.textContent;
+        copyExtensionIdBtn.textContent = 'Copied';
+        setTimeout(() => {
+            copyExtensionIdBtn.textContent = originalText;
+        }, 1200);
+    } catch (e) {
+        prompt('Copy Extension ID:', chrome.runtime.id);
+    }
+});
 
 // Initialize Monetization
 if (typeof initMonetization === 'function') {
@@ -336,6 +364,8 @@ function buildSyncFreshnessMessage(localData = {}, cloudUpdatedAt = null) {
     }
 
     return {
+        localMs,
+        cloudMs,
         localLabel,
         cloudLabel,
         recommendation
@@ -493,11 +523,18 @@ async function checkCloudSnapshotAfterLogin({ onlyIfRemoteNewer = false, uploadO
             return downloadCloudSnapshot({ prompt: false, source: 'login' });
         }
 
+        const freshness = buildSyncFreshnessMessage(localData, record.updated_at);
+        if (freshness.localMs && freshness.cloudMs && freshness.localMs > freshness.cloudMs + 1000) {
+            console.log('[Cloud Sync] Local data is newer than cloud. Uploading local snapshot without prompting.');
+            await rememberCloudSnapshotTimestamp(record.updated_at);
+            triggerCloudSync();
+            return false;
+        }
+
         if (onlyIfRemoteNewer && !(await isCloudSnapshotNewer(record.updated_at))) {
             return false;
         }
 
-        const freshness = buildSyncFreshnessMessage(localData, record.updated_at);
         const cancelBehavior = uploadOnCancel
             ? 'Cancel keeps local data and uploads it to cloud.'
             : 'Cancel keeps local data on this device.';
@@ -524,6 +561,24 @@ async function handleSupabaseSignedIn() {
     const restored = await checkCloudSnapshotAfterLogin();
     if (!restored) triggerCloudSync();
     refreshCloudSyncStats();
+}
+
+async function hasCloudSyncAccess() {
+    if (typeof isPro !== 'function') return true;
+    if (isPro()) return true;
+
+    try {
+        const res = await chrome.storage.sync.get(['pro_activated']);
+        if (res.pro_activated) {
+            if (window.userStatus) window.userStatus.paid = true;
+            if (typeof updateSubscriptionUI === 'function') updateSubscriptionUI();
+            return true;
+        }
+    } catch (e) {
+        console.warn('[Cloud Sync] Pro status fallback check failed:', e);
+    }
+
+    return false;
 }
 
 async function refreshCloudSyncStats() {
@@ -566,8 +621,9 @@ async function triggerCloudSync() {
         return;
     }
 
-    // Check if Pro (Gated)
-    if (typeof isPro === 'function' && !isPro()) {
+    // Check if Pro (Gated). Read storage as a fallback because sidebar startup
+    // can reach cloud sync before monetization.js finishes hydrating userStatus.
+    if (!(await hasCloudSyncAccess())) {
         console.log('[Cloud Sync] Skip: Non-pro user.');
         return;
     }
@@ -764,7 +820,18 @@ setTimeout(async () => {
                     "Data Sync Check / 資料同步檢查",
                     "No cloud data detected. If you have data from another device, Chrome may still be downloading it. \n(未偵測到雲端資料。若您有其他裝置的資料，Chrome 可能尚未完成下載。)\n\nDo you want to Wait & Load from Cloud (以雲端為主載入), or Start Fresh (清除建立全新記錄)?",
                     async () => {
-                        // On Confirm -> Start Fresh
+                        // On Confirm -> Start Fresh. Require a second confirmation
+                        // because this can upload an empty baseline to Supabase.
+                        const confirmedFreshStart = await confirmCloudAction(
+                            "Confirm Start Fresh / 確認清除",
+                            "Start Fresh will create a new empty local library. If cloud sync is active, this can replace the Supabase cloud snapshot with this empty library.\n\nOnly continue if you intentionally want to clear the cloud copy and start over.\n\n按下確認後會建立新的空白本機資料；若 Cloud Sync 啟用，可能會用空白資料覆蓋 Supabase 雲端備份。",
+                            "Clear Cloud & Start Fresh"
+                        );
+                        if (!confirmedFreshStart) {
+                            alert("Cancelled. No local or cloud data was changed.\n\n(已取消，未變更本機或雲端資料。)");
+                            return;
+                        }
+
                         await chrome.storage.local.set({ 'device_initialized': true });
                         favoriteGroupsList = ["Default"];
                         await safeSyncSet({ 'favorite_groups': favoriteGroupsList }, 'Initialize library groups');
@@ -1146,10 +1213,12 @@ setTimeout(async () => {
     // --- Player Sub-Panels ---
     const subPanels = {
         markers: document.getElementById('panel-markers'),
+        connection: document.getElementById('panel-connection'),
         playlist: document.getElementById('panel-playlist')
     };
     const subTabs = {
         markers: document.getElementById('tab-markers'),
+        connection: document.getElementById('tab-connection'),
         playlist: document.getElementById('tab-playlist')
     };
 
@@ -1167,6 +1236,7 @@ setTimeout(async () => {
     }
 
     if (subTabs.markers) subTabs.markers.addEventListener('click', () => switchSubPanel('markers'));
+    if (subTabs.connection) subTabs.connection.addEventListener('click', () => switchSubPanel('connection'));
     if (subTabs.playlist) subTabs.playlist.addEventListener('click', () => switchSubPanel('playlist'));
 
     // --- Pop Out Logic (Solution: Separate Sidebar and Popup behaviors) ---
@@ -2587,6 +2657,10 @@ setTimeout(async () => {
             let completedLabel = 'Create Local Backup Now';
             try {
                 const result = await sendRuntimeMessage({ action: 'CREATE_LOCAL_BACKUP' });
+                if (!result || typeof result !== 'object') {
+                    throw new Error('No response from background backup service. Reload the extension and try again.');
+                }
+
                 if (result?.skipped) {
                     setLocalBackupFeedback('No saved data found to back up yet.', 'error');
                 } else {
@@ -4192,11 +4266,31 @@ setTimeout(async () => {
     });
     */
 
-    // Monitor internal navigation (e.g. clicking related video)
+    // Monitor internal navigation (e.g. clicking related video) without treating it
+    // as a browser tab switch. The content script will emit VIDEO_METADATA for the
+    // new video; this is just a gentle status refresh for full page navigations.
+    let connectedTabNavigationRefreshTimeout = null;
     chrome.tabs.onUpdated.addListener((id, info, tab) => {
-        if (id === connectedTabId && info.status === 'complete') {
-            // If our connected tab navigated, re-establish to capture new video ID
-            establishConnection();
+        if (id !== connectedTabId) return;
+
+        const nextUrl = info.url || tab?.url || '';
+        if (nextUrl && !isYouTubeVideoUrl(nextUrl)) {
+            establishConnection(true);
+            return;
+        }
+
+        if (info.status === 'complete' || info.url) {
+            if (connectedTabNavigationRefreshTimeout) {
+                clearTimeout(connectedTabNavigationRefreshTimeout);
+            }
+            connectedTabNavigationRefreshTimeout = setTimeout(async () => {
+                try {
+                    await sendMessage('GET_STATUS');
+                    checkActiveTabDetach();
+                } catch (e) {
+                    console.log('[YT Study] Navigation status refresh skipped:', e.message);
+                }
+            }, 250);
         }
     });
 
@@ -4312,11 +4406,103 @@ setTimeout(async () => {
         } else {
             console.log("No Video Tab Found");
             document.getElementById('current-video-title').textContent = "No Video Found";
+            updateConnectionStrip({
+                mode: 'disconnected',
+                state: 'Disconnected',
+                target: 'No YouTube video tab found'
+            });
             showStandby('HOME'); // Restore instructions when orphaned
         }
     }
 
     establishConnection();
+
+    function compactTabTitle(tab) {
+        const title = (tab?.title || 'YouTube').replace(/\s+-\s+YouTube(?: Music)?$/, '').trim();
+        return title.length > 46 ? `${title.substring(0, 43)}...` : title;
+    }
+
+    function formatTabTarget(tab) {
+        if (!tab) return 'No controlled tab';
+        return `W${tab.windowId} / T${tab.id}: ${compactTabTitle(tab)}`;
+    }
+
+    function updateConnectionStrip({ mode = 'disconnected', state = 'Disconnected', target = 'No controlled tab' } = {}) {
+        const strip = document.getElementById('connection-strip');
+        const stateEl = document.getElementById('connection-state');
+        const targetEl = document.getElementById('connection-target');
+        const tabEl = document.getElementById('tab-connection');
+        if (!strip || !stateEl || !targetEl) return;
+
+        strip.classList.remove('active', 'hidden-tab', 'remote', 'disconnected');
+        strip.classList.add(mode);
+        if (tabEl) {
+            tabEl.classList.remove('connection-active', 'connection-hidden-tab', 'connection-remote', 'connection-disconnected');
+            tabEl.classList.add(`connection-${mode}`);
+            tabEl.title = `${state}: ${target}`;
+        }
+        stateEl.textContent = state;
+        targetEl.textContent = target;
+        targetEl.title = target;
+    }
+
+    async function focusControlledTab() {
+        if (!connectedTabId) {
+            updateConnectionStrip({
+                mode: 'disconnected',
+                state: 'Disconnected',
+                target: 'No controlled tab to focus'
+            });
+            return;
+        }
+
+        const tab = await chrome.tabs.get(connectedTabId).catch(() => null);
+        if (!tab) {
+            connectedTabId = null;
+            updateConnectionStrip({
+                mode: 'disconnected',
+                state: 'Disconnected',
+                target: 'Controlled tab was closed'
+            });
+            return;
+        }
+
+        await chrome.tabs.update(tab.id, { active: true });
+        await chrome.windows.update(tab.windowId, { focused: true }).catch(() => { });
+        setTimeout(checkActiveTabDetach, 100);
+    }
+
+    async function findActiveYouTubeTabForLock() {
+        const lastFocused = await chrome.windows.getLastFocused({ populate: true }).catch(() => null);
+        const focusedActive = lastFocused?.tabs?.find(t => t.active && isYouTubeVideoUrl(t.url));
+        if (focusedActive) return focusedActive;
+
+        const activeTabs = await chrome.tabs.query({ active: true });
+        return activeTabs.find(t => isYouTubeVideoUrl(t.url) && t.id !== connectedTabId)
+            || activeTabs.find(t => isYouTubeVideoUrl(t.url))
+            || null;
+    }
+
+    async function lockToCurrentYouTubeTab() {
+        const tab = await findActiveYouTubeTabForLock();
+        if (!tab) {
+            updateConnectionStrip({
+                mode: connectedTabId ? 'remote' : 'disconnected',
+                state: connectedTabId ? 'Still Locked' : 'Disconnected',
+                target: 'No active YouTube video tab found to lock'
+            });
+            return;
+        }
+
+        connectedTabId = tab.id;
+        console.log('[YT Study] Locked to current YouTube tab:', connectedTabId);
+        updateConnectionStrip({
+            mode: 'active',
+            state: 'Locked',
+            target: formatTabTarget(tab)
+        });
+        establishConnection(false);
+    }
 
     /**
      * Tab Detach Logic: Highlight title if user switches away from controlled tab
@@ -4325,33 +4511,62 @@ setTimeout(async () => {
         if (!connectedTabId) {
             const titleEl = document.getElementById('current-video-title');
             titleEl?.classList.remove('detached', 'remote');
-            updateTabBanners(false, false, null);
+            updateTabBanners(false, false, null, null);
+            updateConnectionStrip({
+                mode: 'disconnected',
+                state: 'Disconnected',
+                target: 'No controlled tab'
+            });
             return;
         }
 
         try {
-            const currentWin = await chrome.windows.getCurrent();
             const controlledTab = await chrome.tabs.get(connectedTabId);
-            const [activeInCurrent] = await chrome.tabs.query({ active: true, currentWindow: true });
+            const [activeInControlledWindow] = await chrome.tabs.query({
+                active: true,
+                windowId: controlledTab.windowId
+            });
+            const currentWin = await chrome.windows.getCurrent().catch(() => null);
 
             const titleEl = document.getElementById('current-video-title');
             if (!titleEl) return;
 
-            const isCurrentTabYouTube = activeInCurrent &&
-                activeInCurrent.id !== connectedTabId &&
-                isYouTubeVideoUrl(activeInCurrent.url);
+            const isCurrentTabYouTube = activeInControlledWindow &&
+                activeInControlledWindow.id !== connectedTabId &&
+                isYouTubeVideoUrl(activeInControlledWindow.url);
 
-            // Step 1: Same Window Check (Side Panel Usage)
-            if (controlledTab.windowId === currentWin.id) {
+            // Step 1: Controlled window check. Query the active tab from the
+            // YouTube tab's own window so side-panel/popup windows do not cause
+            // false "tab switched" warnings during normal YouTube SPA navigation.
+            if (activeInControlledWindow && activeInControlledWindow.id === connectedTabId) {
+                titleEl.classList.remove('detached', 'remote');
+                titleEl.title = currentVideoData?.title || "";
+                updateTabBanners(false, false, null, null);
+                updateConnectionStrip({
+                    mode: 'active',
+                    state: 'Active Tab',
+                    target: formatTabTarget(controlledTab)
+                });
+            } else if (!currentWin || controlledTab.windowId === currentWin.id) {
                 titleEl.classList.remove('remote');
-                if (activeInCurrent && activeInCurrent.id !== connectedTabId) {
+                if (activeInControlledWindow && activeInControlledWindow.id !== connectedTabId) {
                     titleEl.classList.add('detached'); // Amber
                     titleEl.title = "Warning: Controlled Video is on a hidden tab in this window.";
-                    updateTabBanners(true, isCurrentTabYouTube, activeInCurrent);
+                    updateTabBanners(true, isCurrentTabYouTube, activeInControlledWindow, controlledTab);
+                    updateConnectionStrip({
+                        mode: 'hidden-tab',
+                        state: 'Hidden Tab',
+                        target: formatTabTarget(controlledTab)
+                    });
                 } else {
                     titleEl.classList.remove('detached');
                     titleEl.title = currentVideoData?.title || "";
-                    updateTabBanners(false, false, null);
+                    updateTabBanners(false, false, null, null);
+                    updateConnectionStrip({
+                        mode: 'active',
+                        state: 'Controlled',
+                        target: formatTabTarget(controlledTab)
+                    });
                 }
             }
             // Step 2: Different Window Check (Pop-out / Dual Monitor Usage)
@@ -4359,17 +4574,27 @@ setTimeout(async () => {
                 titleEl.classList.remove('detached');
                 titleEl.classList.add('remote'); // Blue
                 titleEl.title = "Connected to Video in another window (Remote Mode)";
-                updateTabBanners(false, false, null);
+                updateTabBanners(true, false, null, controlledTab);
+                updateConnectionStrip({
+                    mode: 'remote',
+                    state: 'Remote Window',
+                    target: formatTabTarget(controlledTab)
+                });
             }
         } catch (e) {
             console.warn("[YT Study] Detach check failed:", e);
+            updateConnectionStrip({
+                mode: 'disconnected',
+                state: 'Check Failed',
+                target: e.message || 'Unable to inspect controlled tab'
+            });
         }
     }
 
     /**
      * Update the detach banner and relink button in the player view
      */
-    function updateTabBanners(showDetachBanner, showRelinkBtn, activeTab) {
+    function updateTabBanners(showDetachBanner, showRelinkBtn, activeTab, controlledTab = null) {
         const playerView = document.getElementById('view-player');
         if (!playerView) return;
 
@@ -4379,15 +4604,28 @@ setTimeout(async () => {
             if (!detachBanner) {
                 detachBanner = document.createElement('div');
                 detachBanner.id = 'tab-detach-banner';
-                detachBanner.style.cssText = 'display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(255,180,0,0.15);border:1px solid rgba(255,180,0,0.4);color:#ffb400;font-size:11px;padding:6px 10px;border-radius:6px;margin:6px 8px 0;cursor:pointer;user-select:none;';
-                detachBanner.innerHTML = '<span>&#x25B6;</span><span>Click to switch back to YouTube tab</span>';
-                detachBanner.addEventListener('click', async () => {
-                    if (connectedTabId) {
-                        await chrome.tabs.update(connectedTabId, { active: true });
-                    }
-                });
+                detachBanner.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:8px;background:rgba(255,180,0,0.15);border:1px solid rgba(255,180,0,0.4);color:#ffb400;font-size:11px;padding:6px 8px;border-radius:6px;margin:6px 8px 0;cursor:pointer;user-select:none;';
                 playerView.insertBefore(detachBanner, playerView.firstChild);
             }
+            const targetTitle = controlledTab ? compactTabTitle(controlledTab) : 'YouTube tab';
+            detachBanner.innerHTML = `
+                <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">&#x25B6; Switch back: "${targetTitle}"</span>
+                <span style="display:flex;gap:4px;flex-shrink:0;">
+                    <button class="tab-detach-action tab-detach-focus" title="Focus controlled tab">Focus</button>
+                    <button class="tab-detach-action tab-detach-lock" title="Lock to current active YouTube tab">Lock Current</button>
+                </span>
+            `;
+            detachBanner.onclick = () => {
+                focusControlledTab().catch(err => console.warn('[YT Study] Focus controlled tab failed:', err));
+            };
+            detachBanner.querySelector('.tab-detach-focus')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                focusControlledTab().catch(err => console.warn('[YT Study] Focus controlled tab failed:', err));
+            });
+            detachBanner.querySelector('.tab-detach-lock')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                lockToCurrentYouTubeTab().catch(err => console.warn('[YT Study] Lock current tab failed:', err));
+            });
             detachBanner.style.display = 'flex';
         } else if (detachBanner) {
             detachBanner.style.display = 'none';
@@ -4418,6 +4656,28 @@ setTimeout(async () => {
             relinkBtn.style.display = 'none';
         }
     }
+
+    document.getElementById('btn-focus-controlled-tab')?.addEventListener('click', () => {
+        focusControlledTab().catch(err => {
+            console.warn('[YT Study] Focus controlled tab failed:', err);
+            updateConnectionStrip({
+                mode: 'disconnected',
+                state: 'Focus Failed',
+                target: err.message || 'Unable to focus controlled tab'
+            });
+        });
+    });
+
+    document.getElementById('btn-lock-current-tab')?.addEventListener('click', () => {
+        lockToCurrentYouTubeTab().catch(err => {
+            console.warn('[YT Study] Lock current tab failed:', err);
+            updateConnectionStrip({
+                mode: 'disconnected',
+                state: 'Lock Failed',
+                target: err.message || 'Unable to lock current YouTube tab'
+            });
+        });
+    });
 
     // Monitor Tab Switching
     chrome.tabs.onActivated.addListener(() => {

@@ -14,7 +14,7 @@
     <header class="compact-nav-bar">
       <div class="nav-controls">
         <div class="brand-assets">
-          <span id="app-version-badge" class="version-badge">v3.0.2</span>
+          <span id="app-version-badge" class="version-badge">v4.2.2</span>
           <div class="status-indicator" id="connection-status" title="Disconnected"></div>
         </div>
         <button id="nav-player" class="nav-btn active">Player</button>
@@ -182,7 +182,23 @@
       <!-- Player Sub-Tabs -->
       <div class="player-tabs">
         <button id="tab-markers" class="tab-btn active">Video Marks</button>
+        <button id="tab-connection" class="tab-btn">Connection</button>
         <button id="tab-playlist" class="tab-btn" style="display:none;">Playlist</button>
+      </div>
+
+      <div id="panel-connection" class="sub-panel">
+        <section class="control-group connection-panel">
+          <div id="connection-strip" class="connection-strip disconnected">
+            <div class="connection-copy">
+              <span id="connection-state" class="connection-state">Disconnected</span>
+              <span id="connection-target" class="connection-target">No controlled tab</span>
+            </div>
+            <div class="connection-actions">
+              <button id="btn-focus-controlled-tab" class="connection-btn" title="Focus the controlled YouTube tab">Focus</button>
+              <button id="btn-lock-current-tab" class="connection-btn" title="Lock sidebar to the active YouTube tab">Lock Current</button>
+            </div>
+          </div>
+        </section>
       </div>
 
       <div id="panel-playlist" class="sub-panel">
@@ -361,6 +377,17 @@
               <h2>Diagnostics</h2>
             </div>
             <div style="padding: 10px 4px; display: flex; flex-direction: column; gap: 8px;">
+              <div class="diagnostic-id-card">
+                <div class="diagnostic-id-head">
+                  <span>Extension ID</span>
+                  <span id="extension-build-label">Checking...</span>
+                </div>
+                <div class="diagnostic-id-row">
+                  <code id="extension-id-value">Loading...</code>
+                  <button id="btn-copy-extension-id" class="secondary-btn" style="font-size:10px; padding:4px 8px; margin:0; width:auto;">Copy</button>
+                </div>
+              </div>
+
               <button id="btn-refresh-sync" class="action-btn outline-btn full-width-btn"
                 style="font-size: 11px; padding: 6px;">↻ Refresh Status & Diagnostics</button>
   

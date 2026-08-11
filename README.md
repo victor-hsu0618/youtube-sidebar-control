@@ -1,6 +1,6 @@
 [English](README.md) | [繁體中文](README.zh-TW.md)
 
-# YouTube Study Companion v3.0.2
+# YouTube Study Companion v4.2.2
 
 Professional YouTube playback control and learning tool. Transform your YouTube experience into a powerful learning and notetaking workstation.
 
