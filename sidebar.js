@@ -4552,7 +4552,11 @@ setTimeout(async () => {
                 if (activeInControlledWindow && activeInControlledWindow.id !== connectedTabId) {
                     titleEl.classList.add('detached'); // Amber
                     titleEl.title = "Warning: Controlled Video is on a hidden tab in this window.";
-                    updateTabBanners(true, isCurrentTabYouTube, activeInControlledWindow, controlledTab);
+                    // Switching to another YouTube tab is an intentional
+                    // navigation target, not a reason to ask the user to go
+                    // back. Keep only the optional relink affordance there;
+                    // show "Switch back" for non-YouTube tabs.
+                    updateTabBanners(!isCurrentTabYouTube, isCurrentTabYouTube, activeInControlledWindow, controlledTab);
                     updateConnectionStrip({
                         mode: 'hidden-tab',
                         state: 'Hidden Tab',
