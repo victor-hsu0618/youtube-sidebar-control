@@ -53,9 +53,11 @@ function getPageSource() {
 }
 
 function getActiveVideoTitle(videoId) {
+    let hasPlayerApi = false;
     try {
         const player = document.getElementById('movie_player');
         if (player && typeof player.getVideoData === 'function') {
+            hasPlayerApi = true;
             const data = player.getVideoData();
             if (data && data.video_id === videoId && data.title) return data.title;
         }
@@ -72,6 +74,12 @@ function getActiveVideoTitle(videoId) {
         const title = musicTitle?.textContent?.trim();
         if (title) return title;
     }
+
+    // If this page has no usable YouTube player API (common immediately after
+    // linking to an already-open tab), the tab title is the only available
+    // metadata source. Keep it as a fallback only when there is no API capable
+    // of telling us that its data belongs to a different video.
+    if (!hasPlayerApi) return getCleanPageTitle();
 
     // An empty title is intentional: a subsequent player/page-data event will
     // supply the title once it belongs to this videoId. It is safer than showing

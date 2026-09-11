@@ -4610,22 +4610,10 @@ setTimeout(async () => {
             const targetTitle = controlledTab ? compactTabTitle(controlledTab) : 'YouTube tab';
             detachBanner.innerHTML = `
                 <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">&#x25B6; Switch back: "${targetTitle}"</span>
-                <span style="display:flex;gap:4px;flex-shrink:0;">
-                    <button class="tab-detach-action tab-detach-focus" title="Focus controlled tab">Focus</button>
-                    <button class="tab-detach-action tab-detach-lock" title="Lock to current active YouTube tab">Lock Current</button>
-                </span>
             `;
             detachBanner.onclick = () => {
                 focusControlledTab().catch(err => console.warn('[YT Study] Focus controlled tab failed:', err));
             };
-            detachBanner.querySelector('.tab-detach-focus')?.addEventListener('click', (e) => {
-                e.stopPropagation();
-                focusControlledTab().catch(err => console.warn('[YT Study] Focus controlled tab failed:', err));
-            });
-            detachBanner.querySelector('.tab-detach-lock')?.addEventListener('click', (e) => {
-                e.stopPropagation();
-                lockToCurrentYouTubeTab().catch(err => console.warn('[YT Study] Lock current tab failed:', err));
-            });
             detachBanner.style.display = 'flex';
         } else if (detachBanner) {
             detachBanner.style.display = 'none';
@@ -4647,6 +4635,18 @@ setTimeout(async () => {
                 console.log('[YT Study] Re-linked to tab:', connectedTabId);
                 updateTabBanners(false, false, null);
                 establishConnection(false);
+                // A tab that was already open may not emit a fresh player-title
+                // event after linking. Preserve its browser title as a fallback
+                // until content.js reports authoritative metadata.
+                setTimeout(async () => {
+                    if (!currentVideoData || !/^Loading\.\.\.$/.test(currentVideoData.title || '')) return;
+                    const linkedTab = await chrome.tabs.get(connectedTabId).catch(() => null);
+                    const linkedTitle = compactTabTitle(linkedTab);
+                    if (linkedTitle && linkedTitle !== 'YouTube') {
+                        currentVideoData.title = linkedTitle;
+                        updateHeader();
+                    }
+                }, 800);
             };
             relinkBtn.style.display = 'flex';
             if (detachBanner && detachBanner.nextSibling !== relinkBtn) {
