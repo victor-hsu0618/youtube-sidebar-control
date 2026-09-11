@@ -61,7 +61,22 @@ function getActiveVideoTitle(videoId) {
         }
     } catch (e) { }
 
-    return getCleanPageTitle();
+    // During YouTube's SPA transitions the URL changes before document.title.
+    // Returning that stale page title labels the new track as the previous one.
+    // Only use DOM fallbacks on Music, where the regular movie_player API is not
+    // consistently available. The player bar is updated with the active track.
+    if (getPageSource() === 'music') {
+        const musicTitle = document.querySelector(
+            'ytmusic-player-bar .title, ytmusic-player-page #header .title'
+        );
+        const title = musicTitle?.textContent?.trim();
+        if (title) return title;
+    }
+
+    // An empty title is intentional: a subsequent player/page-data event will
+    // supply the title once it belongs to this videoId. It is safer than showing
+    // a confidently wrong previous-track title.
+    return '';
 }
 
 function init(shouldResetLoop = false) {
@@ -412,6 +427,8 @@ function scrapePlaylistInfo() {
 }
 
 let lastMetadataSentTime = 0;
+let lastMetadataVideoId = null;
+let lastMetadataTitle = null;
 
 function notifyStatus(isPeriodic = false) {
     if (!video) return;
@@ -429,15 +446,24 @@ function notifyStatus(isPeriodic = false) {
         // 2. Metadata (Throttle heavily)
         if (videoId) {
             const now = Date.now();
-            const shouldSendFullMetadata = !isPeriodic || (now - lastMetadataSentTime > 5000);
+            const title = getActiveVideoTitle(videoId);
+            // Never leave a newly navigated track waiting for the periodic
+            // refresh, and immediately replace a temporary blank title once
+            // YouTube's player has caught up.
+            const shouldSendFullMetadata = !isPeriodic
+                || videoId !== lastMetadataVideoId
+                || title !== lastMetadataTitle
+                || (now - lastMetadataSentTime > 5000);
 
             if (shouldSendFullMetadata) {
                 lastMetadataSentTime = now;
+                lastMetadataVideoId = videoId;
+                lastMetadataTitle = title;
                 chrome.runtime.sendMessage({
                     action: 'VIDEO_METADATA',
                     data: {
                         videoId: videoId,
-                        title: getActiveVideoTitle(videoId),
+                        title: title,
                         thumbnail: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
                         source: getPageSource(),
                         duration: video.duration || 0,
