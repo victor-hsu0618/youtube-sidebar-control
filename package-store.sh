@@ -18,13 +18,27 @@ FILES_TO_ZIP=(
   "sidebar.html"
   "sidebar.css"
   "monetization.js"
-  "SupabaseManager.js"
-  "lib"
   "icons"
   "docs"
   "README.md"
   "README.zh-TW.md"
 )
+
+ZIP_EXCLUDES=(
+  "*.DS_Store*"
+  "*__MACOSX*"
+  "_metadata/*"
+  "*/_metadata/*"
+)
+
+validate_zip() {
+  local zip_name="$1"
+
+  if unzip -Z1 "$zip_name" | grep -E '(^|/)_metadata(/|$)' >/dev/null; then
+    echo "Error: $zip_name contains reserved Chrome extension directory _metadata"
+    exit 1
+  fi
+}
 
 echo "📦 Packaging YouTube Study Companion v${VERSION}..."
 
@@ -36,13 +50,15 @@ cp "$MANIFEST_STORE" "$MANIFEST_REAL"
 # --- Chrome ZIP ---
 [ -f "$CHROME_ZIP" ] && rm "$CHROME_ZIP"
 echo "Creating $CHROME_ZIP..."
-zip -r "$CHROME_ZIP" "${FILES_TO_ZIP[@]}" -x "*.DS_Store*" "*__MACOSX*"
+zip -r "$CHROME_ZIP" "${FILES_TO_ZIP[@]}" -x "${ZIP_EXCLUDES[@]}"
+validate_zip "$CHROME_ZIP"
 echo "✅ $CHROME_ZIP ready for Chrome Web Store"
 
 # --- Edge ZIP (same content, different name) ---
 [ -f "$EDGE_ZIP" ] && rm "$EDGE_ZIP"
 echo "Creating $EDGE_ZIP..."
 cp "$CHROME_ZIP" "$EDGE_ZIP"
+validate_zip "$EDGE_ZIP"
 echo "✅ $EDGE_ZIP ready for Microsoft Edge Add-ons Store"
 
 # Restore real manifest

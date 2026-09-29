@@ -10,13 +10,25 @@ FILES_TO_ZIP=(
   "sidebar.html"
   "sidebar.css"
   "monetization.js"
-  "SupabaseManager.js"
-  "lib"
   "icons"
   "docs"
   "README.md"
   "README.zh-TW.md"
 )
+
+ZIP_EXCLUDES=(
+  "*.DS_Store*"
+  "*__MACOSX*"
+  "_metadata/*"
+  "*/_metadata/*"
+)
+
+validate_zip() {
+  if unzip -Z1 "$ZIP_NAME" | grep -E '(^|/)_metadata(/|$)' >/dev/null; then
+    echo "Error: $ZIP_NAME contains reserved Chrome extension directory _metadata"
+    exit 1
+  fi
+}
 
 # Clean up old zip if exists
 if [ -f "$ZIP_NAME" ]; then
@@ -25,6 +37,7 @@ fi
 
 # Create new zip
 echo "Creating $ZIP_NAME..."
-zip -r "$ZIP_NAME" "${FILES_TO_ZIP[@]}" -x "*.DS_Store*" "*__MACOSX*"
+zip -r "$ZIP_NAME" "${FILES_TO_ZIP[@]}" -x "${ZIP_EXCLUDES[@]}"
+validate_zip
 
 echo "Done! $ZIP_NAME is ready for release."

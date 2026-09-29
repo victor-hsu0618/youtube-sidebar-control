@@ -3,3 +3,5 @@
 *.swp
 *.docx
 temp_*
+_metadata/
+*/_metadata/

@@ -18,8 +18,7 @@
     "*://music.youtube.com/*",
     "*://*.youtube.com/*",
     "https://script.google.com/*",
-    "https://script.googleusercontent.com/*",
-    "https://*.supabase.co/*"
+    "https://script.googleusercontent.com/*"
   ],
   "background": {
     "service_worker": "background.js"

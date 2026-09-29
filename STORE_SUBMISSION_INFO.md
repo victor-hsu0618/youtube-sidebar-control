@@ -2,6 +2,25 @@
 
 這份文件整理了上架 Chrome Web Store 時需要填寫的各項資訊，請直接複製貼上或參考使用。
 
+## Current Release: v4.2.2
+
+### What's New (English)
+
+Improved tab connection reliability and navigation handling. YouTube and YouTube Music titles now update more accurately when switching videos, reconnecting tabs, or recovering from a closed controlled tab. Added clearer connection controls, including Focus and Lock Current Tab, and reduced unnecessary sync prompts. The store build also keeps Supabase cloud-sync UI disabled while retaining Chrome Sync and local backup features.
+
+### What's New (繁體中文)
+
+提升分頁連線穩定性與影片切換處理。切換 YouTube／YouTube Music 影片、重新連結分頁或關閉受控分頁後，影片標題與連線狀態會更準確地更新。新增「聚焦受控分頁」與「鎖定目前分頁」控制項，並減少不必要的同步提示。上架版本暫不開放 Supabase 雲端同步介面，Chrome Sync 與本機備份功能仍可正常使用。
+
+### Release Notes for Store Review
+
+- Improved sidebar-to-tab connection and reconnection behavior.
+- Fixed stale video titles during YouTube and YouTube Music navigation.
+- Added Focus Controlled Tab and Lock Current Tab controls.
+- Improved handling when a controlled tab is closed or detached.
+- Reduced unnecessary sync prompts and improved local/cloud freshness checks.
+- Store build uses Chrome Sync and local JSON backups; Supabase cloud-sync UI is disabled.
+
 ---
 
 ## 1. Store Listing (商店資訊)
@@ -77,7 +96,7 @@ We value your privacy. Your notes are yours. We collect your email address ONLY 
 - 支援調整視窗大小與獨立彈出（Pop-out）功能。
 
 **🔐 Pro 進階功能 (可選)**
-- **擴充影片庫**：解除免費版 10 部影片的儲存限制。
+- **擴充影片庫**：解除免費版 20 部影片的儲存限制。
 - **擴充標記數量**：增加每組標記的容量，滿足高強度筆記需求。
 - 支持開發者持續維護與功能開發！
 
@@ -123,10 +142,10 @@ We value your privacy. Your notes are yours. We collect your email address ONLY 
 Google 會要求解釋為什麼需要以下權限，請參考以下寫法：
 
 **1. `identity` & `identity.email`**
-> "We use the identity API and email permission solely to identify the user for two purposes: 1) To verify if the user has a valid 'Pro' subscription license via our verification server. 2) To serve as a unique ID for syncing their notes and bookmarks across multiple devices. We do not use this for marketing or share it with third parties."
+> "We use the identity API and email permission solely to identify the signed-in Chrome user when checking Pro license status through our verification service. We do not use the email for advertising or marketing, and we do not share it with third parties."
 
 **2. `storage`**
-> "Used to save user preferences (like playback speed settings) and cache their video notes locally for offline access and faster load times."
+> "Used to save user preferences, video profiles, timestamps, bookmarks, and notes. Chrome Sync keeps this extension data available across the user's signed-in Chrome browsers. Local storage is used for device-specific state and automatic local JSON backups."
 
 **3. `sidePanel`**
 > "This is the core UI of the extension. All controls (Notes, Loop, Speed) are rendered within the browser's side panel to avoid obstructing the video player content."
@@ -138,7 +157,7 @@ Google 會要求解釋為什麼需要以下權限，請參考以下寫法：
 在 "Privacy" 標籤頁的 "Data usage" 區塊：
 
 1.  **Personally identifiable information**: 勾選 ✅ **Email address**。
-    -   用途勾選：✅ **App functionality** (應用程式功能), ✅ **Account management** (帳戶管理)。
+    -   用途勾選：✅ **App functionality** (應用程式功能)。
 2.  **Website content**: 勾選 ✅ **Website content** (因為會讀取當前 YouTube 網址/標題)。
     -   用途勾選：✅ **App functionality**。
 
@@ -161,7 +180,7 @@ Google 會要求解釋為什麼需要以下權限，請參考以下寫法：
 ## 5. 上架流程檢查清單
 
 1.  [ ] 備份金鑰：確認 `manifest.json` 沒有包含 `key` (如果是新發佈)，或者包含固定的 `key` (如果是更新)。(您目前的 `package-store.sh` 已經處理了這點)。
-2.  [ ] 打包：執行 `./package-store.sh` 產生 `YouTubeStudyCompanion_Store.zip`。
+2.  [ ] 打包：執行 `./package-store.sh` 產生 `YouTubeStudyCompanion_v4.2.2_Chrome.zip`。
 3.  [ ] 上傳：將 ZIP 檔上傳至 Chrome Developer Dashboard。
 4.  [ ] 填寫：填入上述 Store Listing 資訊。
 5.  [ ] 圖片：上傳 Icon, Screenshots, Promo Tiles。
