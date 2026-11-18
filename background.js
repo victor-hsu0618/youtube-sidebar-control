@@ -48,6 +48,13 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 const injectToExistingTabs = async () => {
     const tabs = await chrome.tabs.query({ url: YOUTUBE_TAB_URLS });
     for (const tab of tabs) {
+        if (tab.url && new URL(tab.url).hostname === 'music.youtube.com') {
+            await chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                files: ['youtube-music-bridge.js'],
+                world: 'MAIN'
+            }).catch(err => console.log('Music bridge injection skipped:', err));
+        }
         chrome.scripting.executeScript({
             target: { tabId: tab.id },
             files: ['content.js']

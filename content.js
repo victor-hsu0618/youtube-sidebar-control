@@ -9,6 +9,23 @@ let initAttempts = 0;
 let lastInitedVideoId = null;
 let isInitializing = false;
 let myTabId = null;
+let musicBridgeData = null;
+
+window.addEventListener('message', event => {
+    const state = event.data;
+    if (event.source !== window || event.origin !== window.location.origin ||
+        state?.source !== 'yt-study-music-bridge') return;
+    if (state.videoId && /^[\w-]{11}$/.test(state.videoId)) {
+        musicBridgeData = {
+            videoId: state.videoId,
+            title: typeof state.title === 'string' ? state.title : '',
+            currentTime: Number(state.currentTime) || 0,
+            duration: Number(state.duration) || 0,
+            isPlaying: Boolean(state.isPlaying),
+            playbackRate: Number(state.playbackRate) || 1
+        };
+    }
+});
 
 // Request Tab ID on load
 chrome.runtime.sendMessage({ action: 'GET_TAB_ID' }, (response) => {
@@ -20,6 +37,41 @@ chrome.runtime.sendMessage({ action: 'GET_TAB_ID' }, (response) => {
 });
 
 function getActiveVideoId() {
+    // Match CueRack's YouTube Music identity lookup: on album/playlist pages,
+    // the URL's `list` is an album ID, so the active track must come from the
+    // player state before considering the page URL.
+    if (getPageSource() === 'music') {
+        if (musicBridgeData?.videoId) return musicBridgeData.videoId;
+
+        const musicPlayer = getYouTubeMusicPlayer();
+        try {
+            const data = musicPlayer?.getVideoData?.() || {};
+            if (data.video_id) return String(data.video_id);
+        } catch (_) { }
+        try {
+            const idFromResponse = window.ytInitialPlayerResponse?.videoDetails?.videoId;
+            if (idFromResponse) return String(idFromResponse);
+        } catch (_) { }
+
+        const playerBar = document.querySelector('ytmusic-player-bar');
+        for (const attribute of ['video-id', 'videoid', 'data-video-id', 'playback-data-id']) {
+            const attributeId = playerBar?.getAttribute(attribute);
+            if (attributeId) return attributeId;
+        }
+
+        const trackLink = playerBar?.querySelector('a[href*="watch?v="], a[href*="youtu.be/"]');
+        let id = extractVideoIdFromHref(trackLink?.href || trackLink?.getAttribute('href'));
+        if (!id && trackLink?.href) {
+            try {
+                const linkUrl = new URL(trackLink.href, window.location.href);
+                if (linkUrl.hostname.includes('youtu.be')) {
+                    id = linkUrl.pathname.split('/').filter(Boolean)[0] || '';
+                }
+            } catch (_) { }
+        }
+        if (id) return id;
+    }
+
     const params = new URLSearchParams(window.location.search);
     let id = params.get('v');
 
@@ -44,6 +96,41 @@ function getActiveVideoId() {
     return id;
 }
 
+function getYouTubeMusicPlayer() {
+    return document.getElementById('movie_player') || window.movie_player || null;
+}
+
+function selectYouTubeMusicMediaElement() {
+    const selectors = [
+        'ytmusic-player-page video',
+        'ytmusic-player-bar video',
+        'ytmusic-app video',
+        'video.html5-main-video',
+        'video',
+        'audio'
+    ];
+    const candidates = [];
+    selectors.forEach(selector => {
+        document.querySelectorAll(selector).forEach(media => {
+            if (!candidates.includes(media)) candidates.push(media);
+        });
+    });
+
+    const usable = candidates.filter(media => {
+        const hasDuration = Number.isFinite(media.duration) && media.duration > 0;
+        return !media.closest('.ad-showing, .ytp-ad-player-overlay, .video-ads') && (
+            !media.paused || media.currentTime > 0 || hasDuration || media.currentSrc || media.src
+        );
+    });
+    usable.sort((a, b) => {
+        const score = media => (!media.paused ? 1000 : 0)
+            + Number(media.currentTime || 0)
+            + (Number(media.duration || 0) > 0 ? 100 : 0);
+        return score(b) - score(a);
+    });
+    return usable[0] || candidates[0] || null;
+}
+
 function getCleanPageTitle() {
     return document.title.replace(/\s+-\s+YouTube(?: Music)?$/, '');
 }
@@ -55,7 +142,9 @@ function getPageSource() {
 function getActiveVideoTitle(videoId) {
     let hasPlayerApi = false;
     try {
-        const player = document.getElementById('movie_player');
+        const player = getPageSource() === 'music'
+            ? getYouTubeMusicPlayer()
+            : document.getElementById('movie_player');
         if (player && typeof player.getVideoData === 'function') {
             hasPlayerApi = true;
             const data = player.getVideoData();
@@ -68,10 +157,17 @@ function getActiveVideoTitle(videoId) {
     // Only use DOM fallbacks on Music, where the regular movie_player API is not
     // consistently available. The player bar is updated with the active track.
     if (getPageSource() === 'music') {
+        if (musicBridgeData?.videoId === videoId && musicBridgeData.title) {
+            return musicBridgeData.title;
+        }
+        try {
+            const playerTitle = getYouTubeMusicPlayer()?.getVideoData?.()?.title?.trim();
+            if (playerTitle) return playerTitle;
+        } catch (_) { }
         const musicTitle = document.querySelector(
-            'ytmusic-player-bar .title, ytmusic-player-page #header .title'
+            'ytmusic-player-bar .title, ytmusic-player-bar yt-formatted-string.title, ytmusic-player-bar [data-title], ytmusic-player-page #header .title'
         );
-        const title = musicTitle?.textContent?.trim();
+        const title = (musicTitle?.getAttribute('title') || musicTitle?.getAttribute('data-title') || musicTitle?.textContent || '').trim();
         if (title) return title;
     }
 
@@ -481,16 +577,32 @@ let lastMetadataVideoId = null;
 let lastMetadataTitle = null;
 
 function notifyStatus(isPeriodic = false) {
-    if (!video) return;
-
     try {
         const videoId = getActiveVideoId();
+        const media = getPageSource() === 'music'
+            ? selectYouTubeMusicMediaElement()
+            : (video?.isConnected ? video : document.querySelector('video.html5-main-video, video, audio'));
+        if (media) video = media;
+        if (!videoId) return;
+        const musicData = getPageSource() === 'music' && musicBridgeData?.videoId === videoId
+            ? musicBridgeData
+            : null;
+        let isPlaying = musicData?.isPlaying ?? Boolean(media && !media.paused && !media.ended);
+        if (getPageSource() === 'music' && !musicData) {
+            try {
+                const playerState = Number(getYouTubeMusicPlayer()?.getPlayerState?.());
+                if (playerState === 1 || playerState === 3) isPlaying = true;
+                else if (playerState === 0 || playerState === 2 || playerState === 5) isPlaying = false;
+            } catch (_) { }
+        }
+        const currentTime = musicData?.currentTime ?? media?.currentTime ?? 0;
+        const duration = musicData?.duration || media?.duration || 0;
 
         // 1. Playback Status (Always send)
         chrome.runtime.sendMessage({
             action: 'PLAYBACK_STATUS',
             videoId: videoId,
-            playing: !video.paused
+            playing: isPlaying
         }).catch(() => { });
 
         // 2. Metadata (Throttle heavily)
@@ -516,17 +628,17 @@ function notifyStatus(isPeriodic = false) {
                         title: title,
                         thumbnail: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
                         source: getPageSource(),
-                        duration: video.duration || 0,
-                        currentTime: video.currentTime || 0,
-                        isPlaying: !video.paused,
-                        playbackRate: video.playbackRate || 1.0
+                        duration,
+                        currentTime,
+                        isPlaying,
+                        playbackRate: musicData?.playbackRate || media?.playbackRate || 1.0
                     }
                 }).catch(() => { });
             } else {
                 chrome.runtime.sendMessage({
                     action: 'TIME_UPDATE',
                     videoId: videoId,
-                    currentTime: video.currentTime || 0
+                    currentTime
                 }).catch(() => { });
             }
         }
@@ -844,6 +956,12 @@ init();
 // Watch for SPA navigation and Detached elements
 setInterval(() => {
     const currentV = getActiveVideoId();
+
+    // YouTube Music can play audio without a usable <video> element, so its
+    // track title and playback position may not produce the video events used
+    // by the regular player. Poll the lightweight status path; it only resends
+    // full metadata when the track/title changes (or every five seconds).
+    if (getPageSource() === 'music') notifyStatus(true);
 
     const isDetached = video && !video.isConnected;
     const isNewVideo = currentV && currentV !== lastInitedVideoId;
