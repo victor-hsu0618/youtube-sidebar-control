@@ -4,6 +4,9 @@ const debugConsole = document.getElementById('debug-console');
 const debugLogs = document.getElementById('debug-logs');
 
 const YOUTUBE_VIDEO_QUERY_URLS = [
+    // YouTube Music uses the extension across its home, library, playlist, and
+    // watch pages. It may have no video element while audio is playing.
+    "*://music.youtube.com/*",
     "*://*.youtube.com/watch*",
     "*://music.youtube.com/watch*",
     "*://music.youtube.com/playlist*",
@@ -25,14 +28,17 @@ function isYouTubeUrl(url) {
 }
 
 function isYouTubeVideoUrl(url) {
-    return Boolean(url && (
+    if (!url) return false;
+    // Treat every Music page as a valid connection target. Audio-only playback
+    // and Music landing/library pages do not necessarily have a watch URL.
+    if (isYouTubeMusicUrl(url)) return true;
+    return Boolean(
         url.includes('youtube.com/watch') ||
-        url.includes('music.youtube.com/watch') ||
         url.includes('youtube.com/playlist') ||
         url.includes('/shorts/') ||
         url.includes('/v/') ||
         url.includes('/embed/')
-    ));
+    );
 }
 
 function log(msg, type = 'info') {
@@ -253,6 +259,8 @@ try {
     let youtubePlaylistScanTabId = null;
     let librarySource = 'local';
     let currentFavGroup = ALL_VIDEOS_GROUP;
+    let lastLocalFavGroup = ALL_VIDEOS_GROUP;
+    let libraryScrollTop = 0;
     let isLibraryEditMode = false;
     let favoriteGroupOrders = {}; // Cache for custom orders
     let isPlaylistMode = false;
@@ -827,7 +835,8 @@ setTimeout(async () => {
             const source = item?.source || (key.startsWith('music:') ? 'music' : 'youtube');
             if (id) {
                 const previous = normalized[id];
-                if (!previous || (item?.scannedAt || 0) >= (previous.scannedAt || 0)) {
+                const keepYouTubeSource = previous?.source === 'youtube' && source === 'music';
+                if (!previous || (!keepYouTubeSource && (item?.scannedAt || 0) >= (previous.scannedAt || 0))) {
                     normalized[id] = { ...item, id, source };
                 }
             }
@@ -1217,20 +1226,6 @@ setTimeout(async () => {
         const requestedView = viewName;
         if (viewName === 'library') {
             viewName = 'favorites';
-            librarySource = 'local';
-            currentFavGroup = ALL_VIDEOS_GROUP;
-            const selector = document.getElementById('fav-group-selector');
-            if (selector) selector.value = ALL_VIDEOS_GROUP;
-            document.getElementById('tab-local-playlists')?.classList.add('active');
-            document.getElementById('tab-youtube-playlists')?.classList.remove('active');
-            document.getElementById('tab-local-playlists')?.setAttribute('aria-selected', 'true');
-            document.getElementById('tab-youtube-playlists')?.setAttribute('aria-selected', 'false');
-            document.getElementById('youtube-scan-bar').style.display = 'none';
-            document.getElementById('local-playlist-controls').style.display = 'flex';
-            document.getElementById('btn-fav-toggle-edit').style.display = '';
-            document.getElementById('lib-btn-import').style.display = '';
-            document.getElementById('fav-sync-usage-container').style.display = '';
-            document.getElementById('btn-manage-fav-groups').style.display = '';
         }
 
         Object.keys(views).forEach(k => {
@@ -1241,6 +1236,17 @@ setTimeout(async () => {
         });
 
         if (viewName === 'favorites') {
+            const isYouTubeLibrary = librarySource === 'youtube';
+            document.getElementById('tab-local-playlists')?.classList.toggle('active', !isYouTubeLibrary);
+            document.getElementById('tab-youtube-playlists')?.classList.toggle('active', isYouTubeLibrary);
+            document.getElementById('tab-local-playlists')?.setAttribute('aria-selected', String(!isYouTubeLibrary));
+            document.getElementById('tab-youtube-playlists')?.setAttribute('aria-selected', String(isYouTubeLibrary));
+            document.getElementById('youtube-scan-bar').style.display = isYouTubeLibrary ? 'flex' : 'none';
+            document.getElementById('local-playlist-controls').style.display = isYouTubeLibrary ? 'none' : 'flex';
+            document.getElementById('btn-fav-toggle-edit').style.display = isYouTubeLibrary ? 'none' : '';
+            document.getElementById('lib-btn-import').style.display = isYouTubeLibrary ? 'none' : '';
+            document.getElementById('fav-sync-usage-container').style.display = isYouTubeLibrary ? 'none' : '';
+            document.getElementById('btn-manage-fav-groups').style.display = isYouTubeLibrary ? 'none' : '';
             // Intelligent Jump: auto-select the group of the currently playing video
             try {
                 const selector = document.getElementById('fav-group-selector');
@@ -1256,9 +1262,16 @@ setTimeout(async () => {
             } catch (e) {
                 console.warn('[YT Study] Intelligent jump skipped:', e);
             }
-            loadFavorites();
+            loadFavorites().then(() => {
+                const list = document.getElementById('favorites-list');
+                if (list) list.scrollTop = libraryScrollTop;
+            });
         }
     }
+
+    document.getElementById('favorites-list')?.addEventListener('scroll', event => {
+        libraryScrollTop = event.currentTarget.scrollTop;
+    });
 
     if (navs.player) navs.player.addEventListener('click', () => switchView('player'));
     if (navs.favorites) navs.favorites.addEventListener('click', () => switchView('library'));
@@ -1872,8 +1885,10 @@ setTimeout(async () => {
     // --- Library Groups Listeners ---
     function setLibrarySource(source) {
         if (source === 'youtube' && isLibraryEditMode) toggleEditMode();
+        if (librarySource === 'local') lastLocalFavGroup = document.getElementById('fav-group-selector')?.value || currentFavGroup;
         librarySource = source;
-        currentFavGroup = ALL_VIDEOS_GROUP;
+        currentFavGroup = source === 'local' ? lastLocalFavGroup : ALL_VIDEOS_GROUP;
+        libraryScrollTop = 0;
         document.getElementById('tab-local-playlists')?.classList.toggle('active', source === 'local');
         document.getElementById('tab-youtube-playlists')?.classList.toggle('active', source === 'youtube');
         document.getElementById('tab-local-playlists')?.setAttribute('aria-selected', String(source === 'local'));
@@ -1887,7 +1902,7 @@ setTimeout(async () => {
         document.getElementById('btn-manage-fav-groups').style.display = source === 'local' ? '' : 'none';
         document.getElementById('fav-group-mgmt').style.display = 'none';
         updateFavGroupUI();
-        document.getElementById('fav-group-selector').value = ALL_VIDEOS_GROUP;
+        document.getElementById('fav-group-selector').value = currentFavGroup;
         updateCollectionControls();
         loadFavorites();
     }
@@ -1913,6 +1928,8 @@ setTimeout(async () => {
 
     document.getElementById('fav-group-selector')?.addEventListener('change', () => {
         currentFavGroup = document.getElementById('fav-group-selector').value;
+        lastLocalFavGroup = currentFavGroup;
+        libraryScrollTop = 0;
         updateCollectionControls();
         loadFavorites();
     });
@@ -1948,7 +1965,7 @@ setTimeout(async () => {
         const messageEl = document.getElementById('youtube-playlist-scan-message');
         if (!messageEl) return;
         [
-            ['btn-scan-youtube-playlist', 'YouTube', 'youtube'],
+            ['btn-scan-youtube-playlist', 'YT', 'youtube'],
             ['btn-scan-music-playlist', 'Music', 'music']
         ].forEach(([id, label, source]) => {
             const button = document.getElementById(id);
@@ -2023,7 +2040,9 @@ setTimeout(async () => {
             if (!youtubePlaylistScanCancelled) {
                 const next = { ...youtubePlaylists };
                 for (const [id, item] of found.entries()) {
-                    next[id] = { ...item, scannedAt: Date.now() };
+                    const existing = next[id];
+                    const sourceForOpen = existing?.source === 'youtube' || item.source === 'youtube' ? 'youtube' : 'music';
+                    next[id] = { ...existing, ...item, id, source: sourceForOpen, scannedAt: Date.now() };
                 }
                 youtubePlaylists = next;
                 await chrome.storage.local.set({ youtube_playlists_cache: next });
@@ -4796,11 +4815,12 @@ setTimeout(async () => {
     }
 
     /**
-     * Update the detach banner and relink button in the player view
+     * Update the shared tab banner above the current view
      */
     function updateTabBanners(showDetachBanner, showRelinkBtn, activeTab, controlledTab = null) {
-        const playerView = document.getElementById('view-player');
-        if (!playerView) return;
+        const bannerHost = document.querySelector('.container');
+        const navHeader = bannerHost?.querySelector('header');
+        if (!bannerHost || !navHeader) return;
 
         // --- Detach Banner (Feature 1: Switch back to YouTube tab) ---
         let detachBanner = document.getElementById('tab-detach-banner');
@@ -4809,11 +4829,12 @@ setTimeout(async () => {
                 detachBanner = document.createElement('div');
                 detachBanner.id = 'tab-detach-banner';
                 detachBanner.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:8px;background:rgba(255,180,0,0.15);border:1px solid rgba(255,180,0,0.4);color:#ffb400;font-size:11px;padding:6px 8px;border-radius:6px;margin:6px 8px 0;cursor:pointer;user-select:none;';
-                playerView.insertBefore(detachBanner, playerView.firstChild);
+                navHeader.insertAdjacentElement('afterend', detachBanner);
             }
-            const targetTitle = controlledTab ? compactTabTitle(controlledTab) : 'YouTube tab';
+            const targetPlatform = controlledTab?.url && isYouTubeMusicUrl(controlledTab.url) ? 'YouTube Music' : 'YouTube';
+            const targetTitle = controlledTab ? compactTabTitle(controlledTab) : `${targetPlatform} tab`;
             detachBanner.innerHTML = `
-                <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">&#x25B6; Switch back: "${targetTitle}"</span>
+                <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">&#x25B6; Switch back to ${targetPlatform}: "${targetTitle}"</span>
             `;
             detachBanner.onclick = () => {
                 focusControlledTab().catch(err => console.warn('[YT Study] Focus controlled tab failed:', err));
@@ -4830,10 +4851,12 @@ setTimeout(async () => {
                 relinkBtn = document.createElement('div');
                 relinkBtn.id = 'tab-relink-btn';
                 relinkBtn.style.cssText = 'display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(62,166,255,0.12);border:1px solid rgba(62,166,255,0.35);color:var(--accent-color);font-size:11px;padding:6px 10px;border-radius:6px;margin:4px 8px 0;cursor:pointer;user-select:none;';
-                playerView.insertBefore(relinkBtn, playerView.firstChild);
+                const previousBanner = document.getElementById('tab-detach-banner');
+                (previousBanner || navHeader).insertAdjacentElement('afterend', relinkBtn);
             }
             const tabTitle = (activeTab.title || 'YouTube').substring(0, 40);
-            relinkBtn.innerHTML = '<span>&#x1F517;</span><span>Link to current YouTube tab: "' + tabTitle + '"</span>';
+            const currentPlatform = activeTab.url && isYouTubeMusicUrl(activeTab.url) ? 'YouTube Music' : 'YouTube';
+            relinkBtn.innerHTML = '<span>&#x1F517;</span><span>Link to current ' + currentPlatform + ' tab: "' + tabTitle + '"</span>';
             relinkBtn.onclick = async () => {
                 connectedTabId = activeTab.id;
                 console.log('[YT Study] Re-linked to tab:', connectedTabId);
@@ -4853,8 +4876,10 @@ setTimeout(async () => {
                 }, 800);
             };
             relinkBtn.style.display = 'flex';
-            if (detachBanner && detachBanner.nextSibling !== relinkBtn) {
-                playerView.insertBefore(relinkBtn, detachBanner.nextSibling);
+            const previousBanner = document.getElementById('tab-detach-banner');
+            const expectedPrevious = previousBanner?.style.display !== 'none' ? previousBanner : navHeader;
+            if (expectedPrevious.nextSibling !== relinkBtn) {
+                expectedPrevious.insertAdjacentElement('afterend', relinkBtn);
             }
         } else if (relinkBtn) {
             relinkBtn.style.display = 'none';

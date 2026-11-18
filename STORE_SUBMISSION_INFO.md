@@ -6,17 +6,19 @@
 
 ### What's New (English)
 
-Library now separates Local Playlist and YouTube Playlist. Scan the open YouTube or YouTube Music playlist to save its name and link without copying its videos. Click a saved playlist to open its YouTube page.
+Library now supports Local Playlists and YouTube Playlists. Scan YouTube or YouTube Music playlists to save their names and links without copying their videos, then open them directly from Library. YouTube Music audio-only playback now keeps the song title and progress in sync. Improved tab switching, relinking, and Library navigation.
 
 ### What's New (繁體中文)
 
-Library 新增 Local Playlist 與 YouTube Playlist 分類。掃描目前開啟的 YouTube 或 YouTube Music 播放清單時，只儲存名稱與連結，不複製內部影片；點擊已儲存的清單即可開啟 YouTube 頁面。
+Library 現在支援 Local Playlist 與 YouTube Playlist。可掃描 YouTube 或 YouTube Music 播放清單，只儲存名稱與連結，不複製清單內的影片；點擊即可開啟原播放清單。YouTube Music 純音訊播放也能同步歌曲名稱與進度，並改善分頁切換、重新連結和 Library 導覽體驗。
 
 ### Release Notes for Store Review
 
-- Added separate Local Playlist and YouTube Playlist sections in Library.
-- Added playlist scanning that saves only playlist metadata, with no video import.
-- Saved playlists open their YouTube or YouTube Music page when clicked.
+- Added separate Local Playlist and YouTube Playlist sections, with scanning for YouTube and YouTube Music playlists.
+- Playlist scans save only playlist names and links; clicking a saved playlist opens its original page.
+- Improved YouTube Music audio-only track title and playback progress detection.
+- Improved YouTube/YouTube Music tab switching, relinking, and Library navigation.
+- Clarified Library actions with Import and Manage labels and compact playlist scan controls.
 
 ---
 

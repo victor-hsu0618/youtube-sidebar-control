@@ -4,6 +4,18 @@
 
 **YouTube Study Companion** 專案的所有重要更新紀錄。
 
+## [4.3] - 2026-11-18
+### 新增 (Added)
+- **YouTube 播放清單收藏**：Library 分成 Local Playlist 與 YouTube Playlist，可掃描 YouTube 和 YouTube Music 播放清單；只儲存清單名稱與連結，點擊後開啟原清單，不匯入清單內的影片。
+
+### 修復 (Fixed)
+- **YouTube Music 純音訊偵測**：播放純音訊時也能同步目前歌曲名稱、播放狀態與進度。
+
+### 改善 (Improved)
+- **分頁切換提示**：重新連結與切回提示會標示 YouTube 或 YouTube Music。
+- **Library 導覽**：切換 Player 與 Library 後保留上次的 Local 群組與瀏覽位置；播放清單掃描按鈕更精簡。
+- **操作名稱**：將匯入按鈕標示為 Import，群組管理齒輪改為 Manage。
+
 ## [3.2.0] - 2026-04-04
 ### 修復 (Fixed)
 - **A-B Loop 競態條件修正**：在側邊欄 UI 中實作了指令守衛 (Command Guard)，過濾使用者設定 A/B 點後立即傳回的重複同步訊息。這解決了因「自回音」UI 更新導致的顯示閃爍或循環點意外跳掉的問題。
