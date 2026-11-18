@@ -1,6 +1,6 @@
 [English](README.md) | [繁體中文](README.zh-TW.md)
 
-# YouTube Study Companion v4.2.2
+# YouTube Study Companion v4.3
 
 專業的 YouTube 播放控制與學習工具。將您的 YouTube 體驗轉變為強大的學習和筆記工作站。
 
@@ -31,7 +31,7 @@
 ### 1. 🎵 群組播放 (Group Play / Playlist Mode)
 - **連續播放**：自動按順序播放特定收藏群組中的所有影片，無需手動切換。
 - **視覺化模式指示**：當群組播放啟動時，介面會呈現專業的綠色光暈與狀態橫幅，顯示目前為「專注學期模式」。
-- **清單自動匯入**：一鍵偵測並匯入整個 YouTube 播放清單至您的收藏群組中。
+- **YouTube 播放清單庫**：掃描目前開啟的播放清單，只儲存清單名稱與連結；點擊即可在 YouTube 開啟，不複製內部影片。
 
 ### 2. ⚡ 零延遲互動架構
 - **混合同步技術**：結合 `chrome.storage.session` 與 `MutationObserver`，實現 <5ms 的 UI 回饋速度，操作更流暢。

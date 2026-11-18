@@ -434,6 +434,48 @@ function scrapePlaylistInfo() {
     };
 }
 
+function scrapePlaylistMetadata() {
+    const listId = new URLSearchParams(window.location.search).get('list');
+    if (!listId) return null;
+    const source = getPageSource();
+    const titleNode = source === 'music'
+        ? document.querySelector('ytmusic-detail-header-renderer .title, ytmusic-responsive-header-renderer .title, ytmusic-player-queue #header .title')
+        : document.querySelector('ytd-playlist-header-renderer h1, ytd-playlist-header-renderer #text, ytd-playlist-panel-renderer #title-container a, yt-dynamic-sizing-formatted-string#container');
+    const title = cleanPlaylistItemTitle(titleNode?.textContent) || getCleanPageTitle();
+    const host = source === 'music' ? 'music.youtube.com' : 'www.youtube.com';
+    return { listId, title: title || 'YouTube Playlist', source,
+        url: `https://${host}/playlist?list=${encodeURIComponent(listId)}` };
+}
+
+function scanYouTubePlaylistPage() {
+    const found = new Map();
+    const anchors = Array.from(document.querySelectorAll('a[href*="list="]'));
+    const source = getPageSource();
+    for (const anchor of anchors) {
+        let url;
+        try { url = new URL(anchor.href, window.location.href); } catch (_) { continue; }
+        const id = url.searchParams.get('list');
+        if (!id || /^(RD|UL|PU|TL)/.test(id)) continue;
+        const card = anchor.closest('ytd-grid-playlist-renderer, ytd-rich-item-renderer, ytd-playlist-renderer, ytd-compact-playlist-renderer, ytd-rich-grid-media, ytmusic-two-row-item-renderer, ytmusic-responsive-list-item-renderer') || anchor.parentElement || anchor;
+        const titleNode = card.querySelector('#video-title, #title, h3, yt-formatted-string, .title, .title-column') || anchor;
+        const title = (titleNode.getAttribute('title') || titleNode.getAttribute('aria-label') || titleNode.innerText || anchor.getAttribute('aria-label') || anchor.innerText || '').trim();
+        if (!title || found.has(id)) continue;
+        const countNode = card.querySelector('#video-count, ytd-thumbnail-overlay-bottom-panel-renderer, .video-count');
+        found.set(id, { id, title, source, videoCount: (countNode?.innerText || '').trim() });
+    }
+    const explicitTargets = [document.scrollingElement, document.querySelector('ytd-app #content'), document.querySelector('#content'), document.querySelector('ytd-page-manager'), document.querySelector('ytmusic-app #contents')].filter(Boolean);
+    const overflowTargets = Array.from(document.querySelectorAll('ytd-app, #content, ytd-page-manager, #primary, #contents, ytd-browse, ytd-rich-grid-renderer, ytmusic-app, ytmusic-app-layout, ytmusic-browse-response'));
+    const targets = [...new Set([...explicitTargets, ...overflowTargets])]
+        .filter(element => element.scrollHeight > element.clientHeight + 100)
+        .sort((a, b) => (b.scrollHeight - b.clientHeight) - (a.scrollHeight - a.clientHeight));
+    targets.forEach(target => {
+        target.scrollTop = Math.min(target.scrollHeight, target.scrollTop + Math.max(target.clientHeight * 0.85, 600));
+        target.dispatchEvent(new WheelEvent('wheel', { deltaY: Math.max(target.clientHeight * 0.85, 600), bubbles: true }));
+    });
+    window.scrollTo(0, document.documentElement.scrollHeight);
+    return Array.from(found.values());
+}
+
 let lastMetadataSentTime = 0;
 let lastMetadataVideoId = null;
 let lastMetadataTitle = null;
@@ -639,8 +681,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             console.log('[YT Study] Emergency video re-capture successful');
             init(); // Full re-init to ensure listeners are attached
         } else {
-            // Video still not found, but some actions (like SCRAPE_PLAYLIST) don't need it
-            if (msg.action !== 'SCRAPE_PLAYLIST') {
+            // Playlist metadata can be read from the page without a video player.
+            if (msg.action !== 'SCRAPE_PLAYLIST' && msg.action !== 'SCRAPE_PLAYLIST_META' && msg.action !== 'SCAN_YOUTUBE_PLAYLIST_PAGE' && msg.action !== 'GET_STATUS') {
                 sendResponse({ success: false, error: 'Video element not found' });
                 return true;
             }
@@ -761,6 +803,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             case 'SCRAPE_PLAYLIST':
                 const info = scrapePlaylistInfo();
                 sendResponse({ success: !!info, data: info });
+                break;
+            case 'SCRAPE_PLAYLIST_META':
+                const metadata = scrapePlaylistMetadata();
+                sendResponse({ success: !!metadata, data: metadata });
+                break;
+            case 'SCAN_YOUTUBE_PLAYLIST_PAGE':
+                sendResponse({ success: true, playlists: scanYouTubePlaylistPage() });
                 break;
             case 'GET_STATUS':
                 notifyStatus();

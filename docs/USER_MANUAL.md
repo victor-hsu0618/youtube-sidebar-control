@@ -131,16 +131,14 @@ Group Play allows you to treat All Videos or any Library Group as a sequential p
 1.  **Start Group Play**: Go to the **Library** tab, select **All Videos** or a custom group, and click **▶ Play All** or **▶ Play Group**.
 2.  **Navigation**: The interface transitions into "Playlist Mode" with a green header. Use the **Prev/Next** buttons (visible only in this mode) to switch videos.
 3.  **Automatic Next**: When a video ends, the next one in the group will load automatically.
-4.  **Integrated Scraper**:
-    *   Open a YouTube or YouTube Music playlist page. You can also use a YouTube Music watch page with a visible queue/list.
-    *   Go to **Library -> Manage Groups (Gear icon)**.
-    *   Click **Detect & Import YouTube Playlist**.
-    *   The extension will scrape visible titles/IDs and create a new group for you.
+4.  **YouTube Playlist Library**:
+    *   Open a YouTube or YouTube Music playlist page.
+    *   Go to **Library → YouTube Playlist** and click **Scan playlist**.
+    *   Confirm to save the playlist name and link. Click the saved playlist to open its page on YouTube. The extension does not copy its videos into the local Library.
 
 ### YouTube Music Notes
 *   Player controls, speed control, A-B Loop, markers, Library groups, and Group Play are supported on YouTube Music playback pages.
-*   Imported YouTube Music items are saved with their Music source, so later playback opens in YouTube Music.
-*   Playlist import reads the currently visible YouTube Music playlist or queue. If YouTube Music has not loaded all tracks yet, scroll the list first and run detection again.
+*   Saved YouTube Music playlists open on YouTube Music.
 
 ---
 

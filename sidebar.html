@@ -14,7 +14,7 @@
     <header class="compact-nav-bar">
       <div class="nav-controls">
         <div class="brand-assets">
-          <span id="app-version-badge" class="version-badge">v4.2.2</span>
+          <span id="app-version-badge" class="version-badge">v4.3</span>
           <div class="status-indicator" id="connection-status" title="Disconnected"></div>
         </div>
         <button id="nav-player" class="nav-btn active">Player</button>
@@ -371,7 +371,21 @@
             <input type="file" id="lib-file-import" accept=".json" hidden />
           </div>
         </div>
-        <div class="fav-group-bar" style="display:flex; gap:6px; align-items:center;">
+        <div class="library-source-tabs" role="tablist" aria-label="Library source">
+          <button id="tab-local-playlists" class="library-source-tab active" role="tab" aria-selected="true">Local Playlist</button>
+          <button id="tab-youtube-playlists" class="library-source-tab" role="tab" aria-selected="false">YouTube Playlist</button>
+        </div>
+        <div id="youtube-scan-bar" class="youtube-scan-bar" style="display:none;">
+          <div class="youtube-scan-copy">
+            <strong>YouTube Playlists</strong>
+            <span id="youtube-playlist-scan-message">Scanned playlists are saved on this device until you scan again.</span>
+          </div>
+          <div class="youtube-scan-actions">
+            <button id="btn-scan-youtube-playlist" class="secondary-btn" data-playlist-source="youtube" type="button">Scan YouTube</button>
+            <button id="btn-scan-music-playlist" class="secondary-btn" data-playlist-source="music" type="button">Scan Music</button>
+          </div>
+        </div>
+        <div id="local-playlist-controls" class="fav-group-bar" style="display:flex; gap:6px; align-items:center;">
           <select id="fav-group-selector" class="group-select compact-select" style="flex:1;">
             <option value="__all_videos__">All Videos</option>
             <option value="Default">Default</option>
@@ -406,7 +420,10 @@
         <div id="fav-sync-usage-container" class="storage-usage" title="Chrome Sync Storage Usage"
           style="margin-top: 8px; padding: 0 4px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2px;">
-            <span style="font-size: 9px; color: #666;">Cloud Space Status</span>
+            <span class="storage-usage-label">
+              <span>Cloud Space Status</span>
+              <a class="storage-help-link" href="https://developer.chrome.com/docs/extensions/reference/api/storage" target="_blank" rel="noopener noreferrer" title="Chrome Storage API documentation" aria-label="Open Chrome Storage API documentation">?</a>
+            </span>
             <div id="fav-sync-usage-text" class="storage-text" style="font-size: 9px;">0% Used</div>
           </div>
           <div class="storage-bar-bg" style="height: 3px;">
@@ -430,11 +447,6 @@
           <!-- Group items with delete/rename buttons -->
         </div>
 
-        <div style="padding-top:8px; border-top:1px solid #333; margin-top:4px;">
-          <button id="btn-manual-detect-playlist" class="secondary-btn"
-            style="width:100%; font-size:10px; padding:6px; border-color:var(--accent-color); color:var(--accent-color);">🔍
-            Detect & Import YouTube Playlist</button>
-        </div>
       </div>
 
       <div id="favorites-list">
@@ -563,7 +575,7 @@
   <div id="playlist-import-modal" class="modal-overlay" style="display:none;">
     <div class="modal-content" style="max-width: 300px;">
       <div class="modal-header">
-        <div class="modal-title">Import Playlist</div>
+        <div class="modal-title">Save YouTube Playlist</div>
         <button id="btn-close-playlist-modal"
           style="background:none; border:none; color:#888; cursor:pointer; font-size:18px;">×</button>
       </div>
@@ -573,17 +585,15 @@
             style="background:rgba(255,193,7,0.05); border:1px solid rgba(255,193,7,0.2); padding:10px; border-radius:8px;">
             <div id="playlist-modal-name" style="font-size:14px; font-weight:600; color:#fff; margin-bottom:4px;">
               Playlist Name</div>
-            <div id="playlist-modal-count" style="font-size:11px; color:var(--accent-color);">0 videos detected</div>
+            <div id="playlist-modal-count" style="font-size:11px; color:var(--accent-color); overflow-wrap:anywhere;">Playlist URL</div>
           </div>
-          <p style="font-size:12px; color:#aaa; line-height:1.5;">This will create a new Library Group and import all
-            videos from this playlist.</p>
+          <p style="font-size:12px; color:#aaa; line-height:1.5;">Save this playlist to your Library. Its videos will stay on YouTube and will not be copied into the local Library.</p>
         </div>
       </div>
       <div class="modal-footer" style="display:flex; gap:8px;">
         <button id="btn-cancel-playlist-import" class="secondary-btn"
           style="flex:1; padding:8px; font-size:12px;">Cancel</button>
-        <button id="btn-confirm-playlist-import" class="action-btn" style="flex:2; padding:8px; font-size:12px;">Import
-          Now</button>
+        <button id="btn-confirm-playlist-import" class="action-btn" style="flex:2; padding:8px; font-size:12px;">Save Playlist</button>
       </div>
     </div>
   </div>

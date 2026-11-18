@@ -244,6 +244,14 @@ try {
     let lastActiveLiTime = -1; // Track which marker is currently active to avoid redundant scroll/updates
     let lastCommandSentTime = 0; // Guard for speculative UI updates
     let favoriteGroupsList = ["Default"];
+    let pinnedLocalPlaylistIDs = [];
+    let youtubePlaylists = {};
+    let pinnedYouTubePlaylistIDs = [];
+    let isScanningYouTubePlaylists = false;
+    let activeYouTubePlaylistScanSource = 'youtube';
+    let youtubePlaylistScanCancelled = false;
+    let youtubePlaylistScanTabId = null;
+    let librarySource = 'local';
     let currentFavGroup = ALL_VIDEOS_GROUP;
     let isLibraryEditMode = false;
     let favoriteGroupOrders = {}; // Cache for custom orders
@@ -805,10 +813,27 @@ setTimeout(async () => {
 
     // --- Library Groups Logic ---
     async function initFavGroups() {
-        const localStatus = await chrome.storage.local.get('device_initialized');
+        const localStatus = await chrome.storage.local.get(['device_initialized', 'pinned_local_playlists']);
         const isDeviceInitialized = localStatus.device_initialized;
+        pinnedLocalPlaylistIDs = localStatus.pinned_local_playlists || [];
 
-        const data = await chrome.storage.sync.get('favorite_groups');
+        const [data, localPlaylistData] = await Promise.all([
+            chrome.storage.sync.get('favorite_groups'),
+            chrome.storage.local.get(['youtube_playlists_cache', 'youtube_playlists_pinned'])
+        ]);
+        const playlistCache = localPlaylistData.youtube_playlists_cache || {};
+        youtubePlaylists = Object.entries(playlistCache).reduce((normalized, [key, item]) => {
+            const id = item?.id || item?.listId || key.split(':').pop();
+            const source = item?.source || (key.startsWith('music:') ? 'music' : 'youtube');
+            if (id) {
+                const previous = normalized[id];
+                if (!previous || (item?.scannedAt || 0) >= (previous.scannedAt || 0)) {
+                    normalized[id] = { ...item, id, source };
+                }
+            }
+            return normalized;
+        }, {});
+        pinnedYouTubePlaylistIDs = (localPlaylistData.youtube_playlists_pinned || []).map(id => String(id).split(':').pop());
         if (data.favorite_groups && Array.isArray(data.favorite_groups) && data.favorite_groups.length > 0) {
             favoriteGroupsList = data.favorite_groups;
             if (!isDeviceInitialized) await chrome.storage.local.set({ 'device_initialized': true });
@@ -886,10 +911,16 @@ setTimeout(async () => {
         allOpt.textContent = ALL_VIDEOS_LABEL;
         selector.appendChild(allOpt);
 
-        favoriteGroupsList.forEach(g => {
+        const sortedGroups = [...favoriteGroupsList].sort((a, b) => {
+            const pinA = pinnedLocalPlaylistIDs.includes(a);
+            const pinB = pinnedLocalPlaylistIDs.includes(b);
+            if (pinA !== pinB) return pinA ? -1 : 1;
+            return favoriteGroupsList.indexOf(a) - favoriteGroupsList.indexOf(b);
+        });
+        sortedGroups.forEach(entry => {
             const opt = document.createElement('option');
-            opt.value = g;
-            opt.textContent = g;
+            opt.value = entry;
+            opt.textContent = entry;
             selector.appendChild(opt);
         });
         if (currentVal === ALL_VIDEOS_GROUP || favoriteGroupsList.includes(currentVal)) {
@@ -931,6 +962,9 @@ setTimeout(async () => {
                     <span style="font-weight:500;">${g}</span>
                 </div>
                 <div style="display:flex; gap:8px;">
+                    <button class="pin-group-btn" title="${pinnedLocalPlaylistIDs.includes(g) ? 'Unpin Playlist' : 'Pin Playlist'}"
+                        aria-label="${pinnedLocalPlaylistIDs.includes(g) ? 'Unpin Playlist' : 'Pin Playlist'}"
+                        style="background:none; border:none; color:${pinnedLocalPlaylistIDs.includes(g) ? '#f1c40f' : '#888'}; cursor:pointer; font-size:12px; padding:0;">${pinnedLocalPlaylistIDs.includes(g) ? '📌' : '♧'}</button>
                     <button class="rename-group-btn" style="background:none; border:none; color:var(--accent-color); cursor:pointer; font-size:10px; padding:0;">Rename</button>
                     ${g !== 'Default' ? '<button class="delete-group-btn" style="background:none; border:none; color:var(--danger-color); cursor:pointer; font-size:10px; padding:0;">Delete</button>' : ''}
                 </div>
@@ -954,6 +988,14 @@ setTimeout(async () => {
             indexInput.onclick = (e) => e.stopPropagation();
 
             div.querySelector('.rename-group-btn').onclick = (e) => { e.stopPropagation(); renameFavGroup(g); };
+            div.querySelector('.pin-group-btn').onclick = async (e) => {
+                e.stopPropagation();
+                pinnedLocalPlaylistIDs = pinnedLocalPlaylistIDs.includes(g)
+                    ? pinnedLocalPlaylistIDs.filter(name => name !== g)
+                    : [...pinnedLocalPlaylistIDs, g];
+                await chrome.storage.local.set({ pinned_local_playlists: pinnedLocalPlaylistIDs });
+                updateFavGroupUI();
+            };
             if (g !== 'Default') {
                 div.querySelector('.delete-group-btn').onclick = (e) => { e.stopPropagation(); deleteFavGroup(g); };
             }
@@ -998,6 +1040,8 @@ setTimeout(async () => {
             `Delete favorite group "${name}"? Videos will remain but won't be in this group.`,
             async () => {
                 favoriteGroupsList = favoriteGroupsList.filter(g => g !== name);
+                pinnedLocalPlaylistIDs = pinnedLocalPlaylistIDs.filter(g => g !== name);
+                await chrome.storage.local.set({ pinned_local_playlists: pinnedLocalPlaylistIDs });
                 await safeSyncSet({ 'favorite_groups': favoriteGroupsList }, 'Delete library group');
 
                 // Update all videos that had this group
@@ -1027,6 +1071,8 @@ setTimeout(async () => {
 
         // Update list
         favoriteGroupsList = favoriteGroupsList.map(g => g === oldName ? trimmedNewName : g);
+        pinnedLocalPlaylistIDs = pinnedLocalPlaylistIDs.map(g => g === oldName ? trimmedNewName : g);
+        await chrome.storage.local.set({ pinned_local_playlists: pinnedLocalPlaylistIDs });
         await safeSyncSet({ 'favorite_groups': favoriteGroupsList }, 'Rename library group');
 
         // Update all videos that had this group
@@ -1171,9 +1217,20 @@ setTimeout(async () => {
         const requestedView = viewName;
         if (viewName === 'library') {
             viewName = 'favorites';
+            librarySource = 'local';
             currentFavGroup = ALL_VIDEOS_GROUP;
             const selector = document.getElementById('fav-group-selector');
             if (selector) selector.value = ALL_VIDEOS_GROUP;
+            document.getElementById('tab-local-playlists')?.classList.add('active');
+            document.getElementById('tab-youtube-playlists')?.classList.remove('active');
+            document.getElementById('tab-local-playlists')?.setAttribute('aria-selected', 'true');
+            document.getElementById('tab-youtube-playlists')?.setAttribute('aria-selected', 'false');
+            document.getElementById('youtube-scan-bar').style.display = 'none';
+            document.getElementById('local-playlist-controls').style.display = 'flex';
+            document.getElementById('btn-fav-toggle-edit').style.display = '';
+            document.getElementById('lib-btn-import').style.display = '';
+            document.getElementById('fav-sync-usage-container').style.display = '';
+            document.getElementById('btn-manage-fav-groups').style.display = '';
         }
 
         Object.keys(views).forEach(k => {
@@ -1434,8 +1491,13 @@ setTimeout(async () => {
                 await new Promise(r => setTimeout(r, delay));
                 return sendMessage(action, payload, retryCount + 1);
             }
-            statusIndicator.classList.remove('connected');
-            connectedTabId = null;
+            if (action !== 'GET_STATUS') {
+                statusIndicator.classList.remove('connected');
+                connectedTabId = null;
+            } else if (connectedTabId) {
+                statusIndicator.classList.add('connected');
+                statusIndicator.title = 'Connected to YouTube tab (waiting for page)';
+            }
             throw error;
         }
     }
@@ -1808,6 +1870,29 @@ setTimeout(async () => {
     libFileImport?.addEventListener('change', importVideoData);
 
     // --- Library Groups Listeners ---
+    function setLibrarySource(source) {
+        if (source === 'youtube' && isLibraryEditMode) toggleEditMode();
+        librarySource = source;
+        currentFavGroup = ALL_VIDEOS_GROUP;
+        document.getElementById('tab-local-playlists')?.classList.toggle('active', source === 'local');
+        document.getElementById('tab-youtube-playlists')?.classList.toggle('active', source === 'youtube');
+        document.getElementById('tab-local-playlists')?.setAttribute('aria-selected', String(source === 'local'));
+        document.getElementById('tab-youtube-playlists')?.setAttribute('aria-selected', String(source === 'youtube'));
+        document.getElementById('youtube-scan-bar').style.display = source === 'youtube' ? 'flex' : 'none';
+        document.getElementById('local-playlist-controls').style.display = source === 'local' ? 'flex' : 'none';
+        document.getElementById('btn-fav-toggle-edit').style.display = source === 'local' ? '' : 'none';
+        document.getElementById('lib-btn-import').style.display = source === 'local' ? '' : 'none';
+        document.getElementById('fav-sync-usage-container').style.display = source === 'local' ? '' : 'none';
+        document.getElementById('fav-batch-actions').style.display = 'none';
+        document.getElementById('btn-manage-fav-groups').style.display = source === 'local' ? '' : 'none';
+        document.getElementById('fav-group-mgmt').style.display = 'none';
+        updateFavGroupUI();
+        document.getElementById('fav-group-selector').value = ALL_VIDEOS_GROUP;
+        updateCollectionControls();
+        loadFavorites();
+    }
+    document.getElementById('tab-local-playlists')?.addEventListener('click', () => setLibrarySource('local'));
+    document.getElementById('tab-youtube-playlists')?.addEventListener('click', () => setLibrarySource('youtube'));
     document.getElementById('btn-manage-fav-groups')?.addEventListener('click', () => {
         const mgmt = document.getElementById('fav-group-mgmt');
         if (mgmt) mgmt.style.display = (mgmt.style.display === 'none' ? 'block' : 'none');
@@ -1848,39 +1933,122 @@ setTimeout(async () => {
         togglePlaylist();
     });
 
-    document.getElementById('btn-manual-detect-playlist')?.addEventListener('click', async () => {
-        const btn = document.getElementById('btn-manual-detect-playlist');
-        const origText = btn.textContent;
-        btn.textContent = 'Searching...';
-        btn.disabled = true;
-
-        try {
-            // Force refresh connectedTabId to currently active tab for detection
-            const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-            if (tabs[0]) connectedTabId = tabs[0].id;
-
-            const response = await sendMessage('SCRAPE_PLAYLIST');
-            if (response && response.success && response.data) {
-                const playlist = response.data;
-                showPlaylistImportModal(playlist, async () => {
-                    btn.textContent = 'Importing...';
-                    await importPlaylistToGroup(playlist);
-                    btn.textContent = 'Import Done!';
-                    setTimeout(() => { btn.textContent = origText; }, 2000);
-                }, () => {
-                    btn.textContent = origText;
-                });
-            } else {
-                alert('No YouTube Playlist found on this page. Please make sure you are on a playlist page or a video with a playlist.');
-                btn.textContent = origText;
-            }
-        } catch (e) {
-            console.error(e);
-            btn.textContent = origText;
-        } finally {
-            btn.disabled = false;
+    const startOrCancelPlaylistScan = source => {
+        if (isScanningYouTubePlaylists) {
+            youtubePlaylistScanCancelled = true;
+            document.getElementById('youtube-playlist-scan-message').textContent = 'Cancelling playlist scan…';
+            return;
         }
-    });
+        scanYouTubePlaylists(source);
+    };
+    document.getElementById('btn-scan-youtube-playlist')?.addEventListener('click', () => startOrCancelPlaylistScan('youtube'));
+    document.getElementById('btn-scan-music-playlist')?.addEventListener('click', () => startOrCancelPlaylistScan('music'));
+
+    function updateYouTubeScanControls(message = '') {
+        const messageEl = document.getElementById('youtube-playlist-scan-message');
+        if (!messageEl) return;
+        [
+            ['btn-scan-youtube-playlist', 'YouTube', 'youtube'],
+            ['btn-scan-music-playlist', 'Music', 'music']
+        ].forEach(([id, label, source]) => {
+            const button = document.getElementById(id);
+            if (!button) return;
+            const hasResults = Object.values(youtubePlaylists).some(item => (item.source || 'youtube') === source);
+            button.textContent = isScanningYouTubePlaylists && activeYouTubePlaylistScanSource === source
+                ? 'Cancel'
+                : `${hasResults ? 'Re-scan' : 'Scan'} ${label}`;
+            button.disabled = isScanningYouTubePlaylists && activeYouTubePlaylistScanSource !== source;
+            button.classList.toggle('scanning', isScanningYouTubePlaylists && activeYouTubePlaylistScanSource === source);
+        });
+        messageEl.textContent = message || (isScanningYouTubePlaylists
+            ? `Scanning ${activeYouTubePlaylistScanSource === 'music' ? 'YouTube Music' : 'YouTube'}…`
+            : 'Results stay on this device until the next scan. The current tab returns when scanning ends.');
+    }
+
+    const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+    async function scanYouTubePlaylists(source = 'youtube') {
+        isScanningYouTubePlaylists = true;
+        activeYouTubePlaylistScanSource = source;
+        youtubePlaylistScanCancelled = false;
+        updateYouTubeScanControls();
+        const found = new Map();
+        let scanTab;
+        let originalScanUrl = null;
+        try {
+            const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            if (!activeTab?.id || !isYouTubeUrl(activeTab.url)) {
+                throw new Error('Open YouTube in the current tab before scanning playlists.');
+            }
+            scanTab = activeTab;
+            originalScanUrl = activeTab.url;
+            youtubePlaylistScanTabId = scanTab.id;
+            const scanUrl = source === 'music'
+                ? 'https://music.youtube.com/library/playlists'
+                : 'https://www.youtube.com/feed/playlists';
+            if (!activeTab.url?.startsWith(scanUrl)) {
+                await chrome.tabs.update(scanTab.id, { url: scanUrl });
+            }
+            await new Promise((resolve, reject) => {
+                const timeout = setTimeout(() => reject(new Error('YouTube page load timed out')), 20000);
+                chrome.tabs.get(scanTab.id, tab => {
+                    if (tab?.status === 'complete') {
+                        clearTimeout(timeout);
+                        resolve();
+                    }
+                });
+                const listener = (tabId, changeInfo) => {
+                    if (tabId === scanTab.id && changeInfo.status === 'complete') {
+                        clearTimeout(timeout);
+                        chrome.tabs.onUpdated.removeListener(listener);
+                        resolve();
+                    }
+                };
+                chrome.tabs.onUpdated.addListener(listener);
+            });
+            // Keep collecting while the feed lazy-loads more rows; users can cancel at any time.
+            for (let pass = 0; pass < 30 && !youtubePlaylistScanCancelled; pass++) {
+                let response;
+                try {
+                    response = await chrome.tabs.sendMessage(scanTab.id, { action: 'SCAN_YOUTUBE_PLAYLIST_PAGE' });
+                } catch (error) {
+                    await wait(700);
+                    pass--;
+                    continue;
+                }
+                (response?.playlists || []).forEach(item => found.set(item.id, item));
+                document.getElementById('youtube-playlist-scan-message').textContent = `Scanning YouTube… ${found.size} playlists found (${pass + 1}/30)`;
+                if (pass < 29) await wait(800);
+            }
+            if (!youtubePlaylistScanCancelled) {
+                const next = { ...youtubePlaylists };
+                for (const [id, item] of found.entries()) {
+                    next[id] = { ...item, scannedAt: Date.now() };
+                }
+                youtubePlaylists = next;
+                await chrome.storage.local.set({ youtube_playlists_cache: next });
+                renderYoutubePlaylists(document.getElementById('favorites-list'));
+                updateYouTubeScanControls(found.size ? `Found ${found.size} playlists.` : 'No playlists found. Sign in to YouTube, then scan again.');
+            } else {
+                updateYouTubeScanControls('Playlist scan cancelled.');
+            }
+        } catch (error) {
+            console.error('[YT Study] Playlist scan failed:', error);
+            updateYouTubeScanControls(error.message.includes('current tab')
+                ? 'Open YouTube in this tab, then scan again.'
+                : 'Could not scan playlists. Sign in to YouTube and try again.');
+        } finally {
+            if (scanTab?.id && originalScanUrl && scanTab.url !== originalScanUrl) {
+                await chrome.tabs.update(scanTab.id, { url: originalScanUrl }).catch(() => null);
+            }
+            youtubePlaylistScanTabId = null;
+            isScanningYouTubePlaylists = false;
+            updateYouTubeScanControls();
+            if (scanTab?.id && isYouTubeVideoUrl(originalScanUrl)) {
+                establishConnection(false);
+            }
+        }
+    }
 
     /**
      * Shows a custom modal for playlist import confirmation
@@ -1896,7 +2064,7 @@ setTimeout(async () => {
         if (!modal || !nameEl || !countEl) return;
 
         nameEl.textContent = playlist.title;
-        countEl.textContent = `${playlist.videoCount} videos detected`;
+        countEl.textContent = playlist.url;
 
         const closeModal = () => {
             modal.style.display = 'none';
@@ -1907,8 +2075,10 @@ setTimeout(async () => {
             if (onConfirm) onConfirm();
         };
 
-        closeBtn.onclick = closeModal;
-        modal.onclick = (e) => { if (e.target === modal) closeModal(); };
+        const cancel = () => { closeModal(); if (onCancel) onCancel(); };
+        cancelBtn.onclick = cancel;
+        closeBtn.onclick = cancel;
+        modal.onclick = (e) => { if (e.target === modal) cancel(); };
 
         modal.style.display = 'flex';
     }
@@ -1948,68 +2118,6 @@ setTimeout(async () => {
         modal.onclick = (e) => { if (e.target === modal) closeModal(); };
 
         modal.style.display = 'flex';
-    }
-
-    async function importPlaylistToGroup(playlist) {
-        // 1. Create/Find Group
-        let groupName = playlist.title;
-        if (!favoriteGroupsList.includes(groupName)) {
-            favoriteGroupsList.push(groupName);
-            await safeSyncSet({ 'favorite_groups': favoriteGroupsList }, 'Import playlist group');
-        }
-        updateFavGroupUI();
-
-        // 2. Import Videos
-        const all = await chrome.storage.sync.get(null);
-        const updates = {};
-        const newOrder = [];
-
-        for (const v of playlist.videos) {
-            const videoKey = `v_${v.id}_${Date.now()}`;
-            const source = v.source || playlist.source || 'youtube';
-            // Check if already exists (simplistic check by ID)
-            let existingKey = Object.keys(all).find(k => isStorageKeyForVideo(k, v.id) && all[k].isSaved);
-
-            if (existingKey) {
-                const existing = all[existingKey];
-                if (!existing.source) existing.source = source;
-                if (!existing.favoriteGroups) existing.favoriteGroups = [];
-                if (!existing.favoriteGroups.includes(groupName)) {
-                    existing.favoriteGroups.push(groupName);
-                }
-                updates[existingKey] = existing;
-                newOrder.push(existingKey);
-            } else {
-                const newData = createEmptyData(v.id, v.title);
-                newData.thumbnail = v.thumbnail;
-                newData.source = source;
-                newData.isSaved = true;
-                newData.favoriteGroups = [groupName];
-                newData.createdAt = Date.now();
-                newData.updatedAt = Date.now();
-                updates[videoKey] = newData;
-                newOrder.push(videoKey);
-                // Also update local 'all' to avoid duplicates in same import
-                all[videoKey] = newData;
-            }
-        }
-
-        // 3. Save Order
-        favoriteGroupOrders[groupName] = newOrder;
-        updates['favorite_group_orders'] = favoriteGroupOrders;
-
-        await safeSyncSet(updates, 'Import playlist videos');
-
-        // Switch to the new group
-        const selector = document.getElementById('fav-group-selector');
-        if (selector) {
-            selector.value = groupName;
-            currentFavGroup = groupName;
-            switchView('favorites');
-            loadFavorites();
-        }
-
-        log(`Imported ${playlist.videoCount} videos to "${groupName}"`, "success");
     }
 
     async function showFavGroupPicker(videoKey) {
@@ -2471,6 +2579,9 @@ setTimeout(async () => {
             currentStorageKey = `v_${currentVideoId}_${Date.now()}`;
             currentVideoData.isSaved = true;
             currentVideoData.createdAt = Date.now();
+            if (!Array.isArray(currentVideoData.favoriteGroups) || currentVideoData.favoriteGroups.length === 0) {
+                currentVideoData.favoriteGroups = ['Default'];
+            }
         }
 
         currentVideoData.id = currentVideoId;
@@ -3122,12 +3233,99 @@ setTimeout(async () => {
     }
 
     // --- Favorites Logic ---
+    function renderYoutubePlaylists(container) {
+        container.innerHTML = '';
+        container.classList.remove('edit-mode');
+        const playlists = Object.entries(youtubePlaylists).sort(([idA, a], [idB, b]) => {
+            const pinA = pinnedYouTubePlaylistIDs.includes(idA);
+            const pinB = pinnedYouTubePlaylistIDs.includes(idB);
+            if (pinA !== pinB) return pinA ? -1 : 1;
+            return (a.title || '').localeCompare(b.title || '');
+        });
+        if (!playlists.length) {
+            container.innerHTML = '<p class="playlist-empty">No cached playlists. Choose Scan to load playlists from your signed-in YouTube account.</p>';
+            return;
+        }
+        playlists.forEach(([key, playlist]) => {
+            const card = document.createElement('div');
+            card.className = 'youtube-playlist-card';
+            const open = document.createElement('button');
+            open.className = 'youtube-playlist-open';
+            open.type = 'button';
+            const title = document.createElement('span');
+            title.className = 'youtube-playlist-title';
+            title.textContent = playlist.title || 'YouTube Playlist';
+            const detail = document.createElement('span');
+            detail.className = 'youtube-playlist-detail';
+            detail.textContent = `${playlist.source === 'music' ? 'YouTube Music' : 'YouTube'}${playlist.videoCount ? ` · ${playlist.videoCount}` : ''}`;
+            open.append(title, detail);
+            open.addEventListener('click', async () => {
+                const host = playlist.source === 'music' ? 'music.youtube.com' : 'www.youtube.com';
+                const url = `https://${host}/playlist?list=${encodeURIComponent(playlist.id)}`;
+                try {
+                    const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+                    let targetTab = activeTab;
+                    if (!targetTab && connectedTabId) targetTab = await chrome.tabs.get(connectedTabId).catch(() => null);
+                    if (!targetTab) {
+                        const existingTabs = await chrome.tabs.query({ url: YOUTUBE_VIDEO_QUERY_URLS });
+                        targetTab = existingTabs.find(tab => tab.active) || existingTabs[0];
+                    }
+                    if (targetTab?.id) {
+                        connectedTabId = targetTab.id;
+                        lastTabValidationTime = 0;
+                        if (statusIndicator) {
+                            statusIndicator.classList.add('connected');
+                            statusIndicator.title = 'Connected to YouTube tab';
+                        }
+                        await chrome.tabs.update(targetTab.id, { url, active: true });
+                    }
+                } catch (error) {
+                    console.error('[YT Study] Could not open YouTube playlist:', error);
+                }
+            });
+            const pin = document.createElement('button');
+            pin.className = `youtube-playlist-pin${pinnedYouTubePlaylistIDs.includes(key) ? ' pinned' : ''}`;
+            pin.type = 'button';
+            pin.title = pinnedYouTubePlaylistIDs.includes(key) ? 'Unpin Playlist' : 'Pin Playlist';
+            pin.setAttribute('aria-label', pin.title);
+            pin.textContent = pinnedYouTubePlaylistIDs.includes(key) ? '📌' : '♧';
+            pin.addEventListener('click', async () => {
+                pinnedYouTubePlaylistIDs = pinnedYouTubePlaylistIDs.includes(key)
+                    ? pinnedYouTubePlaylistIDs.filter(id => id !== key)
+                    : [...pinnedYouTubePlaylistIDs, key];
+                await chrome.storage.local.set({ youtube_playlists_pinned: pinnedYouTubePlaylistIDs });
+                renderYoutubePlaylists(container);
+            });
+            const remove = document.createElement('button');
+            remove.className = 'youtube-playlist-remove';
+            remove.type = 'button';
+            remove.title = 'Remove from Library';
+            remove.setAttribute('aria-label', `Remove ${playlist.title} from Library`);
+            remove.textContent = '×';
+            remove.addEventListener('click', () => showConfirmModal('Remove Playlist',
+                `Remove "${playlist.title}" from your Library?`, async () => {
+                    const nextPlaylists = { ...youtubePlaylists };
+                    delete nextPlaylists[key];
+                    youtubePlaylists = nextPlaylists;
+                    await chrome.storage.local.set({ youtube_playlists_cache: nextPlaylists });
+                    renderYoutubePlaylists(container);
+                }, null, 'Remove'));
+            card.append(open, pin, remove);
+            container.appendChild(card);
+        });
+    }
+
     async function loadFavorites() {
         const container = document.getElementById('favorites-list');
         if (!container) return;
+        if (librarySource === 'youtube') {
+            renderYoutubePlaylists(container);
+            return;
+        }
         container.innerHTML = 'Loading...';
 
         const storageData = await chrome.storage.sync.get(null);
+        if (librarySource !== 'local') return;
         favoriteGroupOrders = storageData.favorite_group_orders || {};
 
         let items = [];
@@ -3190,6 +3388,7 @@ setTimeout(async () => {
         // Update memory cache and persist to storage for subsequent reorders
         favoriteGroupOrders[activeGroup] = syncedOrder;
         await safeSyncSet({ 'favorite_group_orders': favoriteGroupOrders }, 'Save group order');
+        if (librarySource !== 'local') return;
 
         browsedGroupItems = items; // Cache for starting a playlist
         renderList(container, items);
@@ -4272,6 +4471,7 @@ setTimeout(async () => {
     let connectedTabNavigationRefreshTimeout = null;
     chrome.tabs.onUpdated.addListener((id, info, tab) => {
         if (id !== connectedTabId) return;
+        if (isScanningYouTubePlaylists && id === youtubePlaylistScanTabId) return;
 
         const nextUrl = info.url || tab?.url || '';
         if (nextUrl && !isYouTubeVideoUrl(nextUrl)) {
@@ -4290,7 +4490,7 @@ setTimeout(async () => {
                 } catch (e) {
                     console.log('[YT Study] Navigation status refresh skipped:', e.message);
                 }
-            }, 250);
+            }, 1000);
         }
     });
 

@@ -1,6 +1,6 @@
 [English](README.md) | [繁體中文](README.zh-TW.md)
 
-# YouTube Study Companion v4.2.2
+# YouTube Study Companion v4.3
 
 Professional YouTube playback control and learning tool. Transform your YouTube experience into a powerful learning and notetaking workstation.
 
@@ -31,7 +31,7 @@ This project is a browser extension, currently supporting Chrome and Edge browse
 ### 1. 🎵 Group Play (Playlist Mode)
 - **Sequential Playback**: Automatically play all videos within a Favorite Group in order.
 - **Visual Mode Indicator**: Professional green glow and status banner when Group Play is active.
-- **Playlist Scraper**: One-click to detect and import entire YouTube playlists into your favorite groups.
+- **YouTube Playlist Library**: Scan the current playlist page and save its name and link. Open it on YouTube with one click; videos are not copied into the local Library.
 
 ### 2. ⚡ Zero-Latency Interaction
 - **Hybrid Architecture**: Uses `chrome.storage.session` and `MutationObserver` for instant UI feedback (<5ms).

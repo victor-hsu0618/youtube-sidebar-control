@@ -2,24 +2,21 @@
 
 這份文件整理了上架 Chrome Web Store 時需要填寫的各項資訊，請直接複製貼上或參考使用。
 
-## Current Release: v4.2.2
+## Current Release: v4.3
 
 ### What's New (English)
 
-Improved tab connection reliability and navigation handling. YouTube and YouTube Music titles now update more accurately when switching videos, reconnecting tabs, or recovering from a closed controlled tab. Added clearer connection controls, including Focus and Lock Current Tab, and reduced unnecessary sync prompts. The store build also keeps Supabase cloud-sync UI disabled while retaining Chrome Sync and local backup features.
+Library now separates Local Playlist and YouTube Playlist. Scan the open YouTube or YouTube Music playlist to save its name and link without copying its videos. Click a saved playlist to open its YouTube page.
 
 ### What's New (繁體中文)
 
-提升分頁連線穩定性與影片切換處理。切換 YouTube／YouTube Music 影片、重新連結分頁或關閉受控分頁後，影片標題與連線狀態會更準確地更新。新增「聚焦受控分頁」與「鎖定目前分頁」控制項，並減少不必要的同步提示。上架版本暫不開放 Supabase 雲端同步介面，Chrome Sync 與本機備份功能仍可正常使用。
+Library 新增 Local Playlist 與 YouTube Playlist 分類。掃描目前開啟的 YouTube 或 YouTube Music 播放清單時，只儲存名稱與連結，不複製內部影片；點擊已儲存的清單即可開啟 YouTube 頁面。
 
 ### Release Notes for Store Review
 
-- Improved sidebar-to-tab connection and reconnection behavior.
-- Fixed stale video titles during YouTube and YouTube Music navigation.
-- Added Focus Controlled Tab and Lock Current Tab controls.
-- Improved handling when a controlled tab is closed or detached.
-- Reduced unnecessary sync prompts and improved local/cloud freshness checks.
-- Store build uses Chrome Sync and local JSON backups; Supabase cloud-sync UI is disabled.
+- Added separate Local Playlist and YouTube Playlist sections in Library.
+- Added playlist scanning that saves only playlist metadata, with no video import.
+- Saved playlists open their YouTube or YouTube Music page when clicked.
 
 ---
 
@@ -180,7 +177,7 @@ Google 會要求解釋為什麼需要以下權限，請參考以下寫法：
 ## 5. 上架流程檢查清單
 
 1.  [ ] 備份金鑰：確認 `manifest.json` 沒有包含 `key` (如果是新發佈)，或者包含固定的 `key` (如果是更新)。(您目前的 `package-store.sh` 已經處理了這點)。
-2.  [ ] 打包：執行 `./package-store.sh` 產生 `YouTubeStudyCompanion_v4.2.2_Chrome.zip`。
+2.  [ ] 打包：執行 `./package-store.sh` 產生 `YouTubeStudyCompanion_v4.3_Chrome.zip`。
 3.  [ ] 上傳：將 ZIP 檔上傳至 Chrome Developer Dashboard。
 4.  [ ] 填寫：填入上述 Store Listing 資訊。
 5.  [ ] 圖片：上傳 Icon, Screenshots, Promo Tiles。

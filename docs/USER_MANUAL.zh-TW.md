@@ -130,16 +130,14 @@ YouTube Study Companion 現在支援雲端帳號綁定。
 1.  **啟動群組播放**：進入 **Library** 分頁，選擇 **All Videos** 或自訂群組後，點擊 **▶ Play All** 或 **▶ Play Group**。
 2.  **介面變更**：播放器會進入「播放清單模式」，頂部顯示綠色橫幅。此時會出現 **上一步/下一步** 按鈕（僅在此模式下顯示）供您切換影片。
 3.  **自動下一首**：當一部影片結束時，系統會自動加載該群組中的下一部影片。
-4.  **整合式清單匯入**：
-    *   開啟任一 YouTube 或 YouTube Music 播放清單網頁。也可以在有顯示佇列/清單的 YouTube Music 播放頁使用。
-    *   進入 **Library -> 管理群組 (齒輪圖示)**。
-    *   點擊 **偵測並匯入 YouTube 播放清單**。
-    *   系統會自動擷取目前可見的標題與 ID，為您建立一個全新的收藏群組。
+4.  **YouTube Playlist**：
+    *   開啟任一 YouTube 或 YouTube Music 播放清單頁面。
+    *   進入 **Library → YouTube Playlist**，點擊 **Scan playlist**。
+    *   確認後只儲存清單名稱與連結。點擊已儲存的清單會在 YouTube 開啟，不會複製內部影片至 Local Playlist。
 
 ### YouTube Music 注意事項
 *   在 YouTube Music 播放頁中，播放控制、速度控制、A-B 循環、標記、Library 群組與群組播放皆可使用。
-*   從 YouTube Music 匯入的項目會保存 Music 來源，之後播放時會開回 YouTube Music。
-*   播放清單匯入會讀取目前畫面上已載入的 YouTube Music 清單或佇列。如果 YouTube Music 尚未載入全部曲目，請先捲動清單再重新偵測。
+*   儲存的 YouTube Music 播放清單會在 YouTube Music 開啟。
 
 ---
 
