@@ -14,6 +14,7 @@ FILES_TO_ZIP=(
   "manifest.json"
   "background.js"
   "content.js"
+  "youtube-music-bridge.js"
   "sidebar.js"
   "sidebar.html"
   "sidebar.css"

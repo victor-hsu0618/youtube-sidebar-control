@@ -29,6 +29,16 @@
   "content_scripts": [
     {
       "matches": [
+        "*://music.youtube.com/*"
+      ],
+      "js": [
+        "youtube-music-bridge.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
         "*://music.youtube.com/*",
         "*://*.youtube.com/*"
       ],
